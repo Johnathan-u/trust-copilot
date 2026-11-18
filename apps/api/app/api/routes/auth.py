@@ -6,6 +6,7 @@ import hashlib
 import json
 import logging
 import secrets
+import threading
 import time
 from datetime import datetime, timedelta, timezone
 from urllib.parse import urlsplit
@@ -34,7 +35,7 @@ from app.core.auth_deps import (  # noqa: E402
     workspace_session_max_age_seconds,
 )
 from app.core.config import get_settings  # noqa: E402
-from app.core.database import get_db  # noqa: E402
+from app.core.database import SessionLocal, get_db  # noqa: E402
 from app.core.keys import KeyErrorSafe, MfaReenrolRequired  # noqa: E402
 from app.core.mfa import (  # noqa: E402
     decrypt_mfa_for_user,
@@ -291,29 +292,16 @@ def _mark_email_verified(db: Session, user: User) -> None:
     persist_audit(db, "auth.email_verified", user_id=user.id, email=user.email)
 
 
-def _issue_verification(db: Session, user: User, email: str) -> None:
-    """Mail a 6-digit code and a separate high-entropy link bound to this user."""
-    now = datetime.now(timezone.utc)
+def _issue_verification(_db: Session, user: User, email: str) -> None:
+    """Queue a code and link. The request does not wait for the provider.
+
+    A background session inserts the rows and commits them only after the
+    provider accepts. A false or raised send rolls those rows back, so a code
+    or link that was already delivered stays usable.
+    """
     code = f"{secrets.randbelow(10**6):06d}"
     link = secrets.token_urlsafe(32)
-    db.add(
-        EmailVerificationToken(
-            user_id=user.id,
-            token_hash=_code_macs(code)[0],
-            expires_at=now + timedelta(minutes=15),
-        )
-    )
-    db.add(
-        EmailVerificationToken(
-            user_id=user.id,
-            token_hash=_token_hash(link),
-            expires_at=now + timedelta(hours=24),
-        )
-    )
-    db.commit()
-    base = get_settings().frontend_url.rstrip("/")
-    verify_url = f"{base}/verify-email?token={link}&user={user.id}"
-    send_verification_code_email(email, code, verify_url=verify_url)
+    _spawn_identity_mail(_deliver_verification, (user.id, email, code, link))
 
 
 @router.post("/register")
@@ -373,16 +361,19 @@ def verify_code(req: VerifyCodeRequest, db: Session = Depends(get_db)):
     _verification_attempt(*keys)
     if not _is_six_digit_code(code):
         raise HTTPException(status_code=400, detail="Invalid code")
+    if user is not None:
+        user = _for_update(db, db.query(User).filter(User.id == user.id)).first()
     evt = None
     if user is not None:
-        evt = (
+        evt = _for_update(
+            db,
             db.query(EmailVerificationToken)
             .filter(
                 EmailVerificationToken.user_id == user.id,
                 EmailVerificationToken.token_hash.in_(_code_macs(code)),
             )
-            .first()
-        )
+            .populate_existing(),
+        ).first()
     if user is None or evt is None:
         raise HTTPException(status_code=400, detail="Invalid code")
     if _as_utc(evt.expires_at) < datetime.now(timezone.utc):
@@ -415,22 +406,26 @@ def verify_email(token: str = "", user: str = "", db: Session = Depends(get_db))
     if len(raw) < _LINK_TOKEN_MIN_LENGTH or _is_six_digit_code(raw):
         raise HTTPException(status_code=400, detail="Invalid or expired link")
     account = db.query(User).filter(User.id == user_id).first()
+    if account is not None:
+        account = _for_update(db, db.query(User).filter(User.id == account.id)).first()
     evt = None
     if account is not None:
-        evt = (
+        evt = _for_update(
+            db,
             db.query(EmailVerificationToken)
             .filter(
                 EmailVerificationToken.user_id == account.id,
                 EmailVerificationToken.token_hash == _token_hash(raw),
             )
-            .first()
-        )
+            .populate_existing(),
+        ).first()
     if account is None or evt is None:
         raise HTTPException(status_code=400, detail="Invalid or expired link")
     if _as_utc(evt.expires_at) < datetime.now(timezone.utc):
         db.delete(evt)
         db.commit()
         raise HTTPException(status_code=400, detail="Link expired")
+    _after_row_locked("verify-email")
     _mark_email_verified(db, account)
     return {"message": "Email verified. You can sign in."}
 
@@ -457,7 +452,8 @@ def resend_verification(
         raise HTTPException(status_code=429, detail="Too many requests. Try again later.")
     user = db.query(User).filter(User.email == email).first()
     if user is not None and not user.email_verified:
-        _delete_verification_tokens(db, user.id)
+        # Do not delete the delivered code here. The background send removes
+        # older rows only after the provider accepts the new message.
         _issue_verification(db, user, email)
     return {"message": "If that email is waiting for verification, a new message is on the way."}
 
@@ -477,25 +473,64 @@ def _dev_reset_url_enabled() -> bool:
     return flag in ("1", "true", "yes")
 
 
-def _rollback_unsent_reset(db: Session, token_id: int | None) -> None:
-    """Drop an uncommitted reset row. Delete that id if a commit already landed it."""
+_identity_mail_threads: list[threading.Thread] = []
+_identity_mail_guard = threading.Lock()
+_skip_identity_mail_drain = False
+
+
+def skip_identity_mail_drain() -> bool:
+    """Tests set this so a timed request is not held open until the provider returns."""
+    return _skip_identity_mail_drain
+
+
+def _spawn_identity_mail(target, args: tuple) -> None:
+    """Run issuance off the request thread, on its own database session."""
+    thread = threading.Thread(target=target, args=args, daemon=True)
+    with _identity_mail_guard:
+        _identity_mail_threads.append(thread)
+    thread.start()
+
+
+def drain_identity_mail(timeout: float = 30) -> None:
+    """Join issuance threads. The HTTP handlers do not call this."""
+    with _identity_mail_guard:
+        threads = list(_identity_mail_threads)
+    for thread in threads:
+        thread.join(timeout=timeout)
+    with _identity_mail_guard:
+        _identity_mail_threads[:] = [item for item in _identity_mail_threads if item.is_alive()]
+
+
+def _after_row_locked(_kind: str) -> None:
+    """Called after a redemption lock is held. Tests replace this to overlap two submits."""
+    return None
+
+
+def _for_update(db: Session, query):
+    """``SELECT ... FOR UPDATE`` on PostgreSQL. SQLite compiles the clause away."""
+    bind = db.get_bind()
+    if bind is not None and bind.dialect.name == "postgresql":
+        return query.with_for_update()
+    return query
+
+
+def _rollback_unsent(db: Session, model, token_id: int | None, label: str) -> None:
+    """Drop an uncommitted issuance. Delete that id if a commit already landed it."""
     try:
         db.rollback()
     except Exception:
-        logger.warning("Password reset issuance rollback failed for token_id=%s", token_id)
+        logger.warning("%s issuance rollback failed for token_id=%s", label, token_id)
     if token_id is None:
         return
     try:
-        db.query(PasswordResetToken).filter(PasswordResetToken.id == token_id).delete(
-            synchronize_session=False
-        )
+        db.query(model).filter(model.id == token_id).delete(synchronize_session=False)
         db.commit()
     except Exception:
-        logger.warning("Could not delete unsent password reset token id=%s", token_id)
+        logger.warning("Could not delete unsent %s id=%s", label, token_id)
         try:
             db.rollback()
         except Exception:
-            logger.warning("Rollback after an unsent-token delete failed for token_id=%s", token_id)
+            logger.warning("Rollback after an unsent %s delete failed for id=%s", label, token_id)
 
 
 def _audit_reset(
@@ -512,17 +547,139 @@ def _audit_reset(
         logger.warning("Password reset audit %s failed for user_id=%s", action, user_id)
 
 
+def _deliver_password_reset(user_id: int, email: str, token_raw: str) -> None:
+    """Insert, send, then commit or delete. Runs on a session the request does not hold."""
+    db = SessionLocal()
+    token_id: int | None = None
+    try:
+        prt = PasswordResetToken(
+            user_id=user_id,
+            token_hash=_token_hash(token_raw),
+            expires_at=datetime.now(timezone.utc) + timedelta(hours=1),
+        )
+        db.add(prt)
+        db.flush()
+        if isinstance(prt.id, int) and not isinstance(prt.id, bool):
+            token_id = prt.id
+        if token_id is None:
+            raise RuntimeError("reset token id was not assigned")
+        reset_url = f"{get_settings().frontend_url.rstrip('/')}/reset-password?token={token_raw}"
+        sent = False
+        reason = "provider_rejected"
+        try:
+            sent = bool(send_password_reset_email(email, reset_url))
+        except Exception as exc:
+            sent = False
+            reason = "provider_error"
+            logger.warning(
+                "Password reset email send failed for %s (user_id=%s, %s)",
+                email,
+                user_id,
+                type(exc).__name__,
+            )
+        if not sent:
+            if reason == "provider_rejected":
+                logger.warning(
+                    "Password reset email was not accepted for delivery to %s (user_id=%s)",
+                    email,
+                    user_id,
+                )
+            _rollback_unsent(db, PasswordResetToken, token_id, "password reset")
+            _audit_reset(db, "auth.reset_send_failed", user_id, email, {"reason": reason})
+            return
+        db.query(PasswordResetToken).filter(
+            PasswordResetToken.user_id == user_id,
+            PasswordResetToken.used_at.is_(None),
+            PasswordResetToken.id < token_id,
+        ).delete(synchronize_session=False)
+        persist_audit(db, "auth.reset_requested", user_id=user_id, email=email)
+    except Exception:
+        logger.warning("Password reset issuance failed for user_id=%s", user_id)
+        _rollback_unsent(db, PasswordResetToken, token_id, "password reset")
+        _audit_reset(db, "auth.reset_send_failed", user_id, email, {"reason": "store_failed"})
+    finally:
+        db.close()
+
+
+def _deliver_verification(user_id: int, email: str, code: str, link: str) -> None:
+    """Insert a code and link, send, then commit or delete. Own session."""
+    db = SessionLocal()
+    token_ids: list[int] = []
+    try:
+        now = datetime.now(timezone.utc)
+        code_row = EmailVerificationToken(
+            user_id=user_id,
+            token_hash=_code_macs(code)[0],
+            expires_at=now + timedelta(minutes=15),
+        )
+        link_row = EmailVerificationToken(
+            user_id=user_id,
+            token_hash=_token_hash(link),
+            expires_at=now + timedelta(hours=24),
+        )
+        db.add(code_row)
+        db.add(link_row)
+        db.flush()
+        for row in (code_row, link_row):
+            if isinstance(row.id, int) and not isinstance(row.id, bool):
+                token_ids.append(row.id)
+        if len(token_ids) != 2:
+            raise RuntimeError("verification token id was not assigned")
+        verify_url = (
+            f"{get_settings().frontend_url.rstrip('/')}/verify-email?token={link}&user={user_id}"
+        )
+        sent = False
+        reason = "provider_rejected"
+        try:
+            sent = bool(send_verification_code_email(email, code, verify_url=verify_url))
+        except Exception as exc:
+            sent = False
+            reason = "provider_error"
+            logger.warning(
+                "Verification email send failed for user_id=%s (%s)",
+                user_id,
+                type(exc).__name__,
+            )
+        if not sent:
+            if reason == "provider_rejected":
+                logger.warning("Verification email was not accepted for user_id=%s", user_id)
+            db.rollback()
+            for token_id in token_ids:
+                _rollback_unsent(db, EmailVerificationToken, token_id, "verification")
+            _audit_reset(db, "auth.verification_send_failed", user_id, email, {"reason": reason})
+            return
+        oldest = min(token_ids)
+        db.query(EmailVerificationToken).filter(
+            EmailVerificationToken.user_id == user_id,
+            EmailVerificationToken.id < oldest,
+        ).delete(synchronize_session=False)
+        db.commit()
+    except Exception:
+        logger.warning("Verification issuance failed for user_id=%s", user_id)
+        try:
+            db.rollback()
+        except Exception:
+            logger.warning("Verification issuance rollback failed for user_id=%s", user_id)
+        for token_id in token_ids:
+            _rollback_unsent(db, EmailVerificationToken, token_id, "verification")
+        _audit_reset(
+            db, "auth.verification_send_failed", user_id, email, {"reason": "store_failed"}
+        )
+    finally:
+        db.close()
+
+
 @router.post("/forgot-password")
 def forgot_password(req: ForgotPasswordRequest, request: Request, db: Session = Depends(get_db)):
     """Request a password reset. The response does not say whether the address exists.
 
-    The new token row stays uncommitted until the provider accepts the message.
-    A false return or a raised send rolls that row back, so a previously delivered
-    unused link is left in place. Older unused rows are deleted only in the commit
-    that follows an accepted send, and only when their id is lower than the new
-    row, so a concurrent later issuance is not removed here. The failure is logged
-    and stored as ``auth.reset_send_failed``. Known and unknown addresses, and a
-    failed send, all return the same sentence.
+    Every address returns before the provider is called, so a known address is
+    not slower than an unknown one. A background session then inserts the new
+    row, sends, and commits it only if the provider accepts. A false or raised
+    send deletes that row and leaves a previously delivered link in place.
+    Older unused rows are deleted only after acceptance, and only when their id
+    is lower than the new row. The failure is logged without the reset URL and
+    stored as ``auth.reset_send_failed``.
     """
     email = (req.email or "").strip().lower()
     ip_key = f"reset:ip:{get_client_ip(request)}"
@@ -532,76 +689,14 @@ def forgot_password(req: ForgotPasswordRequest, request: Request, db: Session = 
     if not user:
         return _generic_reset_message()
     record_attempt(ip_key)
-    user_id = user.id
     token_raw = secrets.token_urlsafe(32)
-    prt = PasswordResetToken(
-        user_id=user_id,
-        token_hash=_token_hash(token_raw),
-        expires_at=datetime.now(timezone.utc) + timedelta(hours=1),
-    )
-    token_id: int | None = None
-    try:
-        db.add(prt)
-        db.flush()
-        if isinstance(prt.id, int) and not isinstance(prt.id, bool):
-            token_id = prt.id
-    except Exception:
-        logger.warning("Password reset token was not issued for user_id=%s", user_id)
-        _rollback_unsent_reset(db, None)
-        _audit_reset(db, "auth.reset_send_failed", user_id, email, {"reason": "store_failed"})
-        return _generic_reset_message()
-    if token_id is None:
-        logger.warning("Password reset token id was not assigned for user_id=%s", user_id)
-        _rollback_unsent_reset(db, None)
-        _audit_reset(db, "auth.reset_send_failed", user_id, email, {"reason": "store_failed"})
-        return _generic_reset_message()
-
-    reset_url = f"{get_settings().frontend_url.rstrip('/')}/reset-password?token={token_raw}"
-    sent = False
-    reason = "provider_rejected"
-    try:
-        sent = bool(send_password_reset_email(email, reset_url))
-    except Exception as exc:
-        sent = False
-        reason = "provider_error"
-        logger.warning(
-            "Password reset email send failed for %s (user_id=%s, %s)",
-            email,
-            user_id,
-            type(exc).__name__,
-        )
-    if not sent:
-        if reason == "provider_rejected":
-            logger.warning(
-                "Password reset email was not accepted for delivery to %s (user_id=%s)",
-                email,
-                user_id,
-            )
-        _rollback_unsent_reset(db, token_id)
-        _audit_reset(db, "auth.reset_send_failed", user_id, email, {"reason": reason})
-        return _generic_reset_message()
-
-    try:
-        # Only older unused rows. A concurrent issuance with a higher id has its
-        # own send, and deleting it here can leave both callers with a dead link.
-        db.query(PasswordResetToken).filter(
-            PasswordResetToken.user_id == user_id,
-            PasswordResetToken.used_at.is_(None),
-            PasswordResetToken.id < token_id,
-        ).delete(synchronize_session=False)
-        persist_audit(db, "auth.reset_requested", user_id=user_id, email=email)
-    except Exception:
-        logger.warning(
-            "Password reset link was sent but the new token was not kept for user_id=%s",
-            user_id,
-        )
-        _rollback_unsent_reset(db, token_id)
-        _audit_reset(db, "auth.reset_send_failed", user_id, email, {"reason": "store_failed"})
-        return _generic_reset_message()
-
+    _spawn_identity_mail(_deliver_password_reset, (user.id, email, token_raw))
     msg = _generic_reset_message()
     if _dev_reset_url_enabled():
-        msg["reset_url"] = reset_url
+        # Candidate link. The row is stored only after the provider accepts.
+        msg["reset_url"] = (
+            f"{get_settings().frontend_url.rstrip('/')}/reset-password?token={token_raw}"
+        )
     return msg
 
 
@@ -2129,6 +2224,12 @@ def accept_invite(req: AcceptInviteRequest, db: Session = Depends(get_db)):
     inv = db.query(Invite).filter(Invite.token_hash == h).first()
     if not inv:
         raise HTTPException(status_code=400, detail="Invalid or expired link")
+    # Lock the invite before creating the account. A second submit of this token
+    # waits, re-reads, and finds no row.
+    inv = _for_update(db, db.query(Invite).filter(Invite.id == inv.id).populate_existing()).first()
+    if not inv:
+        raise HTTPException(status_code=400, detail="Invalid or expired link")
+    _after_row_locked("accept-invite")
     now = datetime.now(timezone.utc)
     exp = inv.expires_at
     if exp.tzinfo is None:

@@ -13,6 +13,8 @@ import json
 import re
 import secrets
 import threading
+import time
+from datetime import datetime, timedelta, timezone
 from unittest.mock import patch
 from urllib.parse import parse_qs, urlsplit
 
@@ -25,10 +27,12 @@ from app.core.database import SessionLocal
 from app.models import (
     AuditEvent,
     EmailVerificationToken,
+    Invite,
     MfaRecoveryCode,
     PasswordResetToken,
     User,
     UserSession,
+    WorkspaceMember,
 )
 from app.services.email_service import set_email_provider
 from tests.conftest import TEST_HEADERS, TEST_ORIGIN
@@ -36,6 +40,7 @@ from tests.conftest import TEST_HEADERS, TEST_ORIGIN
 _GENERIC = "If that email is registered, you will receive a reset link."
 _CODE_RE = re.compile(r"(?<!\d)(\d{6})(?!\d)")
 _USER_RE = re.compile(r"[?&]user=(\d+)")
+_VERIFY_LINK_RE = re.compile(r"[?&]token=([^&\s]+)&user=(\d+)")
 
 
 class _ScriptedMail:
@@ -82,8 +87,12 @@ def _purge(email: str) -> None:
     try:
         user = db.query(User).filter(User.email == email).one_or_none()
         db.query(AuditEvent).filter(AuditEvent.email == email).delete(synchronize_session=False)
+        db.query(Invite).filter(Invite.email == email).delete(synchronize_session=False)
         if user is not None:
             uid = user.id
+            db.query(WorkspaceMember).filter(WorkspaceMember.user_id == uid).delete(
+                synchronize_session=False
+            )
             db.query(EmailVerificationToken).filter(EmailVerificationToken.user_id == uid).delete(
                 synchronize_session=False
             )
@@ -120,18 +129,17 @@ def _unused(user_id: int) -> list[str]:
         db.close()
 
 
-def _reset_audits(email: str) -> list[tuple[str, str | None]]:
+def _actions(email: str) -> list[tuple[str, str | None]]:
     db = SessionLocal()
     try:
-        rows = (
-            db.query(AuditEvent)
-            .filter(AuditEvent.email == email, AuditEvent.action.like("auth.reset%"))
-            .order_by(AuditEvent.id)
-            .all()
-        )
+        rows = db.query(AuditEvent).filter(AuditEvent.email == email).order_by(AuditEvent.id).all()
         return [(row.action, row.details) for row in rows]
     finally:
         db.close()
+
+
+def _reset_audits(email: str) -> list[tuple[str, str | None]]:
+    return [item for item in _actions(email) if item[0].startswith("auth.reset")]
 
 
 def _browser() -> TestClient:
@@ -213,6 +221,7 @@ def test_failed_reset_send_keeps_the_previous_token(
     else:
         box.accept = False
         reason = "provider_rejected"
+    monkeypatch.delenv("TRUST_COPILOT_DEV_RETURN_RESET_URL", raising=False)
     failed = client.post("/api/auth/forgot-password", json={"email": email})
     unknown_address = isolate(_address(f"unknown-{mode}"))
     unknown = client.post("/api/auth/forgot-password", json={"email": unknown_address})
@@ -255,7 +264,7 @@ def test_failed_first_reset_send_leaves_no_token(
     """With no earlier link, a rejected send commits nothing the caller can use."""
     email = isolate(_address("first-fail"))
     user_id = _register(client, box, email, _password())
-    monkeypatch.setenv("TRUST_COPILOT_DEV_RETURN_RESET_URL", "true")
+    monkeypatch.delenv("TRUST_COPILOT_DEV_RETURN_RESET_URL", raising=False)
     box.accept = False
     failed = client.post("/api/auth/forgot-password", json={"email": email})
     assert failed.status_code == 200, failed.text
@@ -444,3 +453,271 @@ def test_concurrent_redeem_of_one_reset_token_succeeds_once(
     finally:
         http_one.close()
         http_two.close()
+
+
+def _verification_link(box: _ScriptedMail) -> tuple[str, str, int]:
+    body = box.messages[-1].body_text
+    code = _CODE_RE.search(body)
+    link = _VERIFY_LINK_RE.search(body)
+    assert code is not None and link is not None
+    return code.group(1), link.group(1), int(link.group(2))
+
+
+def _register_open(
+    client: TestClient, box: _ScriptedMail, email: str, password: str
+) -> tuple[str, str, int]:
+    """Register and leave the account unverified so the mailed code and link stay live."""
+    before = len(box.messages)
+    response = client.post(
+        "/api/auth/register",
+        json={"email": email, "password": password, "display_name": "Synthetic"},
+    )
+    assert response.status_code == 200, response.text
+    assert len(box.messages) == before + 1
+    return _verification_link(box)
+
+
+def test_slow_reset_provider_does_not_delay_a_known_address(
+    client: TestClient, box: _ScriptedMail, isolate, monkeypatch
+) -> None:
+    """A known address returns before the provider, on the same bound as an unknown one."""
+    import app.api.routes.auth as auth_routes
+
+    email = isolate(_address("slow"))
+    _register(client, box, email, _password())
+    monkeypatch.delenv("TRUST_COPILOT_DEV_RETURN_RESET_URL", raising=False)
+
+    def slow_send(message) -> bool:
+        time.sleep(0.5)
+        box.messages.append(message)
+        return True
+
+    box.send = slow_send  # type: ignore[method-assign]
+    unknown_address = isolate(_address("slow-missing"))
+    auth_routes._skip_identity_mail_drain = True
+    try:
+        started = time.perf_counter()
+        known = client.post("/api/auth/forgot-password", json={"email": email})
+        known_s = time.perf_counter() - started
+        started = time.perf_counter()
+        unknown = client.post("/api/auth/forgot-password", json={"email": unknown_address})
+        unknown_s = time.perf_counter() - started
+    finally:
+        auth_routes._skip_identity_mail_drain = False
+        auth_routes.drain_identity_mail()
+    assert known.status_code == unknown.status_code == 200
+    assert known.json() == unknown.json() == {"message": _GENERIC}
+    assert known_s < 0.35, known_s
+    assert unknown_s < 0.35, unknown_s
+    assert len(_unused(_user_id_of(email))) == 1
+    assert _reset_audits(unknown_address) == []
+
+
+def _user_id_of(email: str) -> int:
+    db = SessionLocal()
+    try:
+        return int(db.query(User).filter(User.email == email).one().id)
+    finally:
+        db.close()
+
+
+def test_failed_verification_resend_keeps_the_previous_code(
+    client: TestClient, box: _ScriptedMail, isolate
+) -> None:
+    """A rejected resend leaves the delivered code usable and stores no new row."""
+    email = isolate(_address("verify-fail"))
+    code, _link, user_id = _register_open(client, box, email, _password())
+    box.accept = False
+    resent = client.post("/api/auth/resend-verification", json={"email": email})
+    unknown_address = isolate(_address("verify-missing"))
+    unknown = client.post("/api/auth/resend-verification", json={"email": unknown_address})
+    assert resent.status_code == unknown.status_code == 200
+    assert resent.json() == unknown.json()
+    failed_audits = [item for item in _actions(email) if item[0] == "auth.verification_send_failed"]
+    assert failed_audits, _actions(email)
+    assert json.loads(failed_audits[-1][1] or "") == {"reason": "provider_rejected"}
+    checked = client.post("/api/auth/verify-code", json={"email": email, "code": code})
+    assert checked.status_code == 200, checked.text
+    db = SessionLocal()
+    try:
+        left = (
+            db.query(EmailVerificationToken)
+            .filter(EmailVerificationToken.user_id == user_id)
+            .count()
+        )
+    finally:
+        db.close()
+    assert left == 0
+
+
+def test_verification_link_cannot_be_used_twice(
+    client: TestClient, box: _ScriptedMail, isolate
+) -> None:
+    email = isolate(_address("verify-once"))
+    _code, link, user_id = _register_open(client, box, email, _password())
+    first = client.post("/api/auth/verify-email", params={"token": link, "user": str(user_id)})
+    assert first.status_code == 200, first.text
+    second = client.post("/api/auth/verify-email", params={"token": link, "user": str(user_id)})
+    assert second.status_code == 400, second.text
+
+
+def test_concurrent_verify_email_of_one_link_succeeds_once(
+    client: TestClient, box: _ScriptedMail, isolate
+) -> None:
+    """Two in-flight submits of one verification link: the lock holder wins."""
+    import app.api.routes.auth as auth_routes
+
+    if not _postgres():
+        pytest.skip(
+            "verification-link race needs PostgreSQL row locks "
+            "(SELECT ... FOR UPDATE); SQLite cannot make this race meaningful"
+        )
+    email = isolate(_address("verify-race"))
+    _code, link, user_id = _register_open(client, box, email, _password())
+    arrived: list[str] = []
+    release = threading.Event()
+    guard = threading.Lock()
+
+    def slow(kind: str) -> None:
+        if kind != "verify-email":
+            return
+        with guard:
+            arrived.append(kind)
+            if len(arrived) >= 2:
+                release.set()
+        release.wait(timeout=2)
+
+    start = threading.Barrier(2)
+    found: list[int] = []
+    errors: list[BaseException] = []
+
+    def run() -> None:
+        http = _browser()
+        try:
+            start.wait(timeout=10)
+            response = http.post(
+                "/api/auth/verify-email", params={"token": link, "user": str(user_id)}
+            )
+            found.append(response.status_code)
+        except BaseException as exc:  # noqa: BLE001 - reported below
+            errors.append(exc)
+        finally:
+            http.close()
+
+    with patch.object(auth_routes, "_after_row_locked", slow):
+        threads = [threading.Thread(target=run), threading.Thread(target=run)]
+        for thread in threads:
+            thread.start()
+        for thread in threads:
+            thread.join(timeout=30)
+        assert [thread.is_alive() for thread in threads] == [False, False]
+    assert errors == [], errors
+    assert sorted(found) == [200, 400], {"codes": found, "arrived": len(arrived)}
+    assert len(arrived) == 1
+
+
+def _plant_invite(email: str) -> str:
+    raw = secrets.token_urlsafe(32)
+    db = SessionLocal()
+    try:
+        db.add(
+            Invite(
+                workspace_id=1,
+                email=email,
+                role="editor",
+                token_hash=_token_hash(raw),
+                expires_at=datetime.now(timezone.utc) + timedelta(days=2),
+            )
+        )
+        db.commit()
+    finally:
+        db.close()
+    return raw
+
+
+def test_invite_token_cannot_be_used_twice(client: TestClient, isolate) -> None:
+    email = isolate(_address("invite-once"))
+    token = _plant_invite(email)
+    password = _password()
+    first = client.post("/api/auth/accept-invite", json={"token": token, "password": password})
+    assert first.status_code == 200, first.text
+    second = client.post("/api/auth/accept-invite", json={"token": token, "password": _password()})
+    assert second.status_code == 400, second.text
+    client.cookies.clear()
+    assert (
+        client.post("/api/auth/login", json={"email": email, "password": password}).status_code
+        == 200
+    )
+
+
+def test_concurrent_accept_of_one_invite_succeeds_once(client: TestClient, isolate) -> None:
+    """Two in-flight submits of one invite token: the lock holder wins."""
+    import app.api.routes.auth as auth_routes
+
+    del client
+    if not _postgres():
+        pytest.skip(
+            "invite race needs PostgreSQL row locks "
+            "(SELECT ... FOR UPDATE); SQLite cannot make this race meaningful"
+        )
+    email = isolate(_address("invite-race"))
+    token = _plant_invite(email)
+    password_one = _password()
+    password_two = _password()
+    arrived: list[str] = []
+    release = threading.Event()
+    guard = threading.Lock()
+
+    def slow(kind: str) -> None:
+        if kind != "accept-invite":
+            return
+        with guard:
+            arrived.append(kind)
+            if len(arrived) >= 2:
+                release.set()
+        release.wait(timeout=2)
+
+    def post(password: str):
+        http = _browser()
+        try:
+            return http.post("/api/auth/accept-invite", json={"token": token, "password": password})
+        finally:
+            http.close()
+
+    start = threading.Barrier(2)
+    found: list[tuple[str, int]] = []
+    errors: list[BaseException] = []
+    report_guard = threading.Lock()
+
+    def run(password: str) -> None:
+        try:
+            start.wait(timeout=10)
+            response = post(password)
+            with report_guard:
+                found.append((password, response.status_code))
+        except BaseException as exc:  # noqa: BLE001 - reported below
+            errors.append(exc)
+
+    with patch.object(auth_routes, "_after_row_locked", slow):
+        threads = [
+            threading.Thread(target=run, args=(password_one,)),
+            threading.Thread(target=run, args=(password_two,)),
+        ]
+        for thread in threads:
+            thread.start()
+        for thread in threads:
+            thread.join(timeout=30)
+        assert [thread.is_alive() for thread in threads] == [False, False]
+    assert errors == [], errors
+    codes = sorted(status for _password, status in found)
+    assert codes == [200, 400], {"codes": codes, "arrived": len(arrived)}
+    assert len(arrived) == 1
+    winner = next(password for password, status in found if status == 200)
+    check = _browser()
+    try:
+        assert (
+            check.post("/api/auth/login", json={"email": email, "password": winner}).status_code
+            == 200
+        )
+    finally:
+        check.close()

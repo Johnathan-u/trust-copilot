@@ -2,7 +2,7 @@
 
 Parent before the auth change: `d69109e720df3a697ff4af9eb1b222ae1553a628`.
 
-No migration. `password_reset_tokens` already exists. A failed reset send rolls the new row back and leaves a previously delivered unused link. A successful redeem locks the account row and then the token row, and deletes every unused reset row for that user.
+No migration. A failed reset or verification send rolls the new row back on a background session and leaves a previously delivered code or link. The HTTP handler returns before the provider is called, so a known address is not slower than an unknown one. Reset, verification-link, and invite redemption each lock the row so two in-flight submits cannot both succeed.
 
 ## Failing before
 
