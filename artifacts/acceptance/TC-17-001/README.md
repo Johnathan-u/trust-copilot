@@ -22,6 +22,10 @@ python -m pytest tests/release/test_domain_trust_articles.py -q --tb=line
 
 The passing test was `test_normal_create_and_read_unchanged`. The seven failures are the gap: null and omitted `workspace_id` were stored and returned 200 with `workspace_id: null` and `published: 1`; a different workspace was 403 rather than 400; an anonymous get returned the null-workspace published row, including its content; an anonymous get that named workspace 1 returned workspace 2's published article; patch of `workspace_id` was ignored and returned 200; patch of a null-workspace row returned 200 and changed the title. Log: `failing-before.txt`.
 
+## SHA
+
+The route and the release test are `d2ca889bc8a1d03e4161011bd115143345babbde`. The commit that records this line does not change them.
+
 ## Green command
 
 Same interpreter, after the route change.
