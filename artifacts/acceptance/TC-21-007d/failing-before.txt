@@ -1,0 +1,17 @@
+F                                                                        [100%]
+=================================== FAILURES ===================================
+_____________ test_tc21007d_coverage_reuses_the_qualification_rule _____________
+tests/release/test_tc21007d_qualification_rule.py:125: in test_tc21007d_coverage_reuses_the_qualification_rule
+    assert hasattr(coverage_mod, "evidence_qualifies"), (
+E   AssertionError: compliance_coverage._evidence_is_current must call evidence_qualification.evidence_qualifies
+E   assert False
+E    +  where False = hasattr(coverage_mod, 'evidence_qualifies')
+=============================== warnings summary ===============================
+tests/release/test_tc21007d_qualification_rule.py: 10 warnings
+  /tmp/tc-venv/lib/python3.12/site-packages/sqlalchemy/sql/schema.py:3627: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    return util.wrap_callable(lambda ctx: fn(), fn)  # type: ignore
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/release/test_tc21007d_qualification_rule.py::test_tc21007d_coverage_reuses_the_qualification_rule
+1 failed, 10 warnings in 0.48s
