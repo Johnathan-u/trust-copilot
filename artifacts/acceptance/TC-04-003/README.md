@@ -42,4 +42,4 @@ From `apps/web`, Node 24.22.1, Vitest 5.0.5: `npx vitest run tests/unit/logout-a
 
 ## CI
 
-`build` and `web-release-e2e` run IDs are in [ci-runs.md](ci-runs.md).
+`build` and `web-release-e2e` are green on push and pull_request for implementation head `7a9b0f8609a38ebd9128deeb2caa3504ef7e7706`. Run IDs are in [ci-runs.md](ci-runs.md). The first head failed `ruff-format` and is not qualifying.
