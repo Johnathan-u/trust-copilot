@@ -252,11 +252,10 @@ function LoginContent() {
         <Card className="w-full max-w-md">
           <div className="mb-2 flex items-center gap-3">
             <div
-              className="grid h-10 w-10 place-items-center rounded-xl text-lg font-bold text-white"
+              className="grid h-10 w-10 place-items-center rounded-xl text-lg font-bold text-tc-on-primary"
               style={{
-                background:
-                  'linear-gradient(135deg, #7c96ff, #5b7cff 55%, #2dd4bf)',
-                boxShadow: '0 12px 30px rgba(91,124,255,0.35)',
+                background: 'var(--tc-brand-mark)',
+                boxShadow: 'var(--tc-brand-mark-shadow)',
               }}
             >
               ✓
@@ -310,7 +309,7 @@ function LoginContent() {
                 Save these recovery codes. Each works once if you lose the
                 authenticator.
               </p>
-              <div className="space-y-0.5 rounded-xl border border-[var(--tc-border)] bg-white/5 p-3 font-mono text-xs select-all">
+              <div className="space-y-0.5 rounded-xl border border-[var(--tc-border)] bg-tc-surface-sunken p-3 font-mono text-xs select-all">
                 {recoveryCodes.map((code, index) => (
                   <div key={`${index}-${code.length}`}>{code}</div>
                 ))}
@@ -331,7 +330,7 @@ function LoginContent() {
                 Add this secret to your authenticator app, then enter the
                 6-digit code.
               </p>
-              <p className="break-all rounded-xl border border-[var(--tc-border)] bg-white/5 p-3 font-mono text-xs select-all">
+              <p className="break-all rounded-xl border border-[var(--tc-border)] bg-tc-surface-sunken p-3 font-mono text-xs select-all">
                 {enrolBusy && !enrolSecret
                   ? 'Preparing a new secret…'
                   : enrolSecret}
@@ -429,11 +428,10 @@ function LoginContent() {
       <Card className="w-full max-w-md">
         <div className="mb-2 flex items-center gap-3">
           <div
-            className="grid h-10 w-10 place-items-center rounded-xl text-lg font-bold text-white"
+            className="grid h-10 w-10 place-items-center rounded-xl text-lg font-bold text-tc-on-primary"
             style={{
-              background:
-                'linear-gradient(135deg, #7c96ff, #5b7cff 55%, #2dd4bf)',
-              boxShadow: '0 12px 30px rgba(91,124,255,0.35)',
+              background: 'var(--tc-brand-mark)',
+              boxShadow: 'var(--tc-brand-mark-shadow)',
             }}
           >
             ✓
@@ -466,7 +464,7 @@ function LoginContent() {
               type="checkbox"
               checked={rememberMe}
               onChange={(e) => setRememberMe(e.target.checked)}
-              className="h-4 w-4 rounded border-[var(--tc-border)] bg-white/5 accent-[var(--tc-primary)]"
+              className="h-4 w-4 rounded border-[var(--tc-border)] bg-tc-surface-sunken accent-[var(--tc-primary)]"
             />
             Keep me signed in
           </label>
@@ -515,7 +513,7 @@ function LoginContent() {
               // eslint-disable-next-line @next/next/no-html-link-for-pages -- OAuth start is an /api route handled by the backend redirect, not a Next page
               <a
                 href="/api/auth/oauth/google"
-                className="flex items-center justify-center gap-2 rounded-xl border border-[var(--tc-border)] bg-[var(--tc-panel)] px-4 py-3 text-sm font-medium text-[var(--tc-text)] hover:bg-white/10 transition-colors min-h-[44px]"
+                className="flex items-center justify-center gap-2 rounded-xl border border-[var(--tc-border)] bg-[var(--tc-panel)] px-4 py-3 text-sm font-medium text-[var(--tc-text)] hover:bg-[var(--tc-hover)] transition-colors min-h-[44px]"
               >
                 <svg className="h-5 w-5 shrink-0" viewBox="0 0 24 24">
                   <path
@@ -542,7 +540,7 @@ function LoginContent() {
               // eslint-disable-next-line @next/next/no-html-link-for-pages -- OAuth start is an /api route handled by the backend redirect, not a Next page
               <a
                 href="/api/auth/oauth/github"
-                className="flex items-center justify-center gap-2 rounded-xl border border-[var(--tc-border)] bg-[var(--tc-panel)] px-4 py-3 text-sm font-medium text-[var(--tc-text)] hover:bg-white/10 transition-colors min-h-[44px]"
+                className="flex items-center justify-center gap-2 rounded-xl border border-[var(--tc-border)] bg-[var(--tc-panel)] px-4 py-3 text-sm font-medium text-[var(--tc-text)] hover:bg-[var(--tc-hover)] transition-colors min-h-[44px]"
               >
                 <svg
                   className="h-5 w-5 shrink-0"

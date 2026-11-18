@@ -4,7 +4,7 @@ import { mkdirSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
 
 // Deterministic control paths for /dashboard/documents. Real API qualification
-// stays outside this spec. The list endpoint has no page or sort parameters.
+// stays outside this spec. The page asks for one server page and sort.
 test.use({ storageState: { cookies: [], origins: [] } })
 test.describe.configure({ timeout: 90_000 })
 
@@ -28,6 +28,8 @@ type Doc = {
   freshness?: string
   version?: string
   source_preview_url?: string
+  index_job_id?: number
+  index_job_status?: string
 }
 
 type RoleName = 'admin' | 'editor' | 'reviewer'
@@ -46,24 +48,6 @@ function doc(overrides: Partial<Doc> = {}): Doc {
     subject_areas: ['Access Control'],
     ...overrides,
   }
-}
-
-const failedIndexJob = {
-  id: 15,
-  kind: 'index_document',
-  status: 'failed',
-  attempt: 1,
-  max_attempts: 3,
-  created_at: '2026-10-30T12:00:00',
-  started_at: null,
-  completed_at: '2026-10-30T12:05:00',
-  next_attempt_at: null,
-  retry_scheduled: false,
-  retries_exhausted: true,
-  charge_uncertain: false,
-  progress: null,
-  outcome: null,
-  object_ref: { type: 'document', id: 3 },
 }
 
 function json(route: Route, body: unknown, status = 200) {
@@ -92,6 +76,7 @@ async function setup(
     otherDocs?: Doc[]
     jobs?: unknown[]
     listStatus?: number
+    listTotal?: number | null
   } = {}
 ) {
   const role = options.role ?? 'admin'
@@ -108,6 +93,7 @@ async function setup(
     ],
     jobs: options.jobs ?? [],
     listStatus: options.listStatus ?? 200,
+    listTotal: options.listTotal ?? null,
     alphaHold: null as Promise<void> | null,
     uploadHold: null as Promise<void> | null,
     metadataHold: null as Promise<void> | null,
@@ -211,7 +197,20 @@ async function setup(
       }
       const status = url.searchParams.get('status')
       if (status) rows = rows.filter((row) => row.status === status)
-      return fulfill(rows)
+      const requestedPage = Number(url.searchParams.get('page') || '1')
+      const requestedSize = Number(url.searchParams.get('page_size') || '25')
+      const size =
+        Number.isFinite(requestedSize) && requestedSize > 0 ? requestedSize : 25
+      const start = Math.max(0, (requestedPage - 1) * size)
+      return fulfill({
+        items: rows.slice(start, start + size),
+        total: state.listTotal ?? rows.length,
+        page: requestedPage,
+        page_size: size,
+        sort: url.searchParams.get('sort') || 'created_at',
+        order: url.searchParams.get('order') || 'desc',
+        max_upload_bytes: 50 * 1024 * 1024,
+      })
     }
     if (pathName === '/api/documents/upload' && method === 'POST') {
       if (state.uploadHold) await state.uploadHold
@@ -363,7 +362,7 @@ async function audit(page: Page, surface: string, width: number) {
   expect(violations).toEqual([])
 }
 
-test('search is debounced, stale responses are dropped, and page or sort are not sent', async ({
+test('search is debounced, stale responses are dropped, and the server page and sort are sent', async ({
   page,
 }) => {
   const alpha = gate()
@@ -378,13 +377,17 @@ test('search is debounced, stale responses are dropped, and page or sort are not
   await expect(page.getByText('Alpha.pdf')).toBeVisible()
   await expect(
     page.getByText(
-      'The document list returns every match in one response, sorted by newest first. It does not accept page, page size, or sort parameters.'
+      'The document list requests one page from the server. The server sorts that page and returns the total. This page sends page, page size, sort, and order.'
     )
   ).toBeVisible()
   const initial = documentReads(calls)
   expect(initial.length).toBeGreaterThan(0)
   for (const call of initial) {
-    expect(call.search).not.toMatch(/[?&](?:page|page_size|sort|order)=/)
+    const params = new URLSearchParams(call.search)
+    expect(params.get('page')).toBe('1')
+    expect(params.get('page_size')).toBe('25')
+    expect(params.get('sort')).toBe('created_at')
+    expect(params.get('order')).toBe('desc')
   }
   const search = page.getByLabel('Search documents')
   await search.pressSequentially('abc', { delay: 40 })
@@ -426,7 +429,7 @@ test('selection resets when the filter or workspace changes and states its scope
   await open(page)
   await expect(
     page.getByText(
-      'Selection applies to every document in this result for the current workspace. Changing the workspace or a filter clears it. This result is not a page.'
+      'Selection applies to every document on this page for the current workspace. Changing the workspace, a filter, or the page clears it.'
     )
   ).toBeVisible()
   await page.getByRole('checkbox', { name: 'Select DOC-3' }).check()
@@ -552,7 +555,7 @@ test('a failed index job is not shown as indexed', async ({ page }) => {
   ).toHaveCount(0)
 })
 
-test('retry follows a listed index job, and missing source fields stay unreported', async ({
+test('retry follows the index job on the row, and missing source fields stay unreported', async ({
   page,
 }) => {
   const retry = gate()
@@ -565,6 +568,8 @@ test('retry follows a listed index job, and missing source fields stay unreporte
         freshness: 'fresh',
         version: 'v3',
         source_preview_url: '/dashboard/jobs?workspace_id=7',
+        index_job_id: 15,
+        index_job_status: 'failed',
       }),
       doc({
         id: 4,
@@ -574,7 +579,7 @@ test('retry follows a listed index job, and missing source fields stay unreporte
         status: 'indexed',
       }),
     ],
-    jobs: [failedIndexJob],
+    jobs: [],
   })
   state.retryHold = retry.wait
   await open(page)
@@ -584,7 +589,9 @@ test('retry follows a listed index job, and missing source fields stay unreporte
   await expect(page.getByText('Source eligibility: Not reported')).toBeVisible()
   await expect(page.getByText('Freshness: Not reported')).toBeVisible()
   await expect(page.getByText('Version: Not reported')).toBeVisible()
-  await expect(page.getByText('Reindex is not offered.')).toBeVisible()
+  await expect(
+    page.getByText('Reindex retries the index job on the row.')
+  ).toBeVisible()
   const source = page.getByRole('link', { name: 'View source' })
   await expect(source).toHaveAttribute('href', '/dashboard/jobs?workspace_id=7')
   await expect(
@@ -604,15 +611,24 @@ test('retry follows a listed index job, and missing source fields stay unreporte
 test('editors do not see index retry', async ({ page }) => {
   await setup(page, {
     role: 'editor',
-    docs: [doc({ status: 'failed', index_error: 'Could not read the file.' })],
-    jobs: [failedIndexJob],
+    docs: [
+      doc({
+        status: 'failed',
+        index_error: 'Could not read the file.',
+        index_job_id: 15,
+        index_job_status: 'failed',
+      }),
+    ],
+    jobs: [],
   })
   await open(page)
   await expect(page.getByText('Policy.pdf')).toBeVisible()
   await expect(
     page.getByRole('button', { name: 'Retry indexing for DOC-3' })
   ).toHaveCount(0)
-  await expect(page.getByText('Reindex is not offered.')).toBeVisible()
+  await expect(
+    page.getByText('Reindex retries the index job on the row.')
+  ).toBeVisible()
 })
 
 test('metadata and restore dialogs wait for the response before confirming', async ({
@@ -762,7 +778,7 @@ test('reviewers do not see upload, row actions, or delete', async ({
 test('date and filter fields are labelled and selected filters are chips', async ({
   page,
 }) => {
-  const { calls } = await setup(page)
+  const { calls } = await setup(page, { listTotal: 30 })
   await open(page)
   await expect(page.getByLabel('Search documents')).toBeVisible()
   await expect(page.getByLabel('Framework')).toBeVisible()
@@ -771,6 +787,7 @@ test('date and filter fields are labelled and selected filters are chips', async
   await expect(page.getByLabel('Created to')).toBeVisible()
   await expect(page.getByLabel('Document status')).toBeVisible()
   await expect(page.getByLabel('Archive filter')).toBeVisible()
+  await expect(page.getByLabel('Sort')).toBeVisible()
   await page.getByLabel('Created from').fill('2026-10-01T00:00')
   await page.getByLabel('Document status').selectOption('failed')
   await expect(
@@ -790,6 +807,29 @@ test('date and filter fields are labelled and selected filters are chips', async
     .toBe(true)
   await page.getByRole('button', { name: 'Remove failed filter' }).click()
   await expect(page.getByLabel('Document status')).toHaveValue('')
+  await page.getByLabel('Sort').selectOption('filename:asc')
+  await expect
+    .poll(() =>
+      documentReads(calls).some(
+        (call) =>
+          call.search.includes('sort=filename') &&
+          call.search.includes('order=asc')
+      )
+    )
+    .toBe(true)
+  await page.getByRole('checkbox', { name: 'Select DOC-3' }).check()
+  await expect(
+    page.getByText('1 document selected in this result')
+  ).toBeVisible()
+  await page.getByRole('button', { name: 'Next page' }).click()
+  await expect
+    .poll(() =>
+      documentReads(calls).some((call) => call.search.includes('page=2'))
+    )
+    .toBe(true)
+  await expect(
+    page.getByText('1 document selected in this result')
+  ).toHaveCount(0)
 })
 
 for (const width of [360, 768, 1440]) {

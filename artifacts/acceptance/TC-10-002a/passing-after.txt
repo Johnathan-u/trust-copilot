@@ -1,0 +1,9 @@
+# TC-10-002a passing after the wording fix
+# Same command and interpreter as failing-before.txt, after the three document edits.
+# Command, from apps/api:
+#   python -m pytest tests/release/test_tc10002a_rollback_wording.py -q --tb=short -p no:cacheprovider
+# Python 3.12.3, pytest 9.1.1. The tests read files only. 2026-11-18T08:03:00Z.
+# Result: 2 passed, 0 failed, 0 skipped. Exit 0.
+
+..                                                                       [100%]
+2 passed in 0.18s

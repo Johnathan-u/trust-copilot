@@ -5,7 +5,7 @@
 The behaviour is already on master (PR #16, `1a0e614`). This repair does not change it. The sections below are the original local record. They say `down_revision 075`, `alembic downgrade 075`, and `tests/test_provider_adapter.py`. Those are not the current parent, the current rollback, or the current test path.
 
 * Parent, from `apps/api/alembic/versions/076_tc11001_model_outcome_codes.py`: `down_revision = "tc21001_framework_catalog_rights"`.
-* On current master, `alembic downgrade tc21001_framework_catalog_rights` reverts 27 revisions (this one and 26 descendants). The head is `tc17003_security_claims`. `alembic downgrade 075` reverts 28, those 27 plus `tc21001_framework_catalog_rights`. What that destroys, and the safe rollback, are in `docs/release/tickets/TC-11-001.md`. Leave `answers.outcome_code` and `jobs.error_code` in place. `jobs.error_code` is shared with TC-10-002 and must not be dropped while that is live. A forward migration is the alternative when a column itself has to go.
+* `alembic downgrade tc21001_framework_catalog_rights` reverts 27 revisions (this one and 26 descendants) as of `edd3320`. The head is `tc17003_security_claims`. `alembic downgrade 075` reverts 28, those 27 plus `tc21001_framework_catalog_rights`. What that destroys, and the safe rollback, are in `docs/release/tickets/TC-11-001.md`. Leave `answers.outcome_code` and `jobs.error_code` in place. `jobs.error_code` is shared with TC-10-002 and must not be dropped while that is live. A forward migration is the alternative when a column itself has to go.
 * Current test path: `apps/api/tests/release/test_provider_adapter.py`.
 * Round trip on a fresh database: `tests/release/test_provider_adapter.py::test_migration_downgrade_and_upgrade_roundtrip`. It fails if this revision's downgrade or upgrade is broken. On `b0f0b99eb3dd2d9f507709f4dd6af26653de20ab`, both build logs collect it as the 39th of 46 tests in that file, then the run prints 33 dots and 13 more (46, no skip, no failure):
 
@@ -49,7 +49,7 @@ an `--internal` Docker network (no egress) with `OPENAI_API_KEY` empty; the prob
   `sqlalchemy<2.1` (pre-existing psycopg2/SQLAlchemy 2.1 environment finding from TC-08-005,
   worked around in the image only).
 - DB: `pgvector/pgvector:pg16`; conftest migrates to alembic head (`075` on that baseline,
-  `tc11001_model_outcome_codes` on that branch). The DB was downgraded to `075` before the baseline run and after the branch run. That `075` target is this original record only. On current master the parent of `tc11001_model_outcome_codes` is `tc21001_framework_catalog_rights`, and downgrading there reverts 27 later revisions. See the current section.
+  `tc11001_model_outcome_codes` on that branch). The DB was downgraded to `075` before the baseline run and after the branch run. That `075` target is this original record only. The parent of `tc11001_model_outcome_codes` is `tc21001_framework_catalog_rights` as of `edd3320`, and downgrading there reverts 27 later revisions. See the current section.
 
 ## Commands (from `apps/api`)
 ```

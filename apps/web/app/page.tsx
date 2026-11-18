@@ -46,7 +46,7 @@ function Section({
 
 function Badge({ children }: { children: React.ReactNode }) {
   return (
-    <span className="inline-flex items-center gap-1.5 rounded-full border border-[rgba(91,124,255,0.25)] bg-[rgba(91,124,255,0.08)] px-3 py-1 text-xs font-medium text-[var(--tc-primary-2)]">
+    <span className="inline-flex items-center gap-1.5 rounded-full border border-tc-primary bg-[var(--tc-surface-glow-primary)] px-3 py-1 text-xs font-medium text-[var(--tc-primary-2)]">
       {children}
     </span>
   )
@@ -62,8 +62,8 @@ function FeatureCard({
   desc: string
 }) {
   return (
-    <div className="group rounded-2xl border border-[var(--tc-border)] bg-[var(--tc-panel)] p-6 transition-all duration-300 hover:border-[rgba(91,124,255,0.3)] hover:shadow-[0_0_40px_rgba(91,124,255,0.08)]">
-      <div className="mb-4 grid h-11 w-11 place-items-center rounded-xl bg-[rgba(91,124,255,0.1)] text-xl transition-transform duration-300 group-hover:scale-110">
+    <div className="group rounded-2xl border border-[var(--tc-border)] bg-[var(--tc-panel)] p-6 transition-all duration-300 hover:border-tc-primary hover:shadow-[var(--tc-shadow)]">
+      <div className="mb-4 grid h-11 w-11 place-items-center rounded-xl bg-[var(--tc-surface-glow-primary)] text-xl transition-transform duration-300 group-hover:scale-110">
         {icon}
       </div>
       <h3 className="mb-2 text-[15px] font-semibold text-[var(--tc-text)]">
@@ -85,7 +85,7 @@ function StepCard({
 }) {
   return (
     <div className="relative flex flex-col items-center text-center">
-      <div className="mb-4 grid h-12 w-12 place-items-center rounded-full border border-[rgba(91,124,255,0.3)] bg-[rgba(91,124,255,0.08)] text-sm font-bold text-[var(--tc-primary-2)]">
+      <div className="mb-4 grid h-12 w-12 place-items-center rounded-full border border-tc-primary bg-[var(--tc-surface-glow-primary)] text-sm font-bold text-[var(--tc-primary-2)]">
         {num}
       </div>
       <h3 className="mb-1.5 text-[15px] font-semibold text-[var(--tc-text)]">
@@ -140,7 +140,7 @@ function PricingSection() {
           role="switch"
           aria-checked={annual}
           onClick={() => setAnnual(!annual)}
-          className={`relative h-7 w-[52px] shrink-0 rounded-full border transition-colors duration-300 ease-in-out ${annual ? 'border-[rgba(91,124,255,0.4)] bg-[rgba(91,124,255,0.25)]' : 'border-[var(--tc-border)] bg-white/5'}`}
+          className={`relative h-7 w-[52px] shrink-0 rounded-full border transition-colors duration-300 ease-in-out ${annual ? 'border-tc-primary bg-[var(--tc-nav-active-bg)]' : 'border-[var(--tc-border)] bg-[var(--tc-hover)]'}`}
         >
           <span
             className={`absolute top-[3px] left-[3px] h-[20px] w-[20px] rounded-full shadow-md transition-all duration-300 ease-in-out ${annual ? 'translate-x-[24px] bg-[var(--tc-primary)]' : 'translate-x-0 bg-[var(--tc-muted)]'}`}
@@ -152,14 +152,14 @@ function PricingSection() {
           Annual
         </span>
         <span
-          className={`ml-1 rounded-full bg-[rgba(34,197,94,0.12)] border border-[rgba(34,197,94,0.18)] px-2.5 py-0.5 text-xs font-medium text-[var(--tc-success)] transition-all duration-500 ease-out ${annual ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-1 pointer-events-none'}`}
+          className={`ml-1 rounded-full bg-[var(--tc-success-surface)] border border-tc-success px-2.5 py-0.5 text-xs font-medium text-[var(--tc-success)] transition-all duration-500 ease-out ${annual ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-1 pointer-events-none'}`}
         >
           Save $50/year
         </span>
       </div>
 
       {/* Card */}
-      <div className="mx-auto max-w-md rounded-2xl border border-[rgba(91,124,255,0.25)] bg-[var(--tc-panel)] p-8">
+      <div className="mx-auto max-w-md rounded-2xl border border-tc-primary bg-[var(--tc-panel)] p-8">
         <div className="mb-6 text-center">
           <div className="text-4xl font-extrabold text-[var(--tc-text)]">
             <span
@@ -217,7 +217,7 @@ export default function HomePage() {
       <nav
         className="sticky top-0 z-50 border-b border-[var(--tc-border)]"
         style={{
-          background: 'rgba(8,17,31,0.82)',
+          background: 'var(--tc-panel)',
           backdropFilter: 'blur(16px)',
         }}
       >
@@ -227,11 +227,10 @@ export default function HomePage() {
             className="flex items-center gap-2.5 font-bold text-[var(--tc-text)]"
           >
             <div
-              className="grid h-8 w-8 place-items-center rounded-lg text-base"
+              className="grid h-8 w-8 place-items-center rounded-lg text-base text-tc-on-primary"
               style={{
-                background:
-                  'linear-gradient(135deg,#7c96ff,#5b7cff 55%,#2dd4bf)',
-                boxShadow: '0 8px 20px rgba(91,124,255,0.3)',
+                background: 'var(--tc-brand-mark)',
+                boxShadow: 'var(--tc-brand-mark-shadow)',
               }}
             >
               ✓
@@ -259,7 +258,7 @@ export default function HomePage() {
             </Link>
             <Link
               href="/login?demo=true"
-              className="rounded-lg border border-[var(--tc-border)] bg-white/5 px-3.5 py-1.5 text-sm font-medium text-[var(--tc-text)] transition hover:bg-white/10"
+              className="rounded-lg border border-[var(--tc-border)] bg-tc-surface-raised px-3.5 py-1.5 text-sm font-medium text-[var(--tc-text)] transition hover:bg-[var(--tc-hover)]"
             >
               Try Demo
             </Link>
@@ -280,7 +279,7 @@ export default function HomePage() {
             </Link>
             <Link
               href="/login?demo=true"
-              className="rounded-lg border border-[var(--tc-border)] bg-white/5 px-3 py-1.5 text-xs font-medium text-[var(--tc-text)]"
+              className="rounded-lg border border-[var(--tc-border)] bg-tc-surface-raised px-3 py-1.5 text-xs font-medium text-[var(--tc-text)]"
             >
               Demo
             </Link>
@@ -300,7 +299,7 @@ export default function HomePage() {
           className="hero-glow pointer-events-none absolute inset-0"
           style={{
             background:
-              'radial-gradient(ellipse 60% 50% at 50% 0%, rgba(91,124,255,0.18), transparent)',
+              'radial-gradient(ellipse 60% 50% at 50% 0%, var(--tc-surface-glow-primary), transparent)',
           }}
         />
         <div className="relative mx-auto max-w-3xl px-5 text-center">
@@ -324,7 +323,7 @@ export default function HomePage() {
             </Link>
             <Link
               href="/login?demo=true"
-              className="tc-btn-ghost rounded-xl px-7 py-3 text-sm font-medium transition hover:bg-white/10 sm:text-base"
+              className="tc-btn-ghost rounded-xl px-7 py-3 text-sm font-medium transition hover:bg-[var(--tc-hover)] sm:text-base"
             >
               Try Demo
             </Link>
@@ -438,20 +437,20 @@ export default function HomePage() {
               </h3>
               <ul className="space-y-2.5 text-sm text-[var(--tc-muted)]">
                 <li className="flex items-start gap-2">
-                  <span className="mt-0.5 text-red-400">✗</span> Generate
+                  <span className="mt-0.5 text-tc-danger">✗</span> Generate
                   plausible text with no evidence
                 </li>
                 <li className="flex items-start gap-2">
-                  <span className="mt-0.5 text-red-400">✗</span> No compliance
+                  <span className="mt-0.5 text-tc-danger">✗</span> No compliance
                   analytics or gap detection
                 </li>
                 <li className="flex items-start gap-2">
-                  <span className="mt-0.5 text-red-400">✗</span> No review,
+                  <span className="mt-0.5 text-tc-danger">✗</span> No review,
                   approval, or export workflow
                 </li>
                 <li className="flex items-start gap-2">
-                  <span className="mt-0.5 text-red-400">✗</span> No trust portal
-                  or vendor request management
+                  <span className="mt-0.5 text-tc-danger">✗</span> No trust
+                  portal or vendor request management
                 </li>
               </ul>
             </div>
@@ -527,7 +526,7 @@ export default function HomePage() {
           </Link>
           <Link
             href="/login?demo=true"
-            className="tc-btn-ghost rounded-xl px-7 py-3 text-sm font-medium transition hover:bg-white/10"
+            className="tc-btn-ghost rounded-xl px-7 py-3 text-sm font-medium transition hover:bg-[var(--tc-hover)]"
           >
             Try Demo
           </Link>
@@ -539,10 +538,9 @@ export default function HomePage() {
         <div className="mx-auto flex max-w-6xl flex-col items-center gap-6 px-5 sm:flex-row sm:justify-between">
           <div className="flex items-center gap-2 text-sm text-[var(--tc-muted)]">
             <div
-              className="grid h-6 w-6 place-items-center rounded-md text-xs"
+              className="grid h-6 w-6 place-items-center rounded-md text-xs text-tc-on-primary"
               style={{
-                background:
-                  'linear-gradient(135deg,#7c96ff,#5b7cff 55%,#2dd4bf)',
+                background: 'var(--tc-brand-mark)',
               }}
             >
               ✓

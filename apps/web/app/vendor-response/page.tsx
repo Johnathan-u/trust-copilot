@@ -30,7 +30,7 @@ export default function VendorResponsePage() {
       fallback={
         <Shell>
           <div className="flex items-center justify-center py-20">
-            <div className="h-8 w-8 animate-spin rounded-full border-2 border-[#5b7cff] border-t-transparent" />
+            <div className="h-8 w-8 animate-spin rounded-full border-2 border-[var(--tc-primary)] border-t-transparent" />
           </div>
         </Shell>
       }
@@ -78,7 +78,7 @@ function VendorResponseContent() {
     return (
       <Shell>
         <div className="flex items-center justify-center py-20">
-          <div className="h-8 w-8 animate-spin rounded-full border-2 border-[#5b7cff] border-t-transparent" />
+          <div className="h-8 w-8 animate-spin rounded-full border-2 border-[var(--tc-primary)] border-t-transparent" />
         </div>
       </Shell>
     )
@@ -298,18 +298,18 @@ function FinalResponseForm({
           value={text}
           disabled={submitting}
           onChange={(event) => setText(event.target.value)}
-          className="w-full rounded-lg border border-[var(--tc-border)] bg-[var(--tc-panel)] px-3 py-2 text-sm text-[var(--tc-text)] placeholder:text-[var(--tc-muted)] resize-none focus:border-[#5b7cff] focus:outline-none focus:ring-2 focus:ring-[#5b7cff]/40"
+          className="w-full rounded-lg border border-[var(--tc-border)] bg-[var(--tc-panel)] px-3 py-2 text-sm text-[var(--tc-text)] placeholder:text-[var(--tc-muted)] resize-none focus:border-[var(--tc-focus)] focus:outline-none focus:ring-2 focus:ring-[var(--tc-focus)]"
         />
       </div>
       {error ? (
-        <p role="alert" className="text-sm text-red-400">
+        <p role="alert" className="text-sm text-tc-danger">
           {error}
         </p>
       ) : null}
       <button
         type="submit"
         disabled={submitting}
-        className="w-full rounded-lg bg-[#5b7cff] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#4a6ae8] active:bg-[#3b5bdb] focus:outline-none focus:ring-2 focus:ring-[#5b7cff]/40 disabled:opacity-60"
+        className="tc-btn-primary w-full rounded-lg px-5 py-3 text-sm font-semibold transition focus:outline-none focus:ring-2 focus:ring-[var(--tc-focus)] disabled:opacity-60"
       >
         {submitting ? 'Submitting...' : 'Submit response'}
       </button>
@@ -321,15 +321,15 @@ function FinalResponseForm({
 
 function Shell({ children }: { children: React.ReactNode }) {
   return (
-    <div className="min-h-screen bg-[var(--tc-bg,#0c0e14)] flex items-start justify-center px-4 py-10 sm:py-16">
+    <div className="min-h-screen bg-[var(--tc-bg)] flex items-start justify-center px-4 py-10 sm:py-16">
       <div className="w-full max-w-md">
         {/* Logo / brand */}
         <div className="text-center mb-8">
           <div className="inline-flex items-center gap-2">
-            <div className="h-8 w-8 rounded-lg bg-[#5b7cff] flex items-center justify-center text-white text-sm font-bold">
+            <div className="h-8 w-8 rounded-lg bg-[var(--tc-brand-mark)] flex items-center justify-center text-tc-on-primary text-sm font-bold">
               TC
             </div>
-            <span className="text-sm font-semibold text-[var(--tc-text,#e4e6ea)] tracking-tight">
+            <span className="text-sm font-semibold text-[var(--tc-text)] tracking-tight">
               Trust Copilot
             </span>
           </div>
@@ -344,12 +344,12 @@ function Shell({ children }: { children: React.ReactNode }) {
 
 function StatusBadge({ status }: { status: string }) {
   const styles: Record<string, string> = {
-    pending: 'bg-amber-500/15 text-amber-400',
-    in_progress: 'bg-blue-500/15 text-blue-400',
-    completed: 'bg-emerald-500/15 text-emerald-400',
+    pending: 'bg-[var(--tc-warning-surface)] text-tc-warning',
+    in_progress: 'bg-[var(--tc-info-surface)] text-tc-info',
+    completed: 'bg-[var(--tc-success-surface)] text-tc-success',
   }
   const label = STATUS_LABELS[status] ?? status
-  const color = styles[status] ?? 'bg-slate-500/15 text-slate-400'
+  const color = styles[status] ?? 'bg-tc-surface-sunken text-tc-muted'
   return (
     <span
       className={`text-[11px] font-semibold uppercase px-2 py-0.5 rounded ${color}`}

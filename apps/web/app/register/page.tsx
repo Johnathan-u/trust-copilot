@@ -100,11 +100,10 @@ export default function RegisterPage() {
       <Card className="w-full max-w-md">
         <div className="mb-2 flex items-center gap-3">
           <div
-            className="grid h-10 w-10 place-items-center rounded-xl text-lg font-bold text-white"
+            className="grid h-10 w-10 place-items-center rounded-xl text-lg font-bold text-tc-on-primary"
             style={{
-              background:
-                'linear-gradient(135deg, #7c96ff, #5b7cff 55%, #2dd4bf)',
-              boxShadow: '0 12px 30px rgba(91,124,255,0.35)',
+              background: 'var(--tc-brand-mark)',
+              boxShadow: 'var(--tc-brand-mark-shadow)',
             }}
           >
             ✓

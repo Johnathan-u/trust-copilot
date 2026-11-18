@@ -47,7 +47,7 @@
     "psycopg2_binary": "2.9.13",
     "pgvector": "0.5.1",
     "postgresql_image": "pgvector/pgvector:pg16@sha256:7b822b0aac60967beb1ea5e576b8602c94c300a157d187f385ae3e0da199b90a",
-    "postgresql": "16.15"
+    "postgresql_note": "The CI logs show only the image digest in postgresql_image. They do not print a server version. The 16.15 figure is the local run, under local_run.postgresql."
   },
   "runs": [
     {
@@ -98,6 +98,19 @@
     "log_line": "tests/release/test_domain_compliance_frameworks.py ...........           [ 42%]",
     "note": "Secondary. This run is before test_migration_downgrade_and_upgrade_roundtrip. Alembic files are unchanged from this SHA through 4a2403ddd7f0e10854ae4370e48138cf673569c1."
   },
+  "master_run": {
+    "event": "push",
+    "ref": "master",
+    "sha": "edd332013d09af4222b9c700a489f9b4c7709091",
+    "run_id": 42886627596,
+    "url": "https://github.com/Johnathan-u/trust-copilot/actions/runs/42886627596",
+    "conclusion": "success",
+    "build_job_id": 130076533241,
+    "build_conclusion": "success",
+    "web_release_e2e_job_id": 130076534472,
+    "web_release_e2e_conclusion": "success",
+    "note": "Master CI after the merge of #212 (edd3320). The runs array above records the pre-merge evidence SHA b0f0b99."
+  },
   "local_run": {
     "tested_sha": "65eabfe634f1608a564faccc7db1a6eade1970af",
     "command": "python3 -m pytest tests/release/test_provider_adapter.py -q",
@@ -124,6 +137,8 @@
     "test_migration_upgrade_downgrade_upgrade_again is the 11th test in test_domain_compliance_frameworks.py. Both build logs show 11 dots and no skip.",
     "The one suite skip is tests/test_trust_scoring_blind.py:33. It is the known external_data skip.",
     "The local run of 65eabfe is the same 46 tests before this CI record existed.",
+    "The CI environment does not state a PostgreSQL server version. Those logs show only the image digest. The 16.15 figure is the local run, under local_run.postgresql.",
+    "Master push run 42886627596 is the CI of merge commit edd332013d09af4222b9c700a489f9b4c7709091. build job 130076533241 and web-release-e2e job 130076534472 both succeeded.",
     "Reviewer signoff is still pending. This record does not accept the ticket."
   ]
 }
