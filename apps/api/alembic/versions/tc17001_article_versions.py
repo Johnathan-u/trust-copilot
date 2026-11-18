@@ -93,9 +93,7 @@ def upgrade() -> None:
         ),
         sa.CheckConstraint("version_number >= 1", name="ck_trust_article_versions_number"),
     )
-    op.create_index(
-        "ix_trust_article_versions_trust_article_id", _VERSIONS, ["trust_article_id"]
-    )
+    op.create_index("ix_trust_article_versions_trust_article_id", _VERSIONS, ["trust_article_id"])
     op.create_index("ix_trust_article_versions_workspace_id", _VERSIONS, ["workspace_id"])
     op.execute(
         f"""
@@ -453,7 +451,9 @@ def downgrade() -> None:
     op.drop_constraint("uq_policy_ack_user_version", "policy_acknowledgments", type_="unique")
     op.drop_constraint("fk_policy_ack_version", "policy_acknowledgments", type_="foreignkey")
     op.drop_constraint("fk_policy_ack_workspace", "policy_acknowledgments", type_="foreignkey")
-    op.drop_index("ix_policy_acknowledgments_article_version_id", table_name="policy_acknowledgments")
+    op.drop_index(
+        "ix_policy_acknowledgments_article_version_id", table_name="policy_acknowledgments"
+    )
     op.drop_index("ix_policy_acknowledgments_workspace_id", table_name="policy_acknowledgments")
     op.drop_column("policy_acknowledgments", "revoked_at")
     op.drop_column("policy_acknowledgments", "workspace_id")

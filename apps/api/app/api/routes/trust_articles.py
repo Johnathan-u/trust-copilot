@@ -78,9 +78,7 @@ def _versions_for(db: Session, articles: list[TrustArticle]) -> dict[int, TrustA
     return {row.id: row for row in rows}
 
 
-def _to_dict(
-    article: TrustArticle, version: TrustArticleVersion | None, *, reader: bool
-) -> dict:
+def _to_dict(article: TrustArticle, version: TrustArticleVersion | None, *, reader: bool) -> dict:
     """Draft fields for an editor. A reader sees the published snapshot."""
     published_fields = {
         "published_version_id": None,
