@@ -133,3 +133,7 @@ scan, synthetic lookup, router-mount, service refusal and seed-skip tests).
 
 The full `pytest -rs` suite and the CI `build` and `web-release-e2e` jobs are not
 in this directory. This file does not record run ids.
+
+## Records revision 34
+
+CI run IDs for #302 and #304 are in `ci-runs.md`. The sentence above describes the implementation commits. Records revision 34 marks the parent DONE.
