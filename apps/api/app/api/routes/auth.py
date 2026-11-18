@@ -9,7 +9,7 @@ import secrets
 import threading
 import time
 from datetime import datetime, timedelta, timezone
-from urllib.parse import urlsplit
+from urllib.parse import urlencode, urlsplit
 
 from fastapi import APIRouter, Depends, HTTPException, Request, Response
 
@@ -32,6 +32,7 @@ from app.core.auth_deps import (  # noqa: E402
     require_session_leaving_workspace,
     require_valid_session,
     resolve_current_membership,
+    workspace_requires_unmet_mfa,
     workspace_session_max_age_seconds,
 )
 from app.core.config import get_settings  # noqa: E402
@@ -131,6 +132,39 @@ def _session_max_age_seconds(db: Session, workspace_id: int) -> int:
 def _effective_session_max_age_seconds(db: Session, workspace_id: int, remember_me: bool) -> int:
     """Remember-me changes cookie persistence, never the tenant's lifetime cap."""
     return _session_max_age_seconds(db, workspace_id)
+
+
+def _member_workspace_requires_mfa(db: Session, workspace_id: int) -> bool:
+    workspace = db.query(Workspace).filter(Workspace.id == workspace_id).first()
+    return bool(workspace and workspace.mfa_required)
+
+
+def _store_mfa_login_token(db: Session, user: User, member: WorkspaceMember) -> str:
+    """Pending MFA login. No session row and no privileged cookie."""
+    raw = secrets.token_urlsafe(32)
+    db.add(
+        MfaLoginToken(
+            token_hash=_token_hash(raw),
+            user_id=user.id,
+            workspace_id=member.workspace_id,
+            role=member.role,
+            expires_at=datetime.now(timezone.utc) + timedelta(minutes=5),
+        )
+    )
+    db.commit()
+    return raw
+
+
+def _frontend_login_url(query: dict[str, str] | None = None) -> str:
+    base = get_settings().frontend_url.rstrip("/")
+    if not query:
+        return f"{base}/login"
+    return f"{base}/login?{urlencode(query)}"
+
+
+def _clear_provider_state(resp: RedirectResponse, state_cookie: str) -> RedirectResponse:
+    resp.delete_cookie(state_cookie, path="/", samesite="lax")
+    return resp
 
 
 class LoginRequest(BaseModel):
@@ -968,21 +1002,8 @@ def _login_impl(req: LoginRequest, request: Request, response: Response, db: Ses
             403,
         )
     reenrol_pending = bool(mfa_row and mfa_reenrol_pending(mfa_row.totp_secret_encrypted))
-    if reenrol_pending and member.suspended:
-        raise HTTPException(status_code=403, detail="Active workspace membership required")
     if mfa_row and mfa_row.enabled and not reenrol_pending:
-        mfa_token_raw = secrets.token_urlsafe(32)
-        mfa_token_hash_val = _token_hash(mfa_token_raw)
-        expires_at = datetime.now(timezone.utc) + timedelta(minutes=5)
-        mlt = MfaLoginToken(
-            token_hash=mfa_token_hash_val,
-            user_id=user.id,
-            workspace_id=member.workspace_id,
-            role=member.role,
-            expires_at=expires_at,
-        )
-        db.add(mlt)
-        db.commit()
+        mfa_token_raw = _store_mfa_login_token(db, user, member)
         persist_audit(
             db,
             "auth.mfa_required",
@@ -992,9 +1013,17 @@ def _login_impl(req: LoginRequest, request: Request, response: Response, db: Ses
         )
         return {"requires_mfa": True, "mfa_token": mfa_token_raw}
 
-    remember = bool(req.remember_me) and not reenrol_pending
+    policy_enrol = (
+        not reenrol_pending
+        and not (mfa_row and mfa_row.enabled)
+        and _member_workspace_requires_mfa(db, member.workspace_id)
+    )
+    enrol_only = reenrol_pending or policy_enrol
+    if enrol_only and member.suspended:
+        raise HTTPException(status_code=403, detail="Active workspace membership required")
+    remember = bool(req.remember_me) and not enrol_only
     policy_age = _effective_session_max_age_seconds(db, member.workspace_id, remember)
-    max_age = min(300, policy_age) if reenrol_pending else policy_age
+    max_age = min(300, policy_age) if enrol_only else policy_age
     audit_log("auth.login", user_id=user.id, email=user.email, workspace_id=member.workspace_id)
     try:
         persist_audit(
@@ -1003,31 +1032,38 @@ def _login_impl(req: LoginRequest, request: Request, response: Response, db: Ses
     except Exception as e:
         logger.warning("auth.login persist_audit failed (login continues): %s", e)
     session_id = secrets.token_urlsafe(32)
-    db.add(
-        UserSession(
-            user_id=user.id,
-            session_id=session_id,
-            signing_key_id=_session_key_id(),
-            user_agent=request.headers.get("user-agent"),
-            ip_address=get_client_ip(request),
-        )
+    # The stored row and the signed exp must share one second. A later
+    # time.time() can make reissue shorten the cookie by one second.
+    created = datetime.now(timezone.utc).replace(tzinfo=None, microsecond=0)
+    row = UserSession(
+        user_id=user.id,
+        session_id=session_id,
+        signing_key_id=_session_key_id(),
+        user_agent=request.headers.get("user-agent"),
+        ip_address=get_client_ip(request),
+        created_at=created,
     )
+    db.add(row)
     db.commit()
+    db.refresh(row)
+    stored = row.created_at
+    stored = stored.replace(tzinfo=timezone.utc) if stored.tzinfo is None else stored
+    expires_at = int(stored.timestamp()) + max_age
     token = sign_session(
         user_id=user.id,
         email=user.email,
         workspace_id=member.workspace_id,
-        role="mfa_enrol" if reenrol_pending else member.role,
+        role="mfa_enrol" if enrol_only else member.role,
         session_id=session_id,
-        max_age_seconds=max_age,
-        mfa_enrol_only=reenrol_pending,
+        expires_at=expires_at,
+        mfa_enrol_only=enrol_only,
         cookie_persistent=remember,
     )
     response.set_cookie(
         key=SESSION_COOKIE, value=token, **_session_cookie_kwargs(max_age, persistent=remember)
     )
     result = {"user": _user_response(user), "workspace_id": member.workspace_id}
-    if reenrol_pending:
+    if enrol_only:
         result["requires_mfa_enrol"] = True
     return result
 
@@ -1248,6 +1284,10 @@ def _oauth_set_session_and_redirect(
     db: Session,
     *,
     onboarding: bool = False,
+    mfa_enrol_only: bool = False,
+    max_age_seconds: int | None = None,
+    cookie_persistent: bool = True,
+    redirect_path: str | None = None,
 ) -> RedirectResponse:
     session_id = secrets.token_urlsafe(32)
     db.add(
@@ -1260,7 +1300,11 @@ def _oauth_set_session_and_redirect(
         )
     )
     db.commit()
-    max_age = _session_max_age_seconds(db, workspace_id)
+    max_age = (
+        max_age_seconds
+        if max_age_seconds is not None
+        else _session_max_age_seconds(db, workspace_id)
+    )
     token = sign_session(
         user_id=user.id,
         email=user.email,
@@ -1268,13 +1312,23 @@ def _oauth_set_session_and_redirect(
         role=role,
         session_id=session_id,
         max_age_seconds=max_age,
-        cookie_persistent=True,
+        mfa_enrol_only=mfa_enrol_only,
+        cookie_persistent=cookie_persistent,
     )
     frontend = get_settings().frontend_url.rstrip("/")
-    path = "/onboarding" if onboarding else "/dashboard"
+    if redirect_path is not None:
+        path = redirect_path
+    elif onboarding:
+        path = "/onboarding"
+    else:
+        path = "/dashboard"
     redirect_url = f"{frontend}{path}"
     resp = RedirectResponse(url=redirect_url, status_code=302)
-    resp.set_cookie(key=SESSION_COOKIE, value=token, **_session_cookie_kwargs(max_age))
+    resp.set_cookie(
+        key=SESSION_COOKIE,
+        value=token,
+        **_session_cookie_kwargs(max_age, persistent=cookie_persistent),
+    )
     return resp
 
 
@@ -1372,24 +1426,18 @@ def _establish_provider_user(
     return user
 
 
-def _provider_login_response(
-    db: Session, user: User, *, provider: str, state_cookie: str
-) -> RedirectResponse:
-    """Same pending session as password login when the account has no membership."""
-    member = (
-        db.query(WorkspaceMember)
-        .filter(WorkspaceMember.user_id == user.id)
-        .order_by(WorkspaceMember.workspace_id)
-        .first()
-    )
-    if member is None:
-        workspace_id = 0
-        role = "pending"
-        onboarding = True
-    else:
-        workspace_id = member.workspace_id
-        role = member.role
-        onboarding = False
+def _audit_provider_login(
+    db: Session,
+    user: User,
+    workspace_id: int,
+    provider: str,
+    *,
+    onboarding: bool,
+    enrol: bool = False,
+) -> None:
+    details: dict = {"provider": provider, "needs_onboarding": onboarding}
+    if enrol:
+        details["requires_mfa_enrol"] = True
     try:
         persist_audit(
             db,
@@ -1397,13 +1445,108 @@ def _provider_login_response(
             user_id=user.id,
             email=user.email,
             workspace_id=workspace_id,
-            details={"provider": provider, "needs_onboarding": onboarding},
+            details=details,
         )
     except Exception:
         logger.warning("provider login audit failed for provider=%s", provider)
-    resp = _oauth_set_session_and_redirect(user, workspace_id, role, db, onboarding=onboarding)
-    resp.delete_cookie(state_cookie, path="/", samesite="lax")
-    return resp
+
+
+def _provider_login_response(
+    db: Session, user: User, *, provider: str, state_cookie: str
+) -> RedirectResponse:
+    """Issue the same MFA gate as password login, then redirect the browser.
+
+    An enabled factor lands on ``/login?mfa_token=`` with no session cookie.
+    A workspace that requires MFA and has no enabled factor, and an
+    administrator re-enrolment, land on ``/login?mfa_enrol=1`` with only the
+    zero-permission enrolment cookie. No membership still goes to onboarding.
+    """
+    member = (
+        db.query(WorkspaceMember)
+        .filter(WorkspaceMember.user_id == user.id)
+        .order_by(WorkspaceMember.workspace_id)
+        .first()
+    )
+    if member is None:
+        _audit_provider_login(db, user, 0, provider, onboarding=True)
+        resp = _oauth_set_session_and_redirect(user, 0, "pending", db, onboarding=True)
+        return _clear_provider_state(resp, state_cookie)
+
+    mfa_row = db.query(UserMfa).filter(UserMfa.user_id == user.id).first()
+    if mfa_row and mfa_reenrol_required(mfa_row.totp_secret_encrypted):
+        record_decrypt_failure(
+            db,
+            user_id=user.id,
+            stored=mfa_row.totp_secret_encrypted,
+            reason="reenrol_marker",
+            resource_type="user_mfa",
+            resource_id=mfa_row.id,
+            commit=True,
+        )
+        resp = RedirectResponse(
+            url=_frontend_login_url({"error": "mfa_reset_required"}),
+            status_code=302,
+        )
+        return _clear_provider_state(resp, state_cookie)
+
+    reenrol_pending = bool(mfa_row and mfa_reenrol_pending(mfa_row.totp_secret_encrypted))
+    if mfa_row and mfa_row.enabled and not reenrol_pending:
+        raw = _store_mfa_login_token(db, user, member)
+        try:
+            persist_audit(
+                db,
+                "auth.mfa_required",
+                user_id=user.id,
+                email=user.email,
+                workspace_id=member.workspace_id,
+                details={"provider": provider},
+            )
+        except Exception:
+            logger.warning("provider MFA audit failed for provider=%s", provider)
+        resp = RedirectResponse(
+            url=_frontend_login_url({"mfa_token": raw}),
+            status_code=302,
+        )
+        return _clear_provider_state(resp, state_cookie)
+
+    policy_enrol = (
+        not reenrol_pending
+        and not (mfa_row and mfa_row.enabled)
+        and _member_workspace_requires_mfa(db, member.workspace_id)
+    )
+    enrol_only = reenrol_pending or policy_enrol
+    if enrol_only and member.suspended:
+        resp = RedirectResponse(
+            url=_frontend_login_url({"error": "membership_required"}),
+            status_code=302,
+        )
+        return _clear_provider_state(resp, state_cookie)
+
+    _audit_provider_login(
+        db,
+        user,
+        member.workspace_id,
+        provider,
+        onboarding=False,
+        enrol=enrol_only,
+    )
+    if enrol_only:
+        policy_age = _session_max_age_seconds(db, member.workspace_id)
+        resp = _oauth_set_session_and_redirect(
+            user,
+            member.workspace_id,
+            "mfa_enrol",
+            db,
+            mfa_enrol_only=True,
+            max_age_seconds=min(300, policy_age),
+            cookie_persistent=False,
+            redirect_path="/login?mfa_enrol=1",
+        )
+    else:
+        resp = _oauth_set_session_and_redirect(
+            user, member.workspace_id, member.role, db, onboarding=False
+        )
+    return _clear_provider_state(resp, state_cookie)
 
 
 @router.get("/oauth/providers")
@@ -2365,10 +2508,11 @@ async def mfa_setup(request: Request, db: Session = Depends(get_db)):
     )
     if existing and existing.enabled:
         raise HTTPException(status_code=400, detail="MFA is already enabled")
-    if session.get("mfa_enrol_only") and not (
-        existing and mfa_reenrol_pending(existing.totp_secret_encrypted)
-    ):
-        raise HTTPException(status_code=401, detail="MFA enrollment session expired")
+    pending_existing = bool(existing and mfa_reenrol_pending(existing.totp_secret_encrypted))
+    if session.get("mfa_enrol_only") and not pending_existing:
+        allowed = workspace_requires_unmet_mfa(db, user_id, session.get("workspace_id"), existing)
+        if not allowed:
+            raise HTTPException(status_code=401, detail="MFA enrollment session expired")
     secret = generate_totp_secret()
     encrypted = encrypt_totp_secret(
         secret,
@@ -2409,12 +2553,18 @@ async def mfa_confirm(
     if row.enabled:
         raise HTTPException(status_code=400, detail="MFA is already enabled")
     pending = mfa_reenrol_pending(row.totp_secret_encrypted)
-    if session.get("mfa_enrol_only") and not pending:
+    policy_enrol = bool(
+        session.get("mfa_enrol_only")
+        and not pending
+        and workspace_requires_unmet_mfa(db, user_id, session.get("workspace_id"), row)
+    )
+    if session.get("mfa_enrol_only") and not (pending or policy_enrol):
         raise HTTPException(status_code=401, detail="MFA enrollment session expired")
     member = None
     old_session = None
-    if pending:
-        if not session.get("mfa_enrol_only"):
+    upgrade = pending or policy_enrol
+    if upgrade:
+        if pending and not session.get("mfa_enrol_only"):
             raise HTTPException(status_code=403, detail="Sign in again to complete MFA enrollment")
         member = (
             db.query(WorkspaceMember)
@@ -2457,6 +2607,7 @@ async def mfa_confirm(
     new_session_id = None
     if pending:
         row.totp_secret_encrypted = encrypt_totp_secret(secret)
+    if upgrade:
         db.delete(old_session)
         new_session_id = secrets.token_urlsafe(32)
         db.add(

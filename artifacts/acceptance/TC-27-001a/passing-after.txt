@@ -1,0 +1,57 @@
+# TC-27-001a compress-stage cases, after the fix
+
+Python 3.12.3
+pytest 9.2.0
+Working directory: apps/api
+The code under test is the backup script and the stubs in this commit.
+`pytest` used `--noconftest` because this shell has no FastAPI install.
+`tests/conftest.py` is the app and database fixture module. This file does not use it.
+`tmp_path` is a pytest builtin.
+
+## Natural scheduling, same `_run` helper as the test
+
+mode=full runs=200 workers=1
+script exit 1: 200
+pg_dump stub exit 141: 200
+non-1: 0
+200 BACKUP_FAILURE stage=compress exit_code=1 message=gzip failed: gzip: stdout: No space left on device
+
+mode=broken runs=100 workers=1
+script exit 1: 100
+pg_dump stub exit 0: 100
+non-1: 0
+100 BACKUP_FAILURE stage=compress exit_code=1 message=compressed backup failed integrity check
+
+mode=full runs=40 workers=8
+script exit 1: 40
+pg_dump stub exit 141: 40
+non-1: 0
+40 BACKUP_FAILURE stage=compress exit_code=1 message=gzip failed: gzip: stdout: No space left on device
+
+mode=broken runs=40 workers=8
+script exit 1: 40
+pg_dump stub exit 0: 40
+non-1: 0
+40 BACKUP_FAILURE stage=compress exit_code=1 message=compressed backup failed integrity check
+
+## Forced timing
+
+The fixed full-disk gzip stub still does not read stdin. The dump stub slept
+0.05s before the pipe-filling write, so gzip always closed the pipe first.
+30 runs.
+
+script exit 1: 30
+pg_dump stub exit 141: 30
+30 BACKUP_FAILURE stage=compress exit_code=1 message=gzip failed: gzip: stdout: No space left on device
+
+## Pytest
+
+Command:
+
+```text
+python -m pytest --noconftest tests/release/test_backup_failure.py -q --tb=line
+```
+
+Repeated 15 times. Each run: 8 passed. Failures: 0.
+The compress cases still expect script exit 1. The full-disk case also expects
+the pg_dump stub to exit 141. The broken-stream case expects the stub to exit 0.

@@ -8,6 +8,9 @@
 # hidden partial file, verified, then renamed into trustcopilot_*.sql.gz.
 # pg_dump, gzip, checksum, or publish failure exits nonzero, deletes the
 # partial, and does not leave that new trustcopilot_*.sql.gz or its .sha256.
+# When gzip exits nonzero, that is the compress failure even if pg_dump was
+# killed by SIGPIPE after gzip closed the pipe. pg_dump's status is the dump
+# failure when gzip exits 0.
 # The failure line names the stage, the exit code, and a message. It never
 # includes DATABASE_URL, a password, or a connection string.
 # An S3 upload failure, including a configured bucket with no aws CLI, exits
@@ -130,19 +133,23 @@ set -e
 dump_status=${statuses[0]:-1}
 gzip_status=${statuses[1]:-1}
 
-if [ "$dump_status" -ne 0 ]; then
-  detail=$(read_redacted "$secret_tmp/dump.err")
-  if [ -n "$detail" ]; then
-    fail dump "$dump_status" "pg_dump failed: ${detail}"
-  fi
-  fail dump "$dump_status" "pg_dump failed"
-fi
+# gzip is the downstream stage. When it exits nonzero it has closed the pipe,
+# and pg_dump often dies with SIGPIPE (141) or a broken-pipe write. Report
+# gzip's code for that compress failure. A pg_dump failure with gzip still
+# exiting 0 is the dump stage.
 if [ "$gzip_status" -ne 0 ]; then
   detail=$(read_redacted "$secret_tmp/gzip.err")
   if [ -n "$detail" ]; then
     fail compress "$gzip_status" "gzip failed: ${detail}"
   fi
   fail compress "$gzip_status" "gzip failed"
+fi
+if [ "$dump_status" -ne 0 ]; then
+  detail=$(read_redacted "$secret_tmp/dump.err")
+  if [ -n "$detail" ]; then
+    fail dump "$dump_status" "pg_dump failed: ${detail}"
+  fi
+  fail dump "$dump_status" "pg_dump failed"
 fi
 
 magic=$(od -An -t x1 -N 2 "$PARTIAL" | tr -d '[:space:]')
