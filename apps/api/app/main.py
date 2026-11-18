@@ -315,6 +315,8 @@ class CSRFMiddleware(BaseHTTPMiddleware):
     A present Origin that is not in trusted_origins is rejected before Referer or
     X-Forwarded-* (TC-07-004). X-Forwarded-Host and X-Forwarded-Proto are passed
     through and count only when the direct peer is in TRUSTED_PROXY_IPS.
+    In production (is_production_env / APP_ENV), a missing Origin and Referer is
+    not allowed merely because the request host is localhost or testserver.
     """
 
     async def dispatch(self, request: Request, call_next):
@@ -331,6 +333,8 @@ class CSRFMiddleware(BaseHTTPMiddleware):
                 xfp = request.headers.get("x-forwarded-proto")
                 client_ip = request.client.host if request.client else None
                 trusted_proxy_ips = os.environ.get("TRUSTED_PROXY_IPS", "")
+                from app.core.session import is_production_env
+
                 if not is_csrf_safe(
                     request.method,
                     origin,
@@ -342,6 +346,7 @@ class CSRFMiddleware(BaseHTTPMiddleware):
                     x_forwarded_proto=xfp,
                     client_ip=client_ip,
                     trusted_proxy_ips=trusted_proxy_ips,
+                    production=is_production_env(),
                 ):
                     import logging
 
@@ -405,12 +410,35 @@ app.add_middleware(StructuredLoggingMiddleware)
 app.add_middleware(GlobalRateLimitMiddleware)
 app.add_middleware(CSRFMiddleware)
 _s = get_settings()
+# TC-07-004. Decorators under apps/api/app are GET (264, including the five
+# probes below), POST (193), PUT (2), PATCH (41) and DELETE (29). None declare
+# HEAD, OPTIONS, QUERY, or TRACE. OPTIONS is the browser preflight this
+# middleware answers. Starlette expands allow_methods=["*"] to ALL_METHODS,
+# which also allows HEAD and QUERY.
+CORS_ALLOW_METHODS = ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"]
+# Headers the web app sets on fetch, plus Authorization. The Next proxy forwards
+# Authorization when the browser sends it, and bearer clients send it.
+# Accept: apps/web/lib/workspace-creation-policy.ts
+# Authorization: apps/web/app/api/[[...path]]/route.ts
+# Cache-Control and Pragma: apps/web/app/dashboard/review/[id]/page.tsx
+# Content-Type: the JSON fetch calls under apps/web
+# Idempotency-Key: deals, requests, trust intake, gap actions, control mappings
+# No X-Requested-With, no other X-* request header, and no CSRF header is set.
+# Cookie, Origin, and Referer are browser or proxy fields, not preflight headers.
+CORS_ALLOW_HEADERS = [
+    "Accept",
+    "Authorization",
+    "Cache-Control",
+    "Content-Type",
+    "Idempotency-Key",
+    "Pragma",
+]
 app.add_middleware(
     CORSMiddleware,
     allow_origins=_s.cors_origins,
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=CORS_ALLOW_METHODS,
+    allow_headers=CORS_ALLOW_HEADERS,
 )
 
 app.include_router(auth_router.router, prefix="/api")

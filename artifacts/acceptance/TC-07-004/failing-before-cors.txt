@@ -1,0 +1,43 @@
+.........F.FF.F.F                                                        [100%]
+=================================== FAILURES ===================================
+_____________ test_cors_lists_match_the_routes_and_client_headers ______________
+tests/release/test_csrf_proxy.py:301: in test_cors_lists_match_the_routes_and_client_headers
+    assert methods == CORS_METHODS
+E   AssertionError: assert ['*'] == ['GET', 'POST...E', 'OPTIONS']
+E     
+E     At index 0 diff: '*' != 'GET'
+E     Right contains 5 more items, first extra item: 'POST'
+E     Use -v to get more diff
+________________ test_cors_preflight_rejects_disallowed_method _________________
+tests/release/test_csrf_proxy.py:332: in test_cors_preflight_rejects_disallowed_method
+    assert response.status_code == 400
+E   assert 200 == 400
+E    +  where 200 = <Response [200 OK]>.status_code
+________________ test_cors_preflight_rejects_disallowed_header _________________
+tests/release/test_csrf_proxy.py:343: in test_cors_preflight_rejects_disallowed_header
+    assert response.status_code == 400
+E   assert 200 == 400
+E    +  where 200 = <Response [200 OK]>.status_code
+________________ test_production_localhost_fallback_is_rejected ________________
+tests/release/test_csrf_proxy.py:361: in test_production_localhost_fallback_is_rejected
+    assert (
+E   AssertionError: localhost
+E   assert True is False
+E    +  where True = _check(origin=None, referer=None, request_host='localhost', x_forwarded_host='evil.example.com', x_forwarded_proto='https', client_ip='203.0.113.10', trusted_proxy_ips='', production=True)
+________________ test_csrf_middleware_passes_is_production_env _________________
+tests/release/test_csrf_proxy.py:425: in test_csrf_middleware_passes_is_production_env
+    assert "production=is_production_env()" in body
+E   assert 'production=is_production_env()' in '(BaseHTTPMiddleware):\n    """SEC-201: Reject state-changing requests with session cookie if Origin/Referer not allow...{"detail": "Invalid or missing Origin/Referer"},\n                    )\n        return await call_next(request)\n\n\n'
+=============================== warnings summary ===============================
+../../../../../home/ubuntu/.local/lib/python3.12/site-packages/fastapi/testclient.py:1
+  /home/ubuntu/.local/lib/python3.12/site-packages/fastapi/testclient.py:1: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+    from starlette.testclient import TestClient as TestClient  # noqa
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/release/test_csrf_proxy.py::test_cors_lists_match_the_routes_and_client_headers
+FAILED tests/release/test_csrf_proxy.py::test_cors_preflight_rejects_disallowed_method
+FAILED tests/release/test_csrf_proxy.py::test_cors_preflight_rejects_disallowed_header
+FAILED tests/release/test_csrf_proxy.py::test_production_localhost_fallback_is_rejected
+FAILED tests/release/test_csrf_proxy.py::test_csrf_middleware_passes_is_production_env
+5 failed, 12 passed, 1 warning in 0.24s

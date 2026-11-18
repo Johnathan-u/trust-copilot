@@ -8,6 +8,9 @@ A present Origin that is not allowed is final (TC-07-004), including the literal
 ``null``. Referer and X-Forwarded-Host/Proto are used only when Origin is absent.
 Those forwarded headers count only when the direct peer is listed in
 TRUSTED_PROXY_IPS (IPs or CIDRs). An empty list trusts none of them.
+
+The localhost/testserver host fallback is dev and test only. ``CSRFMiddleware``
+passes ``production=is_production_env()``. This function does not read APP_ENV.
 """
 
 import ipaddress
@@ -121,11 +124,17 @@ def is_csrf_safe(
     x_forwarded_proto: str | None = None,
     client_ip: str | None = None,
     trusted_proxy_ips: str | None = None,
+    production: bool = False,
 ) -> bool:
     """Return True if request is safe (no CSRF risk or origin/referer allowed).
 
     ``trusted_proxy_ips`` is the ``TRUSTED_PROXY_IPS`` value. ``None`` and ``""``
     trust no forwarded host or proto. The function does not read the environment.
+
+    ``production`` is the caller's ``is_production_env()`` result. When true, a
+    missing Origin and Referer is not allowed just because the request host is
+    localhost or ``testserver``. An allowed Origin, an allowed Referer, or a
+    trusted-proxy forwarded origin still passes.
     """
     state_changing = method.upper() in ("POST", "PUT", "PATCH", "DELETE")
     if not state_changing or not has_session_cookie:
@@ -147,8 +156,15 @@ def is_csrf_safe(
         syn = _origin_from_forwarded(x_forwarded_host, x_forwarded_proto)
         if syn and syn in normalized_allowed:
             return True
-    # Dev/proxy: when Next.js or same-host proxy forwards without Origin/Referer, allow if host is local or test
-    if request_host and not origin and not referer:
-        if request_host in ("localhost", "127.0.0.1", "::1", "::ffff:127.0.0.1", "testserver"):
-            return True
+    # Dev and test only. The host comes from the Host header, so a production
+    # process can be addressed as localhost or testserver. That is not an allow.
+    # Production still accepts an allowed Origin, Referer, or trusted-proxy origin.
+    if (
+        not production
+        and request_host
+        and not origin
+        and not referer
+        and request_host in ("localhost", "127.0.0.1", "::1", "::ffff:127.0.0.1", "testserver")
+    ):
+        return True
     return False

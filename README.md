@@ -44,7 +44,7 @@ Or manually:
 - **Password reset:** `/forgot-password` → email link → `/reset-password?token=...`. No auto-sign-in after reset.
 - **Workspace switching:** In the dashboard, use the workspace dropdown in the header (when user has multiple workspaces).
 - **Roles:** Admin, editor, reviewer, with RBAC on uploads, exports, and Trust Center admin. See [Auth & SSO](docs/security/AUTH_AND_SSO.md).
-- **Production:** Set `SESSION_SECRET`, `FRONTEND_URL`; use a real email provider for verification and reset. CSRF uses Origin/Referer; rate limiting on login. See [Production secrets](#production-secrets).
+- **Production:** Set `SESSION_SECRET`, `FRONTEND_URL`; use a real email provider for verification and reset. CSRF uses Origin or Referer, or a trusted-proxy forwarded origin. A cookie write is not allowed in production merely because Host is localhost. CORS allows the methods and headers the API and the web client use. Rate limiting on login. See [Production secrets](#production-secrets).
 
 ## Workflow
 
