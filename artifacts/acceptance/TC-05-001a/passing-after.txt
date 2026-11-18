@@ -1,0 +1,27 @@
+============================= test session starts ==============================
+platform linux -- Python 3.12.3, pytest-9.1.1, pluggy-1.7.0
+rootdir: /agent/repos/trust-copilot/apps/api
+configfile: pyproject.toml
+plugins: anyio-4.15.1
+collected 64 items
+
+tests/release/test_mfa_enroll.py ......ssssss.s............ssssssssssss. [ 60%]
+.ss......ssssss..ss.s.s.s                                                [100%]
+
+=============================== warnings summary ===============================
+tests/release/test_mfa_enroll.py: 154 warnings
+  /tmp/tc-api-venv/lib/python3.12/site-packages/sqlalchemy/sql/schema.py:3627: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    return util.wrap_callable(lambda ctx: fn(), fn)  # type: ignore
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+SKIPPED [6] tests/release/test_mfa_enroll.py:371: Postgres test database unavailable or incompatible (see 'WARNING: test DB setup failed' above; start the local test Postgres or set TC_TEST_DATABASE_URL to a local *_test database)
+SKIPPED [1] tests/release/test_mfa_enroll.py:383: Postgres test database unavailable or incompatible (see 'WARNING: test DB setup failed' above; start the local test Postgres or set TC_TEST_DATABASE_URL to a local *_test database)
+SKIPPED [12] tests/release/test_mfa_enroll.py:398: Postgres test database unavailable or incompatible (see 'WARNING: test DB setup failed' above; start the local test Postgres or set TC_TEST_DATABASE_URL to a local *_test database)
+SKIPPED [2] tests/release/test_mfa_enroll.py:407: Postgres test database unavailable or incompatible (see 'WARNING: test DB setup failed' above; start the local test Postgres or set TC_TEST_DATABASE_URL to a local *_test database)
+SKIPPED [6] tests/release/test_mfa_enroll.py:428: Postgres test database unavailable or incompatible (see 'WARNING: test DB setup failed' above; start the local test Postgres or set TC_TEST_DATABASE_URL to a local *_test database)
+SKIPPED [2] tests/release/test_mfa_enroll.py:435: Postgres test database unavailable or incompatible (see 'WARNING: test DB setup failed' above; start the local test Postgres or set TC_TEST_DATABASE_URL to a local *_test database)
+SKIPPED [1] tests/release/test_mfa_enroll.py:442: Postgres test database unavailable or incompatible (see 'WARNING: test DB setup failed' above; start the local test Postgres or set TC_TEST_DATABASE_URL to a local *_test database)
+SKIPPED [1] tests/release/test_mfa_enroll.py:451: Postgres test database unavailable or incompatible (see 'WARNING: test DB setup failed' above; start the local test Postgres or set TC_TEST_DATABASE_URL to a local *_test database)
+SKIPPED [1] tests/release/test_mfa_enroll.py:457: Postgres test database unavailable or incompatible (see 'WARNING: test DB setup failed' above; start the local test Postgres or set TC_TEST_DATABASE_URL to a local *_test database)
+================= 32 passed, 32 skipped, 154 warnings in 4.45s =================

@@ -1,0 +1,120 @@
+============================= test session starts ==============================
+platform linux -- Python 3.12.3, pytest-9.1.1, pluggy-1.7.0
+rootdir: /agent/repos/trust-copilot/apps/api
+configfile: pyproject.toml
+plugins: anyio-4.15.1
+collected 64 items
+
+tests/release/test_mfa_enroll.py .FFFFFssssssFsFFFFFFFFFFFFssssssssssssF [ 60%]
+Fss......ssssss..ssFsFsFs                                                [100%]
+
+=================================== FAILURES ===================================
+E   AssertionError: assert 1 == 0
+     +  where 1 = session_rows({'db': <sqlalchemy.orm.session.Session object at 0x7f2c8f4f33e0>, 'client': <starlette.testclient.TestClient object at 0x7f2c8e4ab860>, 'user_id': 1, 'ws_id': 1, ...})
+/agent/repos/trust-copilot/apps/api/tests/release/test_mfa_enroll.py:379: AssertionError: assert 1 == 0
+E   AssertionError: assert 1 == 0
+     +  where 1 = session_rows({'db': <sqlalchemy.orm.session.Session object at 0x7f2c8f461040>, 'client': <starlette.testclient.TestClient object at 0x7f2c8f4775c0>, 'user_id': 1, 'ws_id': 1, ...})
+/agent/repos/trust-copilot/apps/api/tests/release/test_mfa_enroll.py:379: AssertionError: assert 1 == 0
+E   AssertionError: assert 1 == 0
+     +  where 1 = session_rows({'db': <sqlalchemy.orm.session.Session object at 0x7f2c8f49a240>, 'client': <starlette.testclient.TestClient object at 0x7f2c8f361d30>, 'user_id': 1, 'ws_id': 1, ...})
+/agent/repos/trust-copilot/apps/api/tests/release/test_mfa_enroll.py:379: AssertionError: assert 1 == 0
+E   AssertionError: assert 1 == 0
+     +  where 1 = session_rows({'db': <sqlalchemy.orm.session.Session object at 0x7f2c8f3b4800>, 'client': <starlette.testclient.TestClient object at 0x7f2c8f238590>, 'user_id': 1, 'ws_id': 1, ...})
+/agent/repos/trust-copilot/apps/api/tests/release/test_mfa_enroll.py:379: AssertionError: assert 1 == 0
+E   AssertionError: assert 1 == 0
+     +  where 1 = session_rows({'db': <sqlalchemy.orm.session.Session object at 0x7f2c8f238110>, 'client': <starlette.testclient.TestClient object at 0x7f2c8f0eac90>, 'user_id': 1, 'ws_id': 1, ...})
+/agent/repos/trust-copilot/apps/api/tests/release/test_mfa_enroll.py:379: AssertionError: assert 1 == 0
+E   AssertionError: assert {'user_id': 1, 'email': 'mfa-f2f362558b635e64@example.test', 'workspace_id': 1, 'role': 'admin', ...} is None
+     +  where {'user_id': 1, 'email': 'mfa-f2f362558b635e64@example.test', 'workspace_id': 1, 'role': 'admin', ...} = session_payload(<Response [302 Found]>)
+/agent/repos/trust-copilot/apps/api/tests/release/test_mfa_enroll.py:302: AssertionError: assert {'user_id': 1, 'email': 'mfa-f2f362558b635e64@example.test', 'workspace_id': 1, 'role': 'admin', ...} is None
+E   KeyError: 'requires_mfa_enrol'
+/agent/repos/trust-copilot/apps/api/tests/release/test_mfa_enroll.py:343: KeyError: 'requires_mfa_enrol'
+E   AssertionError: assert '/dashboard' == '/login'
+      
+      - /login
+      + /dashboard
+/agent/repos/trust-copilot/apps/api/tests/release/test_mfa_enroll.py:348: AssertionError: assert '/dashboard' == '/login'
+E   AssertionError: assert '/dashboard' == '/login'
+      
+      - /login
+      + /dashboard
+/agent/repos/trust-copilot/apps/api/tests/release/test_mfa_enroll.py:348: AssertionError: assert '/dashboard' == '/login'
+E   AssertionError: assert '/dashboard' == '/login'
+      
+      - /login
+      + /dashboard
+/agent/repos/trust-copilot/apps/api/tests/release/test_mfa_enroll.py:348: AssertionError: assert '/dashboard' == '/login'
+E   AssertionError: assert '/dashboard' == '/login'
+      
+      - /login
+      + /dashboard
+/agent/repos/trust-copilot/apps/api/tests/release/test_mfa_enroll.py:348: AssertionError: assert '/dashboard' == '/login'
+E   AssertionError: assert '/dashboard' == '/login'
+      
+      - /login
+      + /dashboard
+/agent/repos/trust-copilot/apps/api/tests/release/test_mfa_enroll.py:348: AssertionError: assert '/dashboard' == '/login'
+E   KeyError: 'requires_mfa_enrol'
+/agent/repos/trust-copilot/apps/api/tests/release/test_mfa_enroll.py:343: KeyError: 'requires_mfa_enrol'
+E   AssertionError: assert '/dashboard' == '/login'
+      
+      - /login
+      + /dashboard
+/agent/repos/trust-copilot/apps/api/tests/release/test_mfa_enroll.py:348: AssertionError: assert '/dashboard' == '/login'
+E   AssertionError: assert '/dashboard' == '/login'
+      
+      - /login
+      + /dashboard
+/agent/repos/trust-copilot/apps/api/tests/release/test_mfa_enroll.py:348: AssertionError: assert '/dashboard' == '/login'
+E   AssertionError: assert '/dashboard' == '/login'
+      
+      - /login
+      + /dashboard
+/agent/repos/trust-copilot/apps/api/tests/release/test_mfa_enroll.py:348: AssertionError: assert '/dashboard' == '/login'
+E   AssertionError: assert '/dashboard' == '/login'
+      
+      - /login
+      + /dashboard
+/agent/repos/trust-copilot/apps/api/tests/release/test_mfa_enroll.py:348: AssertionError: assert '/dashboard' == '/login'
+E   AssertionError: assert '/dashboard' == '/login'
+      
+      - /login
+      + /dashboard
+/agent/repos/trust-copilot/apps/api/tests/release/test_mfa_enroll.py:348: AssertionError: assert '/dashboard' == '/login'
+E   KeyError: 'requires_mfa_enrol'
+/agent/repos/trust-copilot/apps/api/tests/release/test_mfa_enroll.py:343: KeyError: 'requires_mfa_enrol'
+E   AssertionError: assert '/dashboard' == '/login'
+      
+      - /login
+      + /dashboard
+/agent/repos/trust-copilot/apps/api/tests/release/test_mfa_enroll.py:348: AssertionError: assert '/dashboard' == '/login'
+E   AssertionError: assert 1 == 0
+     +  where 1 = session_rows({'db': <sqlalchemy.orm.session.Session object at 0x7f2c8eb05f70>, 'client': <starlette.testclient.TestClient object at 0x7f2c8e32e9f0>, 'user_id': 1, 'ws_id': 1, ...})
+/agent/repos/trust-copilot/apps/api/tests/release/test_mfa_enroll.py:450: AssertionError: assert 1 == 0
+E   AssertionError: assert '/dashboard' == '/login'
+      
+      - /login
+      + /dashboard
+/agent/repos/trust-copilot/apps/api/tests/release/test_mfa_enroll.py:348: AssertionError: assert '/dashboard' == '/login'
+E   AssertionError: assert '/dashboard' == '/login'
+      
+      - /login
+      + /dashboard
+/agent/repos/trust-copilot/apps/api/tests/release/test_mfa_enroll.py:467: AssertionError: assert '/dashboard' == '/login'
+=============================== warnings summary ===============================
+tests/release/test_mfa_enroll.py: 128 warnings
+  /tmp/tc-api-venv/lib/python3.12/site-packages/sqlalchemy/sql/schema.py:3627: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    return util.wrap_callable(lambda ctx: fn(), fn)  # type: ignore
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+SKIPPED [6] tests/release/test_mfa_enroll.py:373: Postgres test database unavailable or incompatible (see 'WARNING: test DB setup failed' above; start the local test Postgres or set TC_TEST_DATABASE_URL to a local *_test database)
+SKIPPED [1] tests/release/test_mfa_enroll.py:385: Postgres test database unavailable or incompatible (see 'WARNING: test DB setup failed' above; start the local test Postgres or set TC_TEST_DATABASE_URL to a local *_test database)
+SKIPPED [12] tests/release/test_mfa_enroll.py:402: Postgres test database unavailable or incompatible (see 'WARNING: test DB setup failed' above; start the local test Postgres or set TC_TEST_DATABASE_URL to a local *_test database)
+SKIPPED [2] tests/release/test_mfa_enroll.py:411: Postgres test database unavailable or incompatible (see 'WARNING: test DB setup failed' above; start the local test Postgres or set TC_TEST_DATABASE_URL to a local *_test database)
+SKIPPED [6] tests/release/test_mfa_enroll.py:432: Postgres test database unavailable or incompatible (see 'WARNING: test DB setup failed' above; start the local test Postgres or set TC_TEST_DATABASE_URL to a local *_test database)
+SKIPPED [2] tests/release/test_mfa_enroll.py:439: Postgres test database unavailable or incompatible (see 'WARNING: test DB setup failed' above; start the local test Postgres or set TC_TEST_DATABASE_URL to a local *_test database)
+SKIPPED [1] tests/release/test_mfa_enroll.py:446: Postgres test database unavailable or incompatible (see 'WARNING: test DB setup failed' above; start the local test Postgres or set TC_TEST_DATABASE_URL to a local *_test database)
+SKIPPED [1] tests/release/test_mfa_enroll.py:455: Postgres test database unavailable or incompatible (see 'WARNING: test DB setup failed' above; start the local test Postgres or set TC_TEST_DATABASE_URL to a local *_test database)
+SKIPPED [1] tests/release/test_mfa_enroll.py:461: Postgres test database unavailable or incompatible (see 'WARNING: test DB setup failed' above; start the local test Postgres or set TC_TEST_DATABASE_URL to a local *_test database)
+============ 23 failed, 9 passed, 32 skipped, 128 warnings in 3.70s ============

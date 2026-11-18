@@ -42,16 +42,23 @@ Source of truth: `apps/api/app/core/config_contract.py`. The table between the m
   The command refuses `APP_ENV=production`, prints counts only, and has no override. It
   re-encrypts rows onto the current key id, skips rows already there, and can resume with
   `--after-id`. An MFA secret that cannot be opened is marked `reenrol.<kid>` and stays
-  enabled. Password login then fails with `mfa_reset_required` and issues no session, so
+  enabled. Password, Google, GitHub, Microsoft, OIDC SSO and ID.me sign-in then fail with
+  `mfa_reset_required` and issue no session, so
   setup is unreachable until an administrator of that workspace calls
   `POST /api/members/clear-mfa-reenrol/{user_id}`. When that user is the only active
   administrator, use the database procedure in `docs/ops/key-rotation.md`. The in-product
   clear rechecks current active administrator membership, sets an explicit pending-enrollment
   marker, revokes the target's sessions,
   login challenges and recovery codes, and writes an audit row (actor, target, workspace).
-  The next password login grants only a five-minute setup session with no workspace privileges.
+  The next sign-in on any of those paths grants only a five-minute setup session with no
+  workspace privileges. A workspace with `mfa_required` and no enabled factor does the same
+  on every one of those paths, including for an administrator who has not enrolled yet.
+  An enabled factor withholds the session until `POST /api/auth/mfa/verify-login` accepts a
+  TOTP or recovery code. Provider callbacks redirect the browser to `/login` for that
+  challenge or for enrolment, and do not set a privileged cookie first.
   Successful TOTP confirmation checks current active membership and atomically replaces it
-  with a normal session using the current role. Ordinary disabled optional MFA is unaffected.
+  with a normal session using the current role. Ordinary disabled optional MFA is unaffected
+  when the workspace does not require MFA.
   Failed decrypts are audited with user id, key id and reason only.
   Sessions whose signing key id is retired, or missing once a non-legacy session key is current,
   are deleted. Custody is versioned env keyrings, not a KMS.

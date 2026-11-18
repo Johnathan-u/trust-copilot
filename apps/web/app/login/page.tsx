@@ -17,6 +17,19 @@ const DEMO_LOGIN_EMAIL = process.env.NEXT_PUBLIC_DEMO_LOGIN_EMAIL || ''
 const DEMO_LOGIN_PASSWORD = process.env.NEXT_PUBLIC_DEMO_LOGIN_PASSWORD || ''
 const DEMO_LOGIN_ENABLED = Boolean(DEMO_LOGIN_EMAIL && DEMO_LOGIN_PASSWORD)
 
+const PROVIDER_MFA_TOKEN = /^[A-Za-z0-9_-]{32,128}$/
+
+const PROVIDER_LOGIN_ERRORS: Record<string, string> = {
+  mfa_reset_required:
+    'An administrator must reset multi-factor authentication before you can sign in.',
+  membership_required: 'Active workspace membership required',
+}
+
+function providerMfaToken(value: string | null): string {
+  if (!value || !PROVIDER_MFA_TOKEN.test(value)) return ''
+  return value
+}
+
 type OAuthProviders = {
   google: boolean
   github: boolean
@@ -30,20 +43,25 @@ function LoginContent() {
   const next = safePostLoginPath(searchParams.get('next'))
   const isDemo = searchParams.get('demo') === 'true'
   const prefillEmail = searchParams.get('email') || ''
+  const providerToken = providerMfaToken(searchParams.get('mfa_token'))
+  const providerEnrol =
+    searchParams.get('mfa_enrol') === '1' && providerToken.length === 0
+  const providerError =
+    PROVIDER_LOGIN_ERRORS[searchParams.get('error') || ''] || ''
   const [email, setEmail] = useState(prefillEmail)
   const [password, setPassword] = useState('')
-  const [error, setError] = useState('')
+  const [error, setError] = useState(providerError)
   const [demoLoading, setDemoLoading] = useState(false)
-  const [mfaStep, setMfaStep] = useState<boolean>(false)
-  const [mfaToken, setMfaToken] = useState('')
+  const [mfaStep, setMfaStep] = useState(providerToken.length > 0)
+  const [mfaToken, setMfaToken] = useState(providerToken)
   const [mfaCode, setMfaCode] = useState('')
   const [enrolPhase, setEnrolPhase] = useState<'idle' | 'confirm' | 'recovery'>(
-    'idle'
+    providerEnrol ? 'confirm' : 'idle'
   )
   const [enrolSecret, setEnrolSecret] = useState('')
   const [enrolCode, setEnrolCode] = useState('')
   const [recoveryCodes, setRecoveryCodes] = useState<string[]>([])
-  const [enrolBusy, setEnrolBusy] = useState(false)
+  const [enrolBusy, setEnrolBusy] = useState(providerEnrol)
   const [rememberMe, setRememberMe] = useState(false)
   const [canResendVerification, setCanResendVerification] = useState(false)
   const [resendBusy, setResendBusy] = useState(false)
@@ -88,6 +106,59 @@ function LoginContent() {
       setEnrolBusy(false)
     }
   }
+
+  useEffect(() => {
+    if (!providerToken && !providerEnrol && !providerError) return
+    const url = new URL(window.location.href)
+    let changed = false
+    for (const key of ['mfa_token', 'mfa_enrol', 'error']) {
+      if (url.searchParams.has(key)) {
+        url.searchParams.delete(key)
+        changed = true
+      }
+    }
+    if (changed) {
+      const query = url.searchParams.toString()
+      window.history.replaceState(
+        window.history.state,
+        '',
+        `${url.pathname}${query ? `?${query}` : ''}${url.hash}`
+      )
+    }
+    if (!providerEnrol) return
+    let cancelled = false
+    fetch('/api/auth/mfa/setup', {
+      method: 'POST',
+      credentials: 'include',
+    })
+      .then(async (res) => ({
+        ok: res.ok,
+        data: await res.json().catch(() => ({})),
+      }))
+      .then(({ ok, data }) => {
+        if (cancelled) return
+        if (!ok) {
+          setEnrolSecret('')
+          setError(
+            formatApiErrorDetail(data, 'Could not start authenticator setup')
+          )
+          return
+        }
+        setEnrolSecret(typeof data.secret === 'string' ? data.secret : '')
+      })
+      .catch(() => {
+        if (!cancelled) setError('Network error. Please try again.')
+      })
+      .finally(() => {
+        if (!cancelled) setEnrolBusy(false)
+      })
+    return () => {
+      cancelled = true
+    }
+    // Provider redirect values are from the first render. Stripping the query
+    // must not start a second setup request.
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- read once on mount
+  }, [])
 
   const onEnrolConfirm = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -300,8 +371,9 @@ function LoginContent() {
             Set up your authenticator
           </h1>
           <p className="mt-2 mb-6 text-sm text-[var(--tc-muted)]">
-            An administrator reset multi-factor authentication. This sign-in can
-            only finish enrollment, and it expires in a few minutes.
+            This sign-in can only finish authenticator setup, and it expires in
+            a few minutes. Use it after an administrator reset, or when this
+            workspace requires multi-factor authentication and none is enrolled.
           </p>
           {enrolPhase === 'recovery' ? (
             <div className="space-y-4">

@@ -116,6 +116,16 @@ def test_reenrol_login_issues_no_session_and_admin_reset_restores_enrolment(
         "/api/auth/login", json={"email": admin.email, "password": LOGIN_PHRASE}
     )
     assert logged_admin.status_code == 200
+    assert logged_admin.json()["requires_mfa_enrol"] is True
+    assert not any(client.get("/api/auth/me").json()["permissions"].values())
+    admin_setup = client.post("/api/auth/mfa/setup")
+    assert admin_setup.status_code == 200, admin_setup.text
+    admin_confirmed = client.post(
+        "/api/auth/mfa/confirm",
+        json={"code": pyotp.TOTP(admin_setup.json()["secret"]).now()},
+    )
+    assert admin_confirmed.status_code == 200, admin_confirmed.text
+    assert client.get("/api/auth/me").json()["permissions"]["can_admin"] is True
     cleared = client.post(f"/api/members/clear-mfa-reenrol/{user.id}")
     assert cleared.status_code == 200
     assert cleared.json()["mfa_required"] is True
