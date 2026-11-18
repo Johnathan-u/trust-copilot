@@ -1032,23 +1032,30 @@ def _login_impl(req: LoginRequest, request: Request, response: Response, db: Ses
     except Exception as e:
         logger.warning("auth.login persist_audit failed (login continues): %s", e)
     session_id = secrets.token_urlsafe(32)
-    db.add(
-        UserSession(
-            user_id=user.id,
-            session_id=session_id,
-            signing_key_id=_session_key_id(),
-            user_agent=request.headers.get("user-agent"),
-            ip_address=get_client_ip(request),
-        )
+    # The stored row and the signed exp must share one second. A later
+    # time.time() can make reissue shorten the cookie by one second.
+    created = datetime.now(timezone.utc).replace(tzinfo=None, microsecond=0)
+    row = UserSession(
+        user_id=user.id,
+        session_id=session_id,
+        signing_key_id=_session_key_id(),
+        user_agent=request.headers.get("user-agent"),
+        ip_address=get_client_ip(request),
+        created_at=created,
     )
+    db.add(row)
     db.commit()
+    db.refresh(row)
+    stored = row.created_at
+    stored = stored.replace(tzinfo=timezone.utc) if stored.tzinfo is None else stored
+    expires_at = int(stored.timestamp()) + max_age
     token = sign_session(
         user_id=user.id,
         email=user.email,
         workspace_id=member.workspace_id,
         role="mfa_enrol" if enrol_only else member.role,
         session_id=session_id,
-        max_age_seconds=max_age,
+        expires_at=expires_at,
         mfa_enrol_only=enrol_only,
         cookie_persistent=remember,
     )
