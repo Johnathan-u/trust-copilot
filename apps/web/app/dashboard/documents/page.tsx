@@ -56,6 +56,8 @@ type Doc = {
   version?: string | null
   content_version?: string | null
   source_preview_url?: string | null
+  index_job_id?: number | null
+  index_job_status?: string | null
 }
 
 type IndexJob = { id: number; status: string }
@@ -69,14 +71,14 @@ type ActiveDialog =
 /** Extensions accepted by FileService.ALLOWED_RAW_EXTENSIONS. */
 const ACCEPT_ATTRIBUTE = '.pdf,.docx,.doc,.xlsx,.xls,.txt'
 const FORMAT_LINE = 'Accepted formats: PDF, DOCX, DOC, XLSX, XLS, and TXT.'
-/** Documented default of MAX_UPLOAD_BYTES. The document API does not return it. */
-const SIZE_LINE = 'Size limit: 50 MB.'
+const PAGE_SIZE = 25
+const DEFAULT_SORT = 'created_at:desc'
 const LIST_CONTRACT =
-  'The document list returns every match in one response, sorted by newest first. It does not accept page, page size, or sort parameters.'
+  'The document list requests one page from the server. The server sorts that page and returns the total. This page sends page, page size, sort, and order.'
 const SELECTION_SCOPE =
-  'Selection applies to every document in this result for the current workspace. Changing the workspace or a filter clears it. This result is not a page.'
+  'Selection applies to every document on this page for the current workspace. Changing the workspace, a filter, or the page clears it.'
 const REINDEX_NOTE =
-  'Reindex is not offered. The document API has no reindex route. An administrator can retry a failed index job when that job is on the newest job page.'
+  'Reindex retries the index job on the row. An administrator can retry that job when it failed or was cancelled. There is no separate reindex route.'
 const DELETE_NOTE =
   'Permanent deletion is not available. The document API archives a document and does not erase one document.'
 const SEARCH_DEBOUNCE_MS = 300
@@ -129,6 +131,55 @@ function isoFromLocal(value: string): string | null {
   return parsed.toISOString()
 }
 
+function sortParams(sortKey: string): { sort: string; order: string } {
+  const [sort, order] = sortKey.split(':')
+  if (
+    (sort === 'created_at' || sort === 'filename' || sort === 'status') &&
+    (order === 'asc' || order === 'desc')
+  ) {
+    return { sort, order }
+  }
+  return { sort: 'created_at', order: 'desc' }
+}
+
+function sizeLine(bytes: number | null): string {
+  if (bytes == null) return 'Size limit: not reported.'
+  const mebibyte = 1024 * 1024
+  if (bytes % mebibyte === 0) return `Size limit: ${bytes / mebibyte} MB.`
+  return `Size limit: ${bytes} bytes.`
+}
+
+function readTotal(data: unknown, rowCount: number): number {
+  if (!data || typeof data !== 'object' || Array.isArray(data)) return rowCount
+  const value = (data as { total?: unknown }).total
+  return typeof value === 'number' && Number.isInteger(value) && value >= 0
+    ? value
+    : rowCount
+}
+
+function readUploadLimit(data: unknown): number | null {
+  if (!data || typeof data !== 'object' || Array.isArray(data)) return null
+  const value = (data as { max_upload_bytes?: unknown }).max_upload_bytes
+  return typeof value === 'number' && Number.isInteger(value) && value > 0
+    ? value
+    : null
+}
+
+function rowIndexJob(row: Doc): IndexJob | null {
+  const id = row.index_job_id
+  const status = row.index_job_status
+  if (
+    typeof id === 'number' &&
+    Number.isInteger(id) &&
+    id > 0 &&
+    typeof status === 'string' &&
+    status.trim()
+  ) {
+    return { id, status }
+  }
+  return null
+}
+
 function listUrl(input: {
   workspaceId: number
   search: string
@@ -138,6 +189,8 @@ function listUrl(input: {
   createdFrom: string
   createdTo: string
   archivedMode: string
+  page: number
+  sortKey: string
 }): string {
   const params = new URLSearchParams({
     workspace_id: String(input.workspaceId),
@@ -151,6 +204,11 @@ function listUrl(input: {
   if (createdFrom) params.set('created_from', createdFrom)
   if (createdTo) params.set('created_to', createdTo)
   params.set('archived', input.archivedMode)
+  const { sort, order } = sortParams(input.sortKey)
+  params.set('page', String(input.page))
+  params.set('page_size', String(PAGE_SIZE))
+  params.set('sort', sort)
+  params.set('order', order)
   return `/api/documents/?${params.toString()}`
 }
 
@@ -205,6 +263,10 @@ export default function DocumentsPage() {
   const [archivedMode, setArchivedMode] = useState<
     'active' | 'include' | 'only'
   >('active')
+  const [listPage, setListPage] = useState(1)
+  const [sortKey, setSortKey] = useState(DEFAULT_SORT)
+  const [listTotal, setListTotal] = useState(0)
+  const [maxUploadBytes, setMaxUploadBytes] = useState<number | null>(null)
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set())
   const [indexJobs, setIndexJobs] = useState<Map<number, IndexJob>>(new Map())
   const [indexProgress, setIndexProgress] = useState<IndexPhase | null>(null)
@@ -243,6 +305,8 @@ export default function DocumentsPage() {
     createdFrom,
     createdTo,
     archivedMode,
+    sortKey,
+    listPage,
     loadAttempt,
   ].join('\n')
   const [seenLoadKey, setSeenLoadKey] = useState<string | null>(null)
@@ -257,6 +321,23 @@ export default function DocumentsPage() {
     if (flags.clearFailure) setLoadFailure(null)
   }
 
+  const listQueryKey = [
+    workspaceId ?? '',
+    search,
+    framework,
+    subjectArea,
+    status,
+    createdFrom,
+    createdTo,
+    archivedMode,
+    sortKey,
+  ].join('\n')
+  const [seenListQuery, setSeenListQuery] = useState<string | null>(null)
+  if (seenListQuery !== listQueryKey) {
+    setSeenListQuery(listQueryKey)
+    if (seenListQuery !== null && listPage !== 1) setListPage(1)
+  }
+
   const selectionScopeKey = [
     workspaceId ?? '',
     search,
@@ -266,6 +347,8 @@ export default function DocumentsPage() {
     createdFrom,
     createdTo,
     archivedMode,
+    sortKey,
+    listPage,
   ].join('\n')
   const [seenSelection, setSeenSelection] = useState<string | null>(null)
   if (seenSelection !== selectionScopeKey) {
@@ -292,6 +375,8 @@ export default function DocumentsPage() {
     createdFrom,
     createdTo,
     archivedMode,
+    page: listPage,
+    sortKey,
   }
 
   const loadJobs = useCallback(
@@ -343,6 +428,8 @@ export default function DocumentsPage() {
       createdFrom,
       createdTo,
       archivedMode,
+      page: listPage,
+      sortKey,
     })
     void (async () => {
       await Promise.resolve()
@@ -357,12 +444,16 @@ export default function DocumentsPage() {
         const rows = listFromPayload<Doc>(data, ['items', 'documents'])
         if (controller.signal.aborted || gen !== generation.current) return
         setDocs(rows)
+        setListTotal(readTotal(data, rows.length))
+        setMaxUploadBytes(readUploadLimit(data))
         setLoadFailure(null)
         void loadJobs(controller.signal, gen, rows)
       } catch (error) {
         if (controller.signal.aborted || isAbortError(error)) return
         if (gen !== generation.current) return
         setDocs([])
+        setListTotal(0)
+        setMaxUploadBytes(null)
         setIndexJobs(new Map())
         setLoadFailure(failureOf(error))
       } finally {
@@ -382,6 +473,8 @@ export default function DocumentsPage() {
     createdFrom,
     createdTo,
     archivedMode,
+    sortKey,
+    listPage,
     loadAttempt,
     loadJobs,
   ])
@@ -531,12 +624,12 @@ export default function DocumentsPage() {
             signal: controller.signal,
             cache: 'no-store',
           })
-          const rows = listFromPayload<Doc>(await readSectionJson(listed), [
-            'items',
-            'documents',
-          ])
+          const listedData = await readSectionJson(listed)
+          const rows = listFromPayload<Doc>(listedData, ['items', 'documents'])
           if (controller.signal.aborted) return
           setDocs(rows)
+          setListTotal(readTotal(listedData, rows.length))
+          setMaxUploadBytes(readUploadLimit(listedData))
           const row = rows.find((item) => item.id === docId)
           if (row?.status === 'indexed') setIndexProgress('indexed')
           else if (row?.status === 'failed') setIndexProgress('failed')
@@ -805,8 +898,7 @@ export default function DocumentsPage() {
             id="doc-upload-constraints"
             className="mb-tc-3 text-tc-label text-tc-muted"
           >
-            {FORMAT_LINE} {SIZE_LINE} This is the server default. The document
-            API does not return the configured limit.
+            {FORMAT_LINE} {sizeLine(maxUploadBytes)}
           </p>
           <input
             id="doc-upload"
@@ -958,6 +1050,23 @@ export default function DocumentsPage() {
                 <option value="only">Archived only</option>
               </select>
             </div>
+            <div className="min-w-0">
+              <label htmlFor="doc-sort" className={LABEL_CLASS}>
+                Sort
+              </label>
+              <select
+                id="doc-sort"
+                className={FIELD_CLASS}
+                value={sortKey}
+                onChange={(event) => setSortKey(event.target.value)}
+              >
+                <option value="created_at:desc">Newest first</option>
+                <option value="created_at:asc">Oldest first</option>
+                <option value="filename:asc">Filename A to Z</option>
+                <option value="filename:desc">Filename Z to A</option>
+                <option value="status:asc">Status</option>
+              </select>
+            </div>
           </div>
           {chips.length > 0 && (
             <ul
@@ -1092,10 +1201,10 @@ export default function DocumentsPage() {
                           : new Set(activeDocs.map((row) => row.id))
                       )
                     }}
-                    aria-label="Select all documents in this result"
+                    aria-label="Select all documents on this page"
                     className="h-4 w-4 rounded border-tc-border"
                   />
-                  Select all documents in this result
+                  Select all documents on this page
                 </label>
               </div>
             )}
@@ -1104,7 +1213,7 @@ export default function DocumentsPage() {
               className="min-w-0 divide-y divide-tc-border"
             >
               {docs.map((row) => {
-                const job = indexJobs.get(row.id) ?? null
+                const job = rowIndexJob(row) ?? indexJobs.get(row.id) ?? null
                 const canRetry =
                   canAdmin &&
                   job !== null &&
@@ -1285,6 +1394,39 @@ export default function DocumentsPage() {
             </ul>
           </div>
         )}
+        {workspaceId != null &&
+          !authLoading &&
+          !loading &&
+          !loadFailure &&
+          listTotal > PAGE_SIZE && (
+            <div className="mt-tc-3 flex flex-wrap items-center gap-tc-2">
+              <Button
+                type="button"
+                size="sm"
+                variant="ghost"
+                disabled={listPage <= 1}
+                aria-label="Previous page"
+                onClick={() =>
+                  setListPage((current) => Math.max(1, current - 1))
+                }
+              >
+                Previous
+              </Button>
+              <span className="text-tc-label text-tc-muted">
+                Page {listPage} of {Math.ceil(listTotal / PAGE_SIZE)}
+              </span>
+              <Button
+                type="button"
+                size="sm"
+                variant="ghost"
+                disabled={listPage >= Math.ceil(listTotal / PAGE_SIZE)}
+                aria-label="Next page"
+                onClick={() => setListPage((current) => current + 1)}
+              >
+                Next
+              </Button>
+            </div>
+          )}
       </Card>
       <Dialog
         open={Boolean(archiveDoc)}
