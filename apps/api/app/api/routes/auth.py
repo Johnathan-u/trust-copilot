@@ -16,7 +16,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request, Response
 logger = logging.getLogger(__name__)
 from fastapi.responses import JSONResponse, RedirectResponse  # noqa: E402
 
-from pydantic import BaseModel  # noqa: E402
+from pydantic import BaseModel, Field  # noqa: E402
 from sqlalchemy.exc import OperationalError, SQLAlchemyError  # noqa: E402
 from sqlalchemy.orm import Session  # noqa: E402
 
@@ -160,7 +160,13 @@ class ResetPasswordRequest(BaseModel):
 class ChangePasswordRequest(BaseModel):
     current_password: str
     new_password: str
-    invalidate_other_sessions: bool = False
+    invalidate_other_sessions: bool = Field(
+        default=False,
+        description=(
+            "Accepted for compatibility and ignored. A successful change always "
+            "revokes every other session and keeps the current one."
+        ),
+    )
 
 
 class AcceptInviteRequest(BaseModel):
@@ -527,7 +533,14 @@ def reset_password(req: ResetPasswordRequest, request: Request, db: Session = De
     if not user:
         raise HTTPException(status_code=400, detail="Invalid or expired link")
     user.password_hash = hash_password(req.new_password)
-    prt.used_at = now
+    # Retire every unused reset link for this user, including the one just
+    # presented. Email-verification rows and MFA recovery codes stay: they are
+    # not password-reset credentials. This route does not sign the caller in,
+    # so every stored session is removed and there is no current session to keep.
+    db.query(PasswordResetToken).filter(
+        PasswordResetToken.user_id == user.id,
+        PasswordResetToken.used_at.is_(None),
+    ).delete(synchronize_session=False)
     _delete_user_sessions(db, user.id)
     db.commit()
     persist_audit(db, "auth.password_reset", user_id=user.id, email=user.email)
@@ -541,7 +554,12 @@ def change_password(
     session: dict = Depends(require_valid_session),
     db: Session = Depends(get_db),
 ):
-    """TC-R-B8: Change password for authenticated user. Rate limited; audit; optional revoke other sessions."""
+    """Change the signed-in user's password and drop every other session.
+
+    ``invalidate_other_sessions`` is accepted for older clients and copied into
+    the audit event. It does not control revocation. The current session stays.
+    A stored session that cannot be identified as current is revoked with the rest.
+    """
     user_id = session.get("user_id")
     if not user_id:
         raise HTTPException(status_code=401, detail="Not authenticated")
@@ -559,23 +577,21 @@ def change_password(
         raise HTTPException(status_code=400, detail="New password must be at least 6 characters")
     user.password_hash = hash_password(req.new_password)
     current_sid = session.get("session_id")
-    revoked = 0
-    if req.invalidate_other_sessions and current_sid:
-        revoked = (
-            db.query(UserSession)
-            .filter(
-                UserSession.user_id == user_id,
-                UserSession.session_id != current_sid,
-            )
-            .delete(synchronize_session=False)
-        )
+    others = db.query(UserSession).filter(UserSession.user_id == user_id)
+    if isinstance(current_sid, str) and current_sid.strip():
+        others = others.filter(UserSession.session_id != current_sid)
+    revoked = others.delete(synchronize_session=False)
     db.commit()
     persist_audit(
         db,
         "auth.password_changed",
         user_id=user_id,
         email=user.email,
-        details={"invalidate_other_sessions": req.invalidate_other_sessions, "revoked": revoked},
+        details={
+            "invalidate_other_sessions": True,
+            "client_invalidate_other_sessions": bool(req.invalidate_other_sessions),
+            "revoked": revoked,
+        },
     )
     return {"message": "Password updated.", "revoked": revoked}
 
