@@ -1,0 +1,8 @@
+# SHA c902d2ccf8d084398694928fe899be89acfefb08
+# cwd apps/api
+# Python 3.12.3, pytest 9.1.1, PostgreSQL 16.15
+# database postgresql://postgres:postgres@127.0.0.1:5432/trustcopilot_test
+python3 -m pytest tests/test_csrf_origins.py -q --tb=line
+........                                                                 [100%]
+8 passed in 0.28s
+exit 0

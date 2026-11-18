@@ -1,0 +1,14 @@
+# SHA c902d2ccf8d084398694928fe899be89acfefb08
+# cwd apps/api
+# Python 3.12.3, pytest 9.1.1, PostgreSQL 16.15
+# database postgresql://postgres:postgres@127.0.0.1:5432/trustcopilot_test
+python3 -m pytest tests/release/test_role_grant_entrypoints.py::test_last_admin_cannot_demote_self -q --tb=line
+..                                                                       [100%]
+=============================== warnings summary ===============================
+tests/release/test_role_grant_entrypoints.py: 48 warnings
+  /home/ubuntu/.local/lib/python3.12/site-packages/sqlalchemy/sql/schema.py:3627: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    return util.wrap_callable(lambda ctx: fn(), fn)  # type: ignore
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+2 passed, 48 warnings in 1.46s
+exit 0
