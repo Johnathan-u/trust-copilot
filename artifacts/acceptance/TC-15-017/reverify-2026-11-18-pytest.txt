@@ -1,0 +1,15 @@
+Command: python -m pytest tests/release/test_tc15017b_questionnaire_list.py -q --tb=no
+Working directory: apps/api
+SHA: 74b8ae62a5271990fcacf6bbd00717f2f8aff6ec
+Python 3.12.3, pytest 9.1.1, SQLAlchemy 2.0.55, Alembic 1.20.1.
+Local PostgreSQL 16.15 with pgvector, database trustcopilot_test. This version is the local server, not a CI claim.
+
+.....                                                                    [100%]
+=============================== warnings summary ===============================
+tests/release/test_tc15017b_questionnaire_list.py: 30 warnings
+  /tmp/tc-api/lib/python3.12/site-packages/sqlalchemy/sql/schema.py:3627: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    return util.wrap_callable(lambda ctx: fn(), fn)  # type: ignore
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+5 passed, 30 warnings in 1.96s
+EXIT:0

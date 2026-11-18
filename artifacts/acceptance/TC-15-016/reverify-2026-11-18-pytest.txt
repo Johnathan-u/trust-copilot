@@ -1,0 +1,20 @@
+Command: python -m pytest tests/release/test_tc_15_016a_documents_list.py -q --tb=no
+Working directory: apps/api
+SHA: 74b8ae62a5271990fcacf6bbd00717f2f8aff6ec
+Python 3.12.3, pytest 9.1.1. The module uses SQLite. It does not open PostgreSQL.
+
+....                                                                     [100%]
+=============================== warnings summary ===============================
+tests/release/test_tc_15_016a_documents_list.py::test_tc_15_016a_paged_list_sorts_reports_metadata_and_upload_limit
+tests/release/test_tc_15_016a_documents_list.py::test_tc_15_016a_paged_list_sorts_reports_metadata_and_upload_limit
+tests/release/test_tc_15_016a_documents_list.py::test_tc_15_016a_paged_list_sorts_reports_metadata_and_upload_limit
+tests/release/test_tc_15_016a_documents_list.py::test_tc_15_016a_paged_list_sorts_reports_metadata_and_upload_limit
+tests/release/test_tc_15_016a_documents_list.py::test_tc_15_016a_paged_list_sorts_reports_metadata_and_upload_limit
+tests/release/test_tc_15_016a_documents_list.py::test_tc_15_016a_freshness_follows_the_document_policy
+tests/release/test_tc_15_016a_documents_list.py::test_tc_15_016a_freshness_follows_the_document_policy
+  /tmp/tc-api/lib/python3.12/site-packages/sqlalchemy/sql/schema.py:3627: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    return util.wrap_callable(lambda ctx: fn(), fn)  # type: ignore
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+4 passed, 7 warnings in 0.65s
+EXIT:0

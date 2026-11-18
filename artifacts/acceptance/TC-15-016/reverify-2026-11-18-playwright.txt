@@ -1,0 +1,29 @@
+Command: npx playwright test e2e/release/ui-15.spec.ts e2e/release/ui-16.spec.ts --retries=0 --reporter=list
+Working directory: apps/web
+SHA: 74b8ae62a5271990fcacf6bbd00717f2f8aff6ec
+Node v24.22.3, Playwright 1.64.1, Chromium 1248
+The spec rewrote screenshots and axe JSON. Those files were restored after this run.
+
+
+Running 28 tests using 1 worker
+
+(node:9740) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   1 [chromium] › e2e/release/ui-15.spec.ts:365:5 › search is debounced, stale responses are dropped, and the server page and sort are sent (2.8s)
+  ✓   2 [chromium] › e2e/release/ui-15.spec.ts:424:5 › selection resets when the filter or workspace changes and states its scope (728ms)
+  ✓   3 [chromium] › e2e/release/ui-15.spec.ts:461:5 › no documents, no matches, and a failed read are different states (1.4s)
+  ✓   4 [chromium] › e2e/release/ui-15.spec.ts:483:5 › accepted formats and the size limit show before a file is chosen (1.9s)
+  ✓   5 [chromium] › e2e/release/ui-15.spec.ts:531:5 › a failed index job is not shown as indexed (1.9s)
+  ✓   6 [chromium] › e2e/release/ui-15.spec.ts:558:5 › retry follows the index job on the row, and missing source fields stay unreported (905ms)
+  ✓   7 [chromium] › e2e/release/ui-15.spec.ts:611:5 › editors do not see index retry (486ms)
+  ✓   8 [chromium] › e2e/release/ui-15.spec.ts:634:5 › metadata and restore dialogs wait for the response before confirming (1.6s)
+  ✓   9 [chromium] › e2e/release/ui-15.spec.ts:704:5 › archive and delete are different destructive actions (1.1s)
+  ✓  10 [chromium] › e2e/release/ui-15.spec.ts:761:5 › reviewers do not see upload, row actions, or delete (533ms)
+  ✓  11 [chromium] › e2e/release/ui-15.spec.ts:778:5 › date and filter fields are labelled and selected filters are chips (846ms)
+  ✓  12 [chromium] › e2e/release/ui-15.spec.ts:836:7 › documents stay usable at 360px (2.4s)
+  ✓  13 [chromium] › e2e/release/ui-15.spec.ts:836:7 › documents stay usable at 768px (2.8s)
+  ✓  14 [chromium] › e2e/release/ui-15.spec.ts:836:7 › documents stay usable at 1440px (2.9s)
+
+ui-15 portion of a 28-test run: 14 passed.
+  28 passed (51.1s)
+EXIT:0
