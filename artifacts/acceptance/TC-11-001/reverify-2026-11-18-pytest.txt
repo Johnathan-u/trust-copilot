@@ -1,0 +1,33 @@
+Command: python -m pytest tests/release/test_provider_adapter.py tests/release/test_tc11001a_evidence_wording.py -q --tb=no
+Working directory: apps/api
+SHA: 74b8ae62a5271990fcacf6bbd00717f2f8aff6ec
+Python 3.12.3, pytest 9.1.1, SQLAlchemy 2.0.55, Alembic 1.20.1, openai 3.39.0.
+Local PostgreSQL 16.15 with pgvector, database trustcopilot_test. This version is the local server, not a CI claim. result.json is unchanged.
+
+.................................................                        [100%]
+=============================== warnings summary ===============================
+tests/release/test_provider_adapter.py::test_generate_503_has_typed_error_and_request_id
+tests/release/test_provider_adapter.py::test_generate_503_has_typed_error_and_request_id
+tests/release/test_provider_adapter.py::test_worker_persists_safe_typed_job_error_and_jobs_api
+tests/release/test_provider_adapter.py::test_worker_persists_safe_typed_job_error_and_jobs_api
+tests/release/test_provider_adapter.py::test_worker_persists_safe_typed_job_error_and_jobs_api
+tests/release/test_provider_adapter.py::test_questionnaire_api_reports_grounded_unverified
+tests/release/test_provider_adapter.py::test_questionnaire_api_reports_grounded_unverified
+tests/release/test_provider_adapter.py::test_questionnaire_api_reports_grounded_unverified
+tests/release/test_provider_adapter.py::test_questionnaire_api_reports_grounded_unverified
+  /tmp/tc-api/lib/python3.12/site-packages/sqlalchemy/sql/schema.py:3627: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    return util.wrap_callable(lambda ctx: fn(), fn)  # type: ignore
+
+tests/release/test_provider_adapter.py::test_migration_columns_present
+tests/release/test_provider_adapter.py::test_migration_has_unique_descriptive_revision_after_075
+tests/release/test_provider_adapter.py::test_migration_downgrade_and_upgrade_roundtrip
+  /tmp/tc-api/lib/python3.12/site-packages/alembic/config.py:604: DeprecationWarning: No path_separator found in configuration; falling back to legacy splitting on spaces, commas, and colons for prepend_sys_path.  Consider adding path_separator=os to Alembic config.
+    util.warn_deprecated(
+
+tests/release/test_provider_adapter.py::test_sweep_relabels_uncited_cached_answer
+  /agent/repos/trust-copilot/apps/api/app/services/answer_generation.py:1670: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    "updated_at": datetime.utcnow(),
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+49 passed, 13 warnings in 5.89s
+EXIT:0

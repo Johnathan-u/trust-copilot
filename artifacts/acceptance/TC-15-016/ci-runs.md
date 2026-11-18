@@ -21,3 +21,9 @@ Product head: `9c31a7c232a1f1d3922ec8908376cbf72916cc66`
 | push | [43743886233](https://github.com/Johnathan-u/trust-copilot/actions/runs/43743886233) | [web-release-e2e 132902814112](https://github.com/Johnathan-u/trust-copilot/actions/runs/43743886233/job/132902814112) | success |
 | pull_request | [43743904271](https://github.com/Johnathan-u/trust-copilot/actions/runs/43743904271) | [build 132902872212](https://github.com/Johnathan-u/trust-copilot/actions/runs/43743904271/job/132902872212) | failure |
 | pull_request | [43743904271](https://github.com/Johnathan-u/trust-copilot/actions/runs/43743904271) | [web-release-e2e 132902872444](https://github.com/Johnathan-u/trust-copilot/actions/runs/43743904271/job/132902872444) | success |
+
+## Re-verification 2026-11-18
+
+Read at `74b8ae62a5271990fcacf6bbd00717f2f8aff6ec`. Local `ui-15` is 14 passed and `test_tc_15_016a_documents_list.py` is 4 passed. Logs: `reverify-2026-11-18-playwright.txt`, `reverify-2026-11-18-pytest.txt`.
+
+`build` and `web-release-e2e` run IDs for the re-verification head are not in this section yet. They are added in a later commit on this branch once that head is green. The commit that adds them is later than the head it records.

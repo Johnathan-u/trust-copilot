@@ -1,0 +1,13 @@
+SHA: 74b8ae62a5271990fcacf6bbd00717f2f8aff6ec
+Date: 2026-11-18
+Node: v24.22.3
+npm: 11.19.1
+Playwright: 1.64.1
+Chromium: 1248 (Chrome for Testing 156.0.8078.4)
+Python: 3.12.3
+pytest: 9.1.1
+SQLAlchemy: 2.0.55
+Alembic: 1.20.1
+openai: 3.39.0
+Local PostgreSQL: 16.15 (Ubuntu package), with pgvector, database trustcopilot_test.
+This local server version is not a CI environment claim.
