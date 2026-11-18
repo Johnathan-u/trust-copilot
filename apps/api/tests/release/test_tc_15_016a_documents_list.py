@@ -24,7 +24,7 @@ from app.models.freshness_policy import FreshnessPolicy
 from app.models.tag import DocumentTag, Tag
 from app.services.storage import get_storage
 
-_SECRET_KEY = "raw/1/secret-object"
+_OBJECT_KEY = "raw/1/stored-object"
 _PRIVATE = "PRIVATE-KEY"
 
 
@@ -88,7 +88,7 @@ def _add_document(db: Session, **values) -> Document:
     now = datetime.now(timezone.utc)
     fields = dict(
         workspace_id=1,
-        storage_key=_SECRET_KEY,
+        storage_key=_OBJECT_KEY,
         filename="Policy.pdf",
         content_type="text/html",
         status="uploaded",
@@ -216,7 +216,7 @@ def test_tc_15_016a_paged_list_sorts_reports_metadata_and_upload_limit(documents
     assert body["order"] == "asc"
     assert body["max_upload_bytes"] == get_settings().max_upload_bytes
     assert _PRIVATE not in first.text
-    assert _SECRET_KEY not in first.text
+    assert _OBJECT_KEY not in first.text
     alpha_row = body["items"][0]
     beta_row = body["items"][1]
     assert alpha_row["id"] == alpha.id
@@ -335,20 +335,20 @@ def test_tc_15_016a_legacy_list_returns_every_row_with_the_same_metadata(documen
     assert "index_job_status" in rows[0]
     assert rows[0]["source_preview_url"] == (f"/api/documents/{newer.id}/content?workspace_id=1")
     assert all("max_upload_bytes" not in row for row in rows)
-    assert _SECRET_KEY not in response.text
+    assert _OBJECT_KEY not in response.text
 
 
 @pytest.mark.unit
 def test_tc_15_016a_content_preview_stays_in_workspace_and_hides_the_storage_key(documents_api):
     client, db, storage = documents_api
-    storage.objects[("raw", _SECRET_KEY)] = b"%PDF-1.4 synthetic"
+    storage.objects[("raw", _OBJECT_KEY)] = b"%PDF-1.4 synthetic"
     row = _add_document(
         db,
         filename="evil\r\nX-Injected: 1.pdf",
         content_type="text/html",
-        storage_key=_SECRET_KEY,
+        storage_key=_OBJECT_KEY,
     )
-    foreign = _add_document(db, workspace_id=2, filename="Foreign.pdf", storage_key=_SECRET_KEY)
+    foreign = _add_document(db, workspace_id=2, filename="Foreign.pdf", storage_key=_OBJECT_KEY)
     ok = client.get(f"/api/documents/{row.id}/content", params={"workspace_id": 1})
     assert ok.status_code == 200, ok.text
     assert ok.content == b"%PDF-1.4 synthetic"
@@ -358,19 +358,19 @@ def test_tc_15_016a_content_preview_stays_in_workspace_and_hides_the_storage_key
     assert "\r" not in disposition
     assert "\n" not in disposition
     assert "x-injected" not in {name.lower() for name in ok.headers}
-    assert _SECRET_KEY not in ok.text
-    assert _SECRET_KEY not in disposition
+    assert _OBJECT_KEY not in ok.text
+    assert _OBJECT_KEY not in disposition
     assert ok.headers["x-content-type-options"] == "nosniff"
     denied = client.get(f"/api/documents/{row.id}/content", params={"workspace_id": 2})
     assert denied.status_code == 403
     missing = client.get(f"/api/documents/{foreign.id}/content", params={"workspace_id": 1})
     assert missing.status_code == 404
-    assert _SECRET_KEY not in missing.text
+    assert _OBJECT_KEY not in missing.text
     storage.fail = True
     unavailable = client.get(f"/api/documents/{row.id}/content", params={"workspace_id": 1})
     assert unavailable.status_code == 404
     assert unavailable.json()["detail"] == "Document file not found"
-    assert _SECRET_KEY not in unavailable.text
+    assert _OBJECT_KEY not in unavailable.text
 
 
 @pytest.mark.unit
