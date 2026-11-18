@@ -1,0 +1,53 @@
+# TC-17-001 gap 1 failing before the workspace-scope change
+# Product code is e4b71d23 (master). The new test file was the only test change.
+# cwd apps/api
+# /tmp/tc-venv/bin/python -m pytest tests/release/test_domain_trust_articles.py -q --tb=line
+# Python 3.12.3, pytest 9.1.1, PostgreSQL 16.15, pgvector 0.6.0
+# database postgresql://postgres:postgres@127.0.0.1:5432/trustcopilot_test
+# exit 1. 7 failed, 1 passed, 22 warnings, 1.84s
+
+FFFFF.FF                                                                 [100%]
+=================================== FAILURES ===================================
+E   AssertionError: {"id":8,"workspace_id":null,"slug":"null-ws-1473fd27","category":null,"title":"Null workspace","content":"secret","published":1,"is_policy":false,"created_at":"2026-11-18T16:54:53.529213","updated_at":"2026-11-18T16:54:53.529217"}
+    assert 200 == 400
+     +  where 200 = <Response [200 OK]>.status_code
+/agent/repos/trust-copilot/apps/api/tests/release/test_domain_trust_articles.py:51: AssertionError: {"id":8,"workspace_id":null,"slug":"null-ws-1473fd27","category":null,"title":"Null workspace","content":"secret","published":1,"is_policy":false,"created_at":"2026-11-18T16:54:53.529213","updated_at":"2026-11-18T16:54:53.529217"}
+E   AssertionError: {"id":9,"workspace_id":null,"slug":"omit-ws-b8bebc33","category":null,"title":"Omitted workspace","content":"secret","published":1,"is_policy":false,"created_at":"2026-11-18T16:54:53.585545","updated_at":"2026-11-18T16:54:53.585548"}
+    assert 200 == 400
+     +  where 200 = <Response [200 OK]>.status_code
+/agent/repos/trust-copilot/apps/api/tests/release/test_domain_trust_articles.py:67: AssertionError: {"id":9,"workspace_id":null,"slug":"omit-ws-b8bebc33","category":null,"title":"Omitted workspace","content":"secret","published":1,"is_policy":false,"created_at":"2026-11-18T16:54:53.585545","updated_at":"2026-11-18T16:54:53.585548"}
+E   AssertionError: {"detail":"Access denied"}
+    assert 403 == 400
+     +  where 403 = <Response [403 Forbidden]>.status_code
+/agent/repos/trust-copilot/apps/api/tests/release/test_domain_trust_articles.py:83: AssertionError: {"detail":"Access denied"}
+E   AssertionError: {"id":10,"workspace_id":null,"slug":"null-published-248b000b","category":null,"title":"Null workspace published","content":"null-workspace-secret","published":1,"is_policy":false,"created_at":"2026-11-18T16:54:53.638721","updated_at":"2026-11-18T16:54:53.638724"}
+    assert 200 == 404
+     +  where 200 = <Response [200 OK]>.status_code
+/agent/repos/trust-copilot/apps/api/tests/release/test_domain_trust_articles.py:108: AssertionError: {"id":10,"workspace_id":null,"slug":"null-published-248b000b","category":null,"title":"Null workspace published","content":"null-workspace-secret","published":1,"is_policy":false,"created_at":"2026-11-18T16:54:53.638721","updated_at":"2026-11-18T16:54:53.638724"}
+E   AssertionError: {"id":11,"workspace_id":2,"slug":"ws2-public-7d2621d6","category":null,"title":"Workspace two published","content":"workspace-two-secret","published":1,"is_policy":false,"created_at":"2026-11-18T16:54:53.659332","updated_at":"2026-11-18T16:54:53.659336"}
+    assert 200 == 404
+     +  where 200 = <Response [200 OK]>.status_code
+/agent/repos/trust-copilot/apps/api/tests/release/test_domain_trust_articles.py:140: AssertionError: {"id":11,"workspace_id":2,"slug":"ws2-public-7d2621d6","category":null,"title":"Workspace two published","content":"workspace-two-secret","published":1,"is_policy":false,"created_at":"2026-11-18T16:54:53.659332","updated_at":"2026-11-18T16:54:53.659336"}
+E   AssertionError: {"id":13,"workspace_id":1,"slug":"stay-3a44945c","category":null,"title":"Stay","content":"Body","published":1,"is_policy":false,"created_at":"2026-11-18T16:54:53.785935","updated_at":"2026-11-18T16:54:53.785939"}
+    assert 200 == 400
+     +  where 200 = <Response [200 OK]>.status_code
+/agent/repos/trust-copilot/apps/api/tests/release/test_domain_trust_articles.py:209: AssertionError: {"id":13,"workspace_id":1,"slug":"stay-3a44945c","category":null,"title":"Stay","content":"Body","published":1,"is_policy":false,"created_at":"2026-11-18T16:54:53.785935","updated_at":"2026-11-18T16:54:53.785939"}
+E   AssertionError: {"id":14,"workspace_id":null,"slug":"null-row-d75f5ad2","category":null,"title":"Adopted","content":"orphan-secret","published":1,"is_policy":false,"created_at":"2026-11-18T16:54:53.802380","updated_at":"2026-11-18T16:54:53.850343"}
+    assert 200 == 403
+     +  where 200 = <Response [200 OK]>.status_code
+/agent/repos/trust-copilot/apps/api/tests/release/test_domain_trust_articles.py:251: AssertionError: {"id":14,"workspace_id":null,"slug":"null-row-d75f5ad2","category":null,"title":"Adopted","content":"orphan-secret","published":1,"is_policy":false,"created_at":"2026-11-18T16:54:53.802380","updated_at":"2026-11-18T16:54:53.850343"}
+=============================== warnings summary ===============================
+tests/release/test_domain_trust_articles.py: 22 warnings
+  /tmp/tc-venv/lib/python3.12/site-packages/sqlalchemy/sql/schema.py:3627: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    return util.wrap_callable(lambda ctx: fn(), fn)  # type: ignore
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/release/test_domain_trust_articles.py::test_create_rejects_null_workspace
+FAILED tests/release/test_domain_trust_articles.py::test_create_rejects_omitted_workspace
+FAILED tests/release/test_domain_trust_articles.py::test_create_rejects_other_workspace
+FAILED tests/release/test_domain_trust_articles.py::test_unauthenticated_read_hides_null_workspace_published
+FAILED tests/release/test_domain_trust_articles.py::test_public_get_named_workspace_does_not_return_another
+FAILED tests/release/test_domain_trust_articles.py::test_update_cannot_move_or_clear_workspace
+FAILED tests/release/test_domain_trust_articles.py::test_null_workspace_row_cannot_be_updated_or_deleted
+7 failed, 1 passed, 22 warnings in 1.84s
