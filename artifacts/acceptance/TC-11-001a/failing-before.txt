@@ -1,0 +1,30 @@
+# TC-11-001a failing before the wording fix
+# Base: 0dd145f58f3abdfe03c2d68bf83bf32d56648e61 (origin/master)
+# The new test file was present. docs/release/tickets/TC-11-001.md,
+# artifacts/acceptance/TC-11-001/README.md and result.json were still the master text.
+# Command, from apps/api:
+#   python -m pytest tests/release/test_tc11001a_evidence_wording.py -q --tb=short -p no:cacheprovider
+# Python 3.12.3, pytest 9.1.1. The tests read files only. 2026-11-18T08:59:04Z.
+# Result: 3 failed, 0 passed. Exit 1.
+
+FFF                                                                      [100%]
+=================================== FAILURES ===================================
+_________ test_tc11001a_ci_environment_does_not_state_postgresql_16_15 _________
+tests/release/test_tc11001a_evidence_wording.py:43: in test_tc11001a_ci_environment_does_not_state_postgresql_16_15
+    assert version != "16.15"
+E   AssertionError: assert '16.15' != '16.15'
+______________ test_tc11001a_revision_count_is_pinned_to_edd3320 _______________
+tests/release/test_tc11001a_evidence_wording.py:56: in test_tc11001a_revision_count_is_pinned_to_edd3320
+    assert _AS_OF in text, path.name
+E   AssertionError: TC-11-001.md
+E   assert 'as of `edd3320`' in '# TC-11-001: typed model responses and failures\n\nStatus: merged in PR #16 (`1a0e614`). Evidence is in `artifacts/ac...ef` request ID when escalating; logs carry `code=... provider_status=...\nexception_type=...` without provider text.\n'
+____________________ test_tc11001a_result_cites_master_run _____________________
+tests/release/test_tc11001a_evidence_wording.py:66: in test_tc11001a_result_cites_master_run
+    cited = json.loads(RESULT.read_text(encoding="utf-8"))["master_run"]
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   KeyError: 'master_run'
+=========================== short test summary info ============================
+FAILED tests/release/test_tc11001a_evidence_wording.py::test_tc11001a_ci_environment_does_not_state_postgresql_16_15
+FAILED tests/release/test_tc11001a_evidence_wording.py::test_tc11001a_revision_count_is_pinned_to_edd3320
+FAILED tests/release/test_tc11001a_evidence_wording.py::test_tc11001a_result_cites_master_run
+3 failed in 0.18s
