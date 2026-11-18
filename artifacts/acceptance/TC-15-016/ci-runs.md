@@ -24,6 +24,15 @@ Product head: `9c31a7c232a1f1d3922ec8908376cbf72916cc66`
 
 ## Re-verification 2026-11-18
 
-Read at `74b8ae62a5271990fcacf6bbd00717f2f8aff6ec`. Local `ui-15` is 14 passed and `test_tc_15_016a_documents_list.py` is 4 passed. Logs: `reverify-2026-11-18-playwright.txt`, `reverify-2026-11-18-pytest.txt`.
+Product head: `937e075def7ea9cabca089e03ad3a9c1e5e13fe4`
 
-`build` and `web-release-e2e` run IDs for the re-verification head are not in this section yet. They are added in a later commit on this branch once that head is green. The commit that adds them is later than the head it records.
+Read against master `74b8ae62a5271990fcacf6bbd00717f2f8aff6ec`. Local `ui-15` is 14 passed and `test_tc_15_016a_documents_list.py` is 4 passed. Logs: `reverify-2026-11-18-playwright.txt`, `reverify-2026-11-18-pytest.txt`.
+
+`build` and `web-release-e2e` both succeeded on `push` and `pull_request` for `937e075d`. This note is a later commit, so its own runs are separate.
+
+| Event | Run | Job | Conclusion |
+| --- | --- | --- | --- |
+| push | [44288698746](https://github.com/Johnathan-u/trust-copilot/actions/runs/44288698746) | [build 134747957177](https://github.com/Johnathan-u/trust-copilot/actions/runs/44288698746/job/134747957177) | success |
+| push | [44288698746](https://github.com/Johnathan-u/trust-copilot/actions/runs/44288698746) | [web-release-e2e 134747957393](https://github.com/Johnathan-u/trust-copilot/actions/runs/44288698746/job/134747957393) | success |
+| pull_request | [44288728985](https://github.com/Johnathan-u/trust-copilot/actions/runs/44288728985) | [build 134748062611](https://github.com/Johnathan-u/trust-copilot/actions/runs/44288728985/job/134748062611) | success |
+| pull_request | [44288728985](https://github.com/Johnathan-u/trust-copilot/actions/runs/44288728985) | [web-release-e2e 134748062095](https://github.com/Johnathan-u/trust-copilot/actions/runs/44288728985/job/134748062095) | success |
