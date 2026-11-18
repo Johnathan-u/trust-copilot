@@ -60,3 +60,59 @@ The same tree also passed the neighbors that read or write trust articles: `test
 ## Records revision 34
 
 CI run IDs for #301 are in `ci-runs.md`. This records gap 1 only. The parent is not accepted.
+
+## Remaining gaps: version, acknowledgment, retry
+
+This section is the re-check after gap 1. It does not replace the gap 1 logs above. No `ci-runs.md` update in this change. The parent is not accepted. DoD5 is the reviewer's step.
+
+**Migration.** `apps/api/alembic/versions/tc17001_article_versions.py` (`tc17001_article_versions`, parent `tc04005a_member_revoked_at`) creates `trust_article_versions`, an immutability trigger, `trust_articles.published_version_id`, and `policy_acknowledgments.article_version_id`, `workspace_id`, and `revoked_at`. Review it before apply.
+
+### Red command
+
+Working directory `apps/api`. Interpreter `/tmp/tc-venv/bin/python`. The new tests were present. The route, model, and migration were not.
+
+```text
+python -m pytest tests/release/test_domain_trust_articles.py -q --tb=line
+```
+
+| Command | Exit | Total |
+|---|---|---|
+| the red command above | 1 | 5 failed, 8 passed, 30 warnings, 3.74s |
+
+The eight passing tests are the gap 1 file. The five failures are the remaining gaps: no `published_version`, no `published_version_id`, a second create with the same key was 400 `already exists`, `app.services.trust_article_versions` was missing, and `article_version_id` was not a column. Log: `remaining-failing-before.txt`.
+
+### Green command
+
+Same interpreter, after the route, migration, and tests.
+
+```text
+python -m pytest tests/release/test_domain_trust_articles.py -q --tb=short
+```
+
+### Environment
+
+- Python 3.12.3, pytest 9.1.1, SQLAlchemy 2.0.55
+- PostgreSQL 16.15 (Ubuntu 16.15-0ubuntu0.24.04.1), pgvector 0.6.0
+- Database `trustcopilot_test` on 127.0.0.1:5432
+- No live provider. The suite's network guard was on.
+
+### Totals
+
+| Command | Exit | Total |
+|---|---|---|
+| `python -m pytest tests/release/test_domain_trust_articles.py -q --tb=short` | 0 | 13 passed, 63 warnings, 2.48s |
+| `python -m pytest tests/test_trust_articles_api.py tests/test_trust_center_publish.py tests/release/test_trust_article_slug_workspace.py tests/test_multi_tenant.py tests/test_wave3_p23_p29_api.py::test_p29_editor_cannot_delete_trust_article -q --tb=line` | 0 | 40 passed, 114 warnings, 6.48s |
+
+Pytest did not report a skipped test on the release command. Log: `remaining-passing-after.txt`.
+
+Before this change the release file was 5 failed, 8 passed. After it, 13 passed.
+
+`ruff check` on the touched Python files exited 0.
+
+### Migration roundtrip
+
+From `apps/api`, `DATABASE_URL` pointed at `trustcopilot_test`, `TRUST_COPILOT_TESTING=1`.
+
+A synthetic published article, version id 19, title `Keep`, content `v1`, and an acknowledgment bound to that version and workspace 1 were inserted. `alembic downgrade tc04005a_member_revoked_at` exited 0. `trust_article_versions` was gone. `tc17001_version_archive` held `(19, Keep, v1)`. `tc17001_ack_binding_archive` held version 19 and workspace 1. `alembic upgrade head` exited 0. The version row was `(19, Keep, v1, 1)`, `published_version_id` was 19, and the acknowledgment was version 19, workspace 1, `revoked_at` null. The synthetic article was then deleted.
+
+`tests/release/test_trust_article_slug_workspace.py` also downgrades through this revision and upgrades to head. It passed in the neighbor run above.
