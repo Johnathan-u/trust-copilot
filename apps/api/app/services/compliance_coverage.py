@@ -23,6 +23,7 @@ from app.models.framework_control import FrameworkControl
 from app.models.question_mapping_signal import QuestionMappingSignal
 from app.models.workspace_control import WorkspaceControl
 from app.services.evidence_gap_service import suggested_evidence_title
+from app.services.evidence_qualification import evidence_qualifies
 
 HIGH_CONFIDENCE_THRESHOLD = 70
 LOW_CONFIDENCE_THRESHOLD = 40
@@ -384,9 +385,22 @@ def _explanation(
 def _evidence_is_current(db: Session, ev: EvidenceItem, workspace_id: int, now: datetime) -> str:
     """Return qualifies, stale, deleted_document, not_approved, or missing.
 
-    Missing covers a foreign workspace and a missing document. The caller does
-    not keep that evidence id.
+    ``qualifies`` is returned only when :func:`evidence_qualifies` agrees.
+    The other codes belong to coverage. Missing covers a foreign workspace, a
+    missing document, and a shared-rule rejection coverage did not name. The
+    caller does not keep that evidence id.
     """
+    reason = _coverage_evidence_reason(db, ev, workspace_id, now)
+    qualifies = evidence_qualifies(db, ev, workspace_id, now)
+    if reason == "qualifies" and not qualifies:
+        return "missing"
+    return reason
+
+
+def _coverage_evidence_reason(
+    db: Session, ev: EvidenceItem, workspace_id: int, now: datetime
+) -> str:
+    """Coverage's own reason code for this evidence item."""
     if ev.workspace_id != workspace_id:
         return "missing"
     if ev.approval_status != "approved":
