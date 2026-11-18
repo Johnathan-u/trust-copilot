@@ -56,3 +56,7 @@ Before this change the same release file was 7 failed, 1 passed. After it, 8 pas
 The same tree also passed the neighbors that read or write trust articles: `tests/test_multi_tenant.py`, `tests/test_wave3_p23_p29_api.py::test_p29_editor_cannot_delete_trust_article`, `tests/release/test_trust_article_slug_workspace.py::test_two_workspaces_auto_publish_same_control`, `tests/release/test_body_reference_workspace_scope.py::test_global_trust_article_is_not_a_promise_source`, `tests/release/test_principal_contract.py`, `tests/release/test_session_validation.py`, and `tests/release/test_remember_policy.py`. Together with the two files above, that run was 271 passed. Those commands are not the named release command.
 
 `ruff check app/api/routes/trust_articles.py tests/release/test_domain_trust_articles.py` exited 0.
+
+## Records revision 34
+
+CI run IDs for #301 are in `ci-runs.md`. This records gap 1 only. The parent is not accepted.

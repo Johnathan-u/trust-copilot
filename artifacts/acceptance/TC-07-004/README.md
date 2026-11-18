@@ -89,3 +89,7 @@ python3 -m pytest tests/test_csrf_origins.py -q --tb=short
 Pytest did not report a skipped test. Log: `passing-after-cors.txt`.
 
 The re-verify is `docs/release/verification/TC-07-004.md`. Notes for this pass: `reverify.md`. No CI run id is in these files.
+
+## Records revision 34
+
+CI run IDs for #300 and #303 are in `ci-runs.md`. The sentence above describes the implementation commits. Records revision 34 marks the parent DONE.
