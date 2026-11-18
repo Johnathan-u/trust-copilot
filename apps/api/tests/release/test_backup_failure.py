@@ -2,6 +2,11 @@
 
 Fake ``pg_dump`` and ``gzip`` binaries on ``PATH`` drive ``scripts/backup_db.sh``.
 A full disk is gzip exiting after a short write with "No space left on device".
+That stub does not read the dump, so the pipe closes and the writer gets
+``EPIPE``. The dump stub turns that into exit 141 (``128 + SIGPIPE``) via
+``os._exit`` and writes past the pipe buffer, so the result does not depend on
+which process is scheduled first and Python finalization cannot replace it
+with 120. The script reports gzip's exit code for that compress failure.
 Checksum publication is refused when ``sha256sum`` fails. Nothing here connects
 to a database. Diagnostic output must not contain the synthetic URL or password.
 """
@@ -12,6 +17,7 @@ import hashlib
 import os
 import re
 import shutil
+import signal
 import stat
 import subprocess
 import sys
@@ -37,21 +43,68 @@ _ALERT = re.compile(
 )
 
 _PG_DUMP = """
+import errno
+import fcntl
+import os
+import signal
 import sys
 
+def _finish(code):
+    log = os.environ.get("FAKE_PG_DUMP_STATUS_LOG")
+    if log:
+        try:
+            with open(log, "w", encoding="utf-8") as handle:
+                handle.write("%s\\n" % code)
+        except OSError:
+            pass
+    try:
+        sys.stderr.flush()
+    except (BrokenPipeError, OSError):
+        pass
+    # os._exit skips Py_FinalizeEx. A broken pipe during that flush would
+    # replace this status with 120.
+    os._exit(code)
+
 url = sys.argv[1] if len(sys.argv) > 1 else ""
-sys.stderr.write(f"pg_dump invoked url={url}\\n")
+sys.stderr.write("pg_dump invoked url=%s\\n" % url)
 if "://" in url and "@" in url:
     userinfo = url.split("://", 1)[1].split("@", 1)[0]
     password = userinfo.split(":", 1)[1] if ":" in userinfo else ""
     if password:
-        sys.stderr.write(f"password={password}\\n")
-mode = __import__("os").environ.get("FAKE_PG_DUMP_MODE", "ok")
+        sys.stderr.write("password=%s\\n" % password)
+mode = os.environ.get("FAKE_PG_DUMP_MODE", "ok")
 if mode == "exit42":
     sys.stderr.write("pg_dump: aborted\\n")
-    raise SystemExit(42)
-sys.stdout.write("-- synthetic dump\\nCREATE TABLE t(id int);\\n")
-raise SystemExit(0)
+    _finish(42)
+
+def _write_all(payload):
+    view = memoryview(payload)
+    offset = 0
+    fd = sys.stdout.fileno()
+    while offset < len(view):
+        try:
+            written = os.write(fd, view[offset:])
+        except BrokenPipeError:
+            _finish(128 + signal.SIGPIPE)
+        except OSError as exc:
+            if exc.errno == errno.EINTR:
+                continue
+            if exc.errno == errno.EPIPE:
+                _finish(128 + signal.SIGPIPE)
+            raise
+        if written <= 0:
+            _finish(128 + signal.SIGPIPE)
+        offset += written
+
+try:
+    pipe_sz = fcntl.fcntl(sys.stdout.fileno(), fcntl.F_GETPIPE_SZ)
+except (AttributeError, OSError):
+    pipe_sz = 65536
+marker = b"-- synthetic dump\\n"
+padding = b"X" * (pipe_sz + 1)
+tail = b"\\nCREATE TABLE t(id int);\\n"
+_write_all(marker + padding + tail)
+_finish(0)
 """
 
 _GZIP = """
@@ -67,17 +120,41 @@ if log:
     try:
         target = os.readlink("/proc/self/fd/1")
     except OSError as exc:
-        target = f"unreadable:{exc}"
+        target = "unreadable:%s" % exc
     with open(log, "a", encoding="utf-8") as handle:
         handle.write(target + "\\n")
+
+def _exit(code):
+    try:
+        sys.stdout.flush()
+    except (BrokenPipeError, OSError):
+        pass
+    try:
+        sys.stderr.flush()
+    except (BrokenPipeError, OSError):
+        pass
+    os._exit(code)
+
+def _drain_stdin():
+    while True:
+        try:
+            chunk = os.read(sys.stdin.fileno(), 65536)
+        except OSError:
+            return
+        if not chunk:
+            return
+
 mode = os.environ.get("FAKE_GZIP_MODE", "ok")
 if mode == "full":
+    # Disk full: stop without reading. The dump writer then gets EPIPE.
     sys.stdout.buffer.write(b"partial")
     sys.stderr.write("gzip: stdout: No space left on device\\n")
-    raise SystemExit(1)
+    _exit(1)
 if mode == "broken":
+    # Exit 0 only after the dump has been consumed, as real gzip would.
+    _drain_stdin()
     sys.stdout.buffer.write(b"this is not gzip data\\n")
-    raise SystemExit(0)
+    _exit(0)
 os.execv(real, [real, *args])
 """
 
@@ -183,6 +260,7 @@ def _run(
         "BACKUP_DIR": str(backup_dir),
         "FAKE_PG_DUMP_MODE": dump_mode,
         "FAKE_GZIP_MODE": gzip_mode,
+        "FAKE_PG_DUMP_STATUS_LOG": str(tmp_path / "pg-dump-status.txt"),
         "REAL_GZIP": real_gzip,
         "GZIP_OUTPUT_LOG": str(gzip_log),
     }
@@ -221,6 +299,18 @@ def test_failed_stage_exits_nonzero_and_publishes_nothing(
     proc, backup_dir, gzip_log = _run(tmp_path, dump_mode=dump_mode, gzip_mode=gzip_mode)
     if proc.returncode != code:
         raise AssertionError(f"expected exit {code}, got {proc.returncode}")
+    status_path = tmp_path / "pg-dump-status.txt"
+    if not status_path.is_file():
+        raise AssertionError("pg_dump stub did not record its exit status")
+    writer = int(status_path.read_text(encoding="utf-8").strip())
+    if dump_mode == "exit42":
+        expect_writer = 42
+    elif gzip_mode == "full":
+        expect_writer = 128 + signal.SIGPIPE
+    else:
+        expect_writer = 0
+    if writer != expect_writer:
+        raise AssertionError(f"pg_dump stub exited {writer}, expected {expect_writer}")
     if "Backup written" in proc.stdout:
         raise AssertionError("failure printed a success line")
     if _published_archives(backup_dir) or _checksums(backup_dir):

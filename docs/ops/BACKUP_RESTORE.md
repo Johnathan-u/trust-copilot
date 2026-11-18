@@ -46,7 +46,7 @@ left as it was. Partial files from the failed attempt are removed.
 | Stage | When | Exit code |
 |---|---|---|
 | `config` | `DATABASE_URL` is missing | 1 |
-| `dump` | `pg_dump` exits nonzero (for example 42) | that exit code |
+| `dump` | `pg_dump` exits nonzero and `gzip` exits 0 (for example 42) | that exit code |
 | `compress` | `gzip` exits nonzero, including a full disk while the archive is written, or the bytes are not a gzip stream | gzip's exit code, or 1 for a bad stream |
 | `checksum` | `sha256sum` fails, the sidecar cannot be written, or the digest does not match | that exit code, or 1 |
 | `publish` | the rename fails, or the published bytes no longer match the digest | that exit code, or 1 |
@@ -69,8 +69,11 @@ stderr is deleted before the script exits. The line does not include credentials
 or a connection string.
 
 A full disk while `gzip` is writing looks like gzip's own error, for example
-`gzip: stdout: No space left on device`, and the stage is `compress`. A full disk
-while `sha256sum` is writing is stage `checksum`.
+`gzip: stdout: No space left on device`, and the stage is `compress`. gzip then
+closes the pipe, so `pg_dump` often dies with SIGPIPE (exit 141). The script
+still reports `compress` and gzip's exit code. The dump stage is used when
+gzip exits 0 and `pg_dump` exits nonzero. A full disk while `sha256sum` is
+writing is stage `checksum`.
 
 If `BACKUP_S3_BUCKET` is set and the `aws` CLI is not on `PATH`, the script exits
 127 with `stage=upload` and message `aws CLI not found for configured BACKUP_S3_BUCKET`.

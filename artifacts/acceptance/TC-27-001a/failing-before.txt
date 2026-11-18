@@ -1,0 +1,37 @@
+# TC-27-001a compress-stage flake, before the fix
+
+Unfixed tree: master c902d2ccf8d084398694928fe899be89acfefb08
+Python 3.12.3
+Working directory: apps/api
+Helper: tests/release/test_backup_failure.py `_run` (the same helper
+`test_failed_stage_exits_nonzero_and_publishes_nothing` calls)
+
+Each iteration used a fresh temp directory and the backup script on PATH
+with the fake pg_dump and gzip from that file.
+
+## Natural scheduling
+
+mode=full runs=200
+script exit 1: 183
+script exit 120: 17
+non-1: 17
+183 BACKUP_FAILURE stage=compress exit_code=1 message=gzip failed: gzip: stdout: No space left on device
+17 BACKUP_FAILURE stage=dump exit_code=120 message=pg_dump failed: pg_dump invoked url=[REDACTED_URL] password=[REDACTED] Exception ignored in: <_io.TextIOWrapper name='<stdout>' mode='w' encoding='utf-8'> BrokenPipeError: [Errno 32] Broken pipe
+
+mode=broken runs=100
+script exit 1: 99
+script exit 120: 1
+non-1: 1
+99 BACKUP_FAILURE stage=compress exit_code=1 message=compressed backup failed integrity check
+1 BACKUP_FAILURE stage=dump exit_code=120 message=pg_dump failed: pg_dump invoked url=[REDACTED_URL] password=[REDACTED] Exception ignored in: <_io.TextIOWrapper name='<stdout>' mode='w' encoding='utf-8'> BrokenPipeError: [Errno 32] Broken pipe
+
+## Forced timing
+
+The full-disk gzip stub was left unchanged. The dump stub slept 0.05s before
+writing stdout, so gzip always closed the pipe first. 25 runs.
+
+script exit 120: 25
+non-1: 25
+25 BACKUP_FAILURE stage=dump exit_code=120 message=pg_dump failed: pg_dump invoked url=[REDACTED_URL] password=[REDACTED] Exception ignored in: <_io.TextIOWrapper name='<stdout>' mode='w' encoding='utf-8'> BrokenPipeError: [Errno 32] Broken pipe
+
+The expected script exit for both compress cases is 1. These runs exited 120.
