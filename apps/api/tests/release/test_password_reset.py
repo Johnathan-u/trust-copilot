@@ -277,9 +277,7 @@ def test_successful_reset_rejects_every_other_unused_token(
             .filter(EmailVerificationToken.user_id == user_id)
             .count()
         )
-        recovery_left = (
-            db.query(MfaRecoveryCode).filter(MfaRecoveryCode.user_id == user_id).count()
-        )
+        recovery_left = db.query(MfaRecoveryCode).filter(MfaRecoveryCode.user_id == user_id).count()
     finally:
         db.close()
     assert verification_left == 1
