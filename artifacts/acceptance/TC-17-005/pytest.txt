@@ -1,0 +1,8 @@
+# SHA fa8697840108c8e6928705dc1ab10059466f2b7d
+# cwd apps/api
+# Python 3.12.3, pytest 9.1.1, PostgreSQL 16.15
+# TC_TEST_DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:5432/trustcopilot_test
+python -m pytest tests/test_shareable_spaces.py tests/test_shareable_space_token_gate.py tests/release/test_shareable_space_token_migration.py -q --tb=line --disable-warnings
+...........................................                              [100%]
+43 passed, 585 warnings in 13.26s
+exit 0
