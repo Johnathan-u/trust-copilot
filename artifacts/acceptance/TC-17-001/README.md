@@ -107,6 +107,10 @@ Pytest did not report a skipped test on the release command. Log: `remaining-pas
 
 Before this change the release file was 5 failed, 8 passed. After it, 13 passed.
 
+The route, migration, release test, and dashboard change are `f42014b3bbec3430a7d340f15acdeded4ae68804`. The commit that records this line does not change them.
+
+`npm run test:unit` in `apps/web` on that tree, Node 24.22.1: 60 files, 551 passed. `npm run typecheck` exited 0.
+
 `ruff check` on the touched Python files exited 0.
 
 ### Migration roundtrip
