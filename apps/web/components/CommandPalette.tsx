@@ -187,8 +187,8 @@ export function CommandPalette({
                       aria-selected={isSelected}
                       className={`w-full px-4 py-2.5 text-left text-sm transition-colors ${
                         isSelected
-                          ? 'bg-white/10 text-[var(--tc-text)]'
-                          : 'text-[var(--tc-muted)] hover:bg-white/5 hover:text-[var(--tc-text)]'
+                          ? 'bg-[var(--tc-nav-active-bg)] text-[var(--tc-text)]'
+                          : 'text-[var(--tc-muted)] hover:bg-[var(--tc-hover)] hover:text-[var(--tc-text)]'
                       }`}
                       onMouseEnter={() => setSelectedIndex(index)}
                       onClick={() => runSelected(item)}

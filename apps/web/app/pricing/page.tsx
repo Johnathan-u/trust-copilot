@@ -36,7 +36,7 @@ export default function PricingPage() {
       <nav
         className="sticky top-0 z-50 border-b border-[var(--tc-border)]"
         style={{
-          background: 'rgba(8,17,31,0.82)',
+          background: 'var(--tc-panel)',
           backdropFilter: 'blur(16px)',
         }}
       >
@@ -46,11 +46,10 @@ export default function PricingPage() {
             className="flex items-center gap-2.5 font-bold text-[var(--tc-text)]"
           >
             <div
-              className="grid h-8 w-8 place-items-center rounded-lg text-base"
+              className="grid h-8 w-8 place-items-center rounded-lg text-base text-tc-on-primary"
               style={{
-                background:
-                  'linear-gradient(135deg,#7c96ff,#5b7cff 55%,#2dd4bf)',
-                boxShadow: '0 8px 20px rgba(91,124,255,0.3)',
+                background: 'var(--tc-brand-mark)',
+                boxShadow: 'var(--tc-brand-mark-shadow)',
               }}
             >
               ✓
@@ -80,7 +79,7 @@ export default function PricingPage() {
           className="pointer-events-none absolute inset-0"
           style={{
             background:
-              'radial-gradient(ellipse 60% 50% at 50% 0%, rgba(91,124,255,0.14), transparent)',
+              'radial-gradient(ellipse 60% 50% at 50% 0%, var(--tc-surface-glow-primary), transparent)',
           }}
         />
         <div className="relative mx-auto max-w-3xl px-5 text-center">
@@ -104,7 +103,7 @@ export default function PricingPage() {
           role="switch"
           aria-checked={annual}
           onClick={() => setAnnual(!annual)}
-          className={`relative h-7 w-[52px] shrink-0 rounded-full border transition-colors duration-300 ease-in-out ${annual ? 'border-[rgba(91,124,255,0.4)] bg-[rgba(91,124,255,0.25)]' : 'border-[var(--tc-border)] bg-white/5'}`}
+          className={`relative h-7 w-[52px] shrink-0 rounded-full border transition-colors duration-300 ease-in-out ${annual ? 'border-tc-primary bg-[var(--tc-nav-active-bg)]' : 'border-[var(--tc-border)] bg-[var(--tc-hover)]'}`}
         >
           <span
             className={`absolute top-[3px] left-[3px] h-[20px] w-[20px] rounded-full shadow-md transition-all duration-300 ease-in-out ${annual ? 'translate-x-[24px] bg-[var(--tc-primary)]' : 'translate-x-0 bg-[var(--tc-muted)]'}`}
@@ -116,7 +115,7 @@ export default function PricingPage() {
           Annual
         </span>
         <span
-          className={`ml-1 rounded-full bg-[rgba(34,197,94,0.12)] border border-[rgba(34,197,94,0.18)] px-2.5 py-0.5 text-xs font-medium text-[var(--tc-success)] transition-all duration-500 ease-out ${annual ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-1 pointer-events-none'}`}
+          className={`ml-1 rounded-full bg-[var(--tc-success-surface)] border border-tc-success px-2.5 py-0.5 text-xs font-medium text-[var(--tc-success)] transition-all duration-500 ease-out ${annual ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-1 pointer-events-none'}`}
         >
           Save ${monthlyPrice * 12 - annualPrice}/year
         </span>
@@ -124,7 +123,7 @@ export default function PricingPage() {
 
       {/* Plan card */}
       <div className="mx-auto max-w-md px-5 py-8">
-        <div className="rounded-2xl border border-[rgba(91,124,255,0.25)] bg-[var(--tc-panel)] p-8 shadow-[0_0_60px_rgba(91,124,255,0.06)]">
+        <div className="rounded-2xl border border-tc-primary bg-[var(--tc-panel)] p-8 shadow-[var(--tc-shadow)]">
           <div className="mb-2 text-center">
             <span className="text-xs font-semibold uppercase tracking-wider text-[var(--tc-primary-2)]">
               Pro Plan
@@ -213,10 +212,9 @@ export default function PricingPage() {
         <div className="mx-auto flex max-w-6xl flex-col items-center gap-6 px-5 sm:flex-row sm:justify-between">
           <div className="flex items-center gap-2 text-sm text-[var(--tc-muted)]">
             <div
-              className="grid h-6 w-6 place-items-center rounded-md text-xs"
+              className="grid h-6 w-6 place-items-center rounded-md text-xs text-tc-on-primary"
               style={{
-                background:
-                  'linear-gradient(135deg,#7c96ff,#5b7cff 55%,#2dd4bf)',
+                background: 'var(--tc-brand-mark)',
               }}
             >
               ✓
