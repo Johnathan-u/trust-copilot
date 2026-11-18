@@ -38,3 +38,37 @@ tests/test_login_email_regression.py: 8 warnings
 
 -- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
 38 passed, 118 warnings in 4.44s
+
+## Review follow-up
+
+Same interpreter, database, and environment as the run above. Auth is the background-send tree after merging master af478a601a5df6ac49410711c77a14b014c70bf4.
+
+python -m pytest tests/release/test_identity_tokens.py tests/release/test_password_reset.py tests/release/test_registration.py tests/test_security_remediation.py::TestPasswordResetTokenInvalidation tests/test_auth_flows.py tests/test_login_email_regression.py tests/test_invite_flow_p14.py -q --tb=line
+
+Exit status: 0. 115 passed, 0 failed, 0 skipped. Of those, tests/release/test_identity_tokens.py is 16 passed. The other 99 are the reset, registration, security-remediation, auth-flow, login/email, and invite neighbors.
+
+........................................................................ [ 62%]
+...........................................                              [100%]
+=============================== warnings summary ===============================
+tests/release/test_identity_tokens.py: 115 warnings
+tests/release/test_password_reset.py: 86 warnings
+tests/release/test_registration.py: 196 warnings
+tests/test_security_remediation.py: 4 warnings
+tests/test_auth_flows.py: 8 warnings
+tests/test_login_email_regression.py: 8 warnings
+tests/test_invite_flow_p14.py: 46 warnings
+  /tmp/tc-venv/lib/python3.12/site-packages/sqlalchemy/sql/schema.py:3627: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    return util.wrap_callable(lambda ctx: fn(), fn)  # type: ignore
+
+tests/release/test_registration.py::test_mail_verify_code_creates_isolated_workspace
+tests/release/test_registration.py::test_mail_verify_email_creates_isolated_workspace
+tests/release/test_registration.py::test_provider_new_identity_is_isolated[self_signup-google]
+tests/release/test_registration.py::test_provider_new_identity_is_isolated[self_signup-github]
+tests/release/test_registration.py::test_provider_new_identity_is_isolated[self_signup-microsoft]
+tests/release/test_registration.py::test_provider_new_identity_is_isolated[self_signup-oidc]
+tests/release/test_registration.py::test_provider_new_identity_is_isolated[self_signup-idme]
+  /agent/repos/trust-copilot/apps/api/app/api/routes/workspaces.py:149: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    now = datetime.utcnow()
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+115 passed, 470 warnings in 20.74s

@@ -20,6 +20,14 @@ The rejected send, the raised send, and a first send with no earlier link failed
 
 The three passes were already true on the parent: a later accepted send replaces the older link, a used token is rejected the second time, and a known address and an unknown address share one JSON body when the dev URL flag is off.
 
+## Review follow-up, failing before
+
+PR #280 review 6967410479 asked for the send to leave the request before the provider answers, and for verification and invite to get the same recoverable-send, single-use, and race behaviour. The auth file at `1229fb37` still called the provider inside the request. Resend deleted the previous verification rows first. Verification-link and invite redemption did not lock the row.
+
+The expanded `tests/release/test_identity_tokens.py` was run against that auth file. Exit status 1. 6 failed, 10 passed, 0 skipped. Log: [failing-before-review.txt](failing-before-review.txt).
+
+A known-address reset took 0.510s and a known-address verification resend took 0.511s, against `time.sleep(0.5)` in the provider. The unknown-address resend took 0.006s. A rejected resend replaced the stored verification hashes. A raised resend surfaced `RuntimeError`. Two in-flight verification links both returned 200. Two in-flight invite redeems returned 200 and 500. In both races `arrived` stayed 0, so neither request waited on a row lock.
+
 ## Passing after
 
 The same named command then exited 0. 7 passed, 0 failed, 0 skipped.
@@ -33,6 +41,8 @@ python -m pytest tests/release/test_password_reset.py tests/release/test_registr
 Exit status 0. 38 passed, 0 failed, 0 skipped.
 
 Both logs: [passing-after.txt](passing-after.txt).
+
+After the review follow-up (background send, verification resend, verification-link and invite redemption, and the slow-provider checks), the identity file and the reset, registration, security-remediation, auth-flow, login/email, and invite neighbors were run together. Exit status 0. 115 passed, 0 failed, 0 skipped. 16 of those are `tests/release/test_identity_tokens.py`. The same log file has that run. `tests/release/test_enqueue_consistency.py` was run on its own because push run 44274753210 failed in that file's teardown: exit 0, 45 passed. The mail-drain fixture does not request `monkeypatch`.
 
 ## Environment
 

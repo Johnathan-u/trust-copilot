@@ -1,0 +1,417 @@
+# TC-04-002 failing tests for the review follow-up
+
+Command: python -m pytest tests/release/test_identity_tokens.py -q --tb=line
+Working directory: apps/api
+Auth under test: apps/api/app/api/routes/auth.py at 1229fb37 (send runs inside the request; resend deletes the previous verification rows before the provider answers; verify-email and accept-invite do not lock the row). Three no-op hooks were appended so the new tests could call drain_identity_mail and _after_row_locked. Those hooks do not move the send off the request and do not lock a row.
+Tests: apps/api/tests/release/test_identity_tokens.py in this change
+Interpreter: Python 3.12.3, pytest 9.1.1, SQLAlchemy 2.0.55, FastAPI 0.162.0, Alembic 1.20.1, cryptography 50.0.2, ruff 0.5.6
+Database: PostgreSQL 16.15, trustcopilot_test at 127.0.0.1:5432, user postgres
+Environment: TC_REQUIRE_DB=1, TC_TEST_DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:5432/trustcopilot_test
+Exit status: 1
+Result: 6 failed, 10 passed, 0 skipped
+
+The known-address reset request took 0.510s and the known-address verification resend took 0.511s. The unknown-address resend took 0.006s. Both known calls waited on time.sleep(0.5) inside the provider. A rejected verification resend replaced the stored hashes. A raised resend propagated RuntimeError: smtp down. Two overlapping verification-link redeems both returned 200 (arrived=0). Two overlapping invite redeems returned 200 and 500 (arrived=0). The compared verification values are SHA-256 hex digests, not raw codes. Addresses are synthetic @example.test users.
+
+The 10 passes are the reset cases `1229fb37` already satisfied (a failed send keeps the previous link, single-use, and the locked reset race), sequential second use of a verification link and of an invite, and a failed invite send that already left that invite in place.
+
+.......FFFF.F..F                                                         [100%]
+=================================== FAILURES ===================================
+E   AssertionError: 0.5098884039999803
+    assert 0.5098884039999803 < 0.35
+/agent/repos/trust-copilot/apps/api/tests/release/test_identity_tokens.py:524: AssertionError: 0.5098884039999803
+E   AssertionError: {'known_s': 0.5107483620000721, 'unknown_s': 0.006215486999963105}
+    assert (0.5107483620000721 < 0.35)
+/agent/repos/trust-copilot/apps/api/tests/release/test_identity_tokens.py:560: AssertionError: {'known_s': 0.5107483620000721, 'unknown_s': 0.006215486999963105}
+E   AssertionError: assert ['e98c0a659ee...e4ecb643c170'] == ['d856d4c221c...e31d1b9eed82']
+      
+      At index 0 diff: 'e98c0a659ee37d6d5f83742fc53cd8ba3b12d17cca30c7b3674fdb38f64d5964' != 'd856d4c221cbce0d5303dba6ebfafb5a1a6f025ef239782899fe0b29e0642c5c'
+      Use -v to get more diff
+/agent/repos/trust-copilot/apps/api/tests/release/test_identity_tokens.py:591: AssertionError: assert ['e98c0a659ee...e4ecb643c170'] == ['d856d4c221c...e31d1b9eed82']
+  + Exception Group Traceback (most recent call last):
+  |   File "/tmp/tc-venv/lib/python3.12/site-packages/starlette/_utils.py", line 104, in create_collapsing_task_group
+  |     async with anyio.create_task_group() as tg:
+  |   File "/tmp/tc-venv/lib/python3.12/site-packages/anyio/_backends/_asyncio.py", line 847, in __aexit__
+  |     raise BaseExceptionGroup(
+  | ExceptionGroup: unhandled errors in a TaskGroup (1 sub-exception)
+  +-+---------------- 1 ----------------
+    | Traceback (most recent call last):
+    |   File "/tmp/tc-venv/lib/python3.12/site-packages/_pytest/runner.py", line 361, in from_call
+    |     result: TResult | None = func()
+    |                              ^^^^^^
+    |   File "/tmp/tc-venv/lib/python3.12/site-packages/_pytest/runner.py", line 250, in <lambda>
+    |     lambda: runtest_hook(item=item, **kwds),
+    |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "/tmp/tc-venv/lib/python3.12/site-packages/pluggy/_caller.py", line 197, in __call__
+    |     return self._hookexec(
+    |            ^^^^^^^^^^^^^^^
+    |   File "/tmp/tc-venv/lib/python3.12/site-packages/pluggy/_manager.py", line 183, in _hookexec
+    |     return self._inner_hookexec(hook_name, methods, kwargs, firstresult)
+    |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "/tmp/tc-venv/lib/python3.12/site-packages/pluggy/_execution.py", line 195, in _multicall
+    |     raise exception
+    |   File "/tmp/tc-venv/lib/python3.12/site-packages/pluggy/_execution.py", line 167, in _multicall
+    |     teardown.throw(exception)
+    |   File "/tmp/tc-venv/lib/python3.12/site-packages/_pytest/logging.py", line 865, in pytest_runtest_call
+    |     yield
+    |   File "/tmp/tc-venv/lib/python3.12/site-packages/pluggy/_execution.py", line 167, in _multicall
+    |     teardown.throw(exception)
+    |   File "/tmp/tc-venv/lib/python3.12/site-packages/_pytest/capture.py", line 900, in pytest_runtest_call
+    |     return (yield)
+    |             ^^^^^
+    |   File "/tmp/tc-venv/lib/python3.12/site-packages/pluggy/_execution.py", line 167, in _multicall
+    |     teardown.throw(exception)
+    |   File "/tmp/tc-venv/lib/python3.12/site-packages/_pytest/skipping.py", line 268, in pytest_runtest_call
+    |     return (yield)
+    |             ^^^^^
+    |   File "/tmp/tc-venv/lib/python3.12/site-packages/pluggy/_execution.py", line 147, in _multicall
+    |     res = hook_impl.function(*args)
+    |           ^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "/tmp/tc-venv/lib/python3.12/site-packages/_pytest/runner.py", line 184, in pytest_runtest_call
+    |     item.runtest()
+    |   File "/tmp/tc-venv/lib/python3.12/site-packages/_pytest/python.py", line 1707, in runtest
+    |     self.ihook.pytest_pyfunc_call(pyfuncitem=self)
+    |   File "/tmp/tc-venv/lib/python3.12/site-packages/pluggy/_caller.py", line 197, in __call__
+    |     return self._hookexec(
+    |            ^^^^^^^^^^^^^^^
+    |   File "/tmp/tc-venv/lib/python3.12/site-packages/pluggy/_manager.py", line 183, in _hookexec
+    |     return self._inner_hookexec(hook_name, methods, kwargs, firstresult)
+    |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "/tmp/tc-venv/lib/python3.12/site-packages/pluggy/_execution.py", line 195, in _multicall
+    |     raise exception
+    |   File "/tmp/tc-venv/lib/python3.12/site-packages/pluggy/_execution.py", line 147, in _multicall
+    |     res = hook_impl.function(*args)
+    |           ^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "/tmp/tc-venv/lib/python3.12/site-packages/_pytest/python.py", line 167, in pytest_pyfunc_call
+    |     result = testfunction(**testargs)
+    |              ^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "/agent/repos/trust-copilot/apps/api/tests/release/test_identity_tokens.py", line 586, in test_failed_verification_resend_keeps_the_previous_code
+    |     resent = client.post("/api/auth/resend-verification", json={"email": email})
+    |              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "/tmp/tc-venv/lib/python3.12/site-packages/httpx2/_client.py", line 1203, in post
+    |     return self.request(
+    |            ^^^^^^^^^^^^^
+    |   File "/agent/repos/trust-copilot/apps/api/tests/conftest.py", line 825, in wrapped
+    |     response = original(self, method, url, **kwargs)
+    |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "/tmp/tc-venv/lib/python3.12/site-packages/starlette/testclient.py", line 518, in request
+    |     return super().request(
+    |            ^^^^^^^^^^^^^^^^
+    |   File "/tmp/tc-venv/lib/python3.12/site-packages/httpx2/_client.py", line 796, in request
+    |     return self.send(request, auth=auth, follow_redirects=follow_redirects)
+    |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "/tmp/tc-venv/lib/python3.12/site-packages/httpx2/_client.py", line 993, in send
+    |     raise exc
+    |   File "/tmp/tc-venv/lib/python3.12/site-packages/httpx2/_client.py", line 987, in send
+    |     response.read()
+    |   File "/tmp/tc-venv/lib/python3.12/site-packages/httpx2/_models.py", line 877, in read
+    |     self._content = b"".join(self.iter_bytes())
+    |                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "/tmp/tc-venv/lib/python3.12/site-packages/httpx2/_models.py", line 893, in iter_bytes
+    |     for raw_bytes in self.iter_raw():
+    |   File "/tmp/tc-venv/lib/python3.12/site-packages/httpx2/_models.py", line 948, in iter_raw
+    |     for raw_stream_bytes in self.stream:
+    |   File "/tmp/tc-venv/lib/python3.12/site-packages/httpx2/_client.py", line 143, in __iter__
+    |     yield from self._stream
+    |   File "/tmp/tc-venv/lib/python3.12/site-packages/starlette/testclient.py", line 384, in iter_body
+    |     exit_stack.close()
+    |   File "/usr/lib/python3.12/contextlib.py", line 618, in close
+    |     self.__exit__(None, None, None)
+    |   File "/usr/lib/python3.12/contextlib.py", line 610, in __exit__
+    |     raise exc_details[1]
+    |   File "/usr/lib/python3.12/contextlib.py", line 595, in __exit__
+    |     if cb(*exc_details):
+    |        ^^^^^^^^^^^^^^^^
+    |   File "/tmp/tc-venv/lib/python3.12/site-packages/starlette/testclient.py", line 399, in close_app
+    |     raise exception
+    |   File "/tmp/tc-venv/lib/python3.12/site-packages/anyio/from_thread.py", line 265, in _call_func
+    |     retval = await retval_or_awaitable
+    |              ^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "/tmp/tc-venv/lib/python3.12/site-packages/starlette/testclient.py", line 366, in run_app
+    |     await self.app(scope, receive, send)
+    |   File "/tmp/tc-venv/lib/python3.12/site-packages/fastapi/applications.py", line 1194, in __call__
+    |     await super().__call__(scope, receive, send)
+    |   File "/tmp/tc-venv/lib/python3.12/site-packages/starlette/applications.py", line 96, in __call__
+    |     await self.middleware_stack(scope, receive, send)
+    |   File "/tmp/tc-venv/lib/python3.12/site-packages/starlette/middleware/errors.py", line 186, in __call__
+    |     raise exc
+    |   File "/tmp/tc-venv/lib/python3.12/site-packages/starlette/middleware/errors.py", line 164, in __call__
+    |     await self.app(scope, receive, _send)
+    |   File "/tmp/tc-venv/lib/python3.12/site-packages/fastapi/telemetry/_asgi.py", line 151, in __call__
+    |     await self.app(scope, receive, send)
+    |   File "/tmp/tc-venv/lib/python3.12/site-packages/starlette/middleware/cors.py", line 91, in __call__
+    |     await self.simple_response(scope, receive, send, request_headers=headers)
+    |   File "/tmp/tc-venv/lib/python3.12/site-packages/starlette/middleware/cors.py", line 149, in simple_response
+    |     await self.app(scope, receive, send)
+    |   File "/tmp/tc-venv/lib/python3.12/site-packages/starlette/middleware/base.py", line 203, in __call__
+    |     response = await self.dispatch_func(request, call_next)
+    |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "/agent/repos/trust-copilot/apps/api/app/main.py", line 317, in dispatch
+    |     return await call_next(request)
+    |            ^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "/tmp/tc-venv/lib/python3.12/site-packages/starlette/middleware/base.py", line 179, in call_next
+    |     raise app_exc from app_exc.__cause__ or app_exc.__context__
+    |   File "/tmp/tc-venv/lib/python3.12/site-packages/starlette/middleware/base.py", line 149, in coro
+    |     await self.app(scope, receive_or_disconnect, send_no_error)
+    |   File "/tmp/tc-venv/lib/python3.12/site-packages/starlette/middleware/base.py", line 203, in __call__
+    |     response = await self.dispatch_func(request, call_next)
+    |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "/agent/repos/trust-copilot/apps/api/app/main.py", line 364, in dispatch
+    |     return await call_next(request)
+    |            ^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "/tmp/tc-venv/lib/python3.12/site-packages/starlette/middleware/base.py", line 179, in call_next
+    |     raise app_exc from app_exc.__cause__ or app_exc.__context__
+    |   File "/tmp/tc-venv/lib/python3.12/site-packages/starlette/middleware/base.py", line 149, in coro
+    |     await self.app(scope, receive_or_disconnect, send_no_error)
+    |   File "/tmp/tc-venv/lib/python3.12/site-packages/starlette/middleware/base.py", line 203, in __call__
+    |     response = await self.dispatch_func(request, call_next)
+    |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "/agent/repos/trust-copilot/apps/api/app/main.py", line 273, in dispatch
+    |     response = await call_next(request)
+    |                ^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "/tmp/tc-venv/lib/python3.12/site-packages/starlette/middleware/base.py", line 179, in call_next
+    |     raise app_exc from app_exc.__cause__ or app_exc.__context__
+    |   File "/tmp/tc-venv/lib/python3.12/site-packages/starlette/middleware/base.py", line 149, in coro
+    |     await self.app(scope, receive_or_disconnect, send_no_error)
+    |   File "/tmp/tc-venv/lib/python3.12/site-packages/starlette/middleware/exceptions.py", line 63, in __call__
+    |     await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+    |   File "/tmp/tc-venv/lib/python3.12/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    |     raise exc
+    |   File "/tmp/tc-venv/lib/python3.12/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+    |     await app(scope, receive, sender)
+    |   File "/tmp/tc-venv/lib/python3.12/site-packages/fastapi/middleware/asyncexitstack.py", line 18, in __call__
+    |     await self.app(scope, receive, send)
+    |   File "/tmp/tc-venv/lib/python3.12/site-packages/starlette/routing.py", line 683, in __call__
+    |     await self.middleware_stack(scope, receive, send)
+    |   File "/tmp/tc-venv/lib/python3.12/site-packages/fastapi/routing.py", line 2811, in app
+    |     await route.handle(scope, receive, send)
+    |   File "/tmp/tc-venv/lib/python3.12/site-packages/fastapi/routing.py", line 1839, in handle
+    |     await self.original_router.handle(scope, receive, send)
+    |   File "/tmp/tc-venv/lib/python3.12/site-packages/fastapi/routing.py", line 2894, in handle
+    |     await included_router._handle_selected(scope, receive, send)
+    |   File "/tmp/tc-venv/lib/python3.12/site-packages/fastapi/routing.py", line 1865, in _handle_selected
+    |     await original_route.handle(scope, receive, send)
+    |   File "/tmp/tc-venv/lib/python3.12/site-packages/fastapi/routing.py", line 1328, in handle
+    |     await effective_context.app(scope, receive, send)
+    |   File "/tmp/tc-venv/lib/python3.12/site-packages/fastapi/routing.py", line 166, in app
+    |     await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+    |   File "/tmp/tc-venv/lib/python3.12/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    |     raise exc
+    |   File "/tmp/tc-venv/lib/python3.12/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+    |     await app(scope, receive, sender)
+    |   File "/tmp/tc-venv/lib/python3.12/site-packages/fastapi/routing.py", line 152, in app
+    |     response = await f(request)
+    |                ^^^^^^^^^^^^^^^^
+    |   File "/tmp/tc-venv/lib/python3.12/site-packages/fastapi/routing.py", line 745, in app
+    |     raw_response = await run_endpoint_function(
+    |                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "/tmp/tc-venv/lib/python3.12/site-packages/fastapi/routing.py", line 374, in run_endpoint_function
+    |     return await run_in_threadpool(
+    |            ^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "/tmp/tc-venv/lib/python3.12/site-packages/starlette/concurrency.py", line 34, in run_in_threadpool
+    |     return await anyio.to_thread.run_sync(func)
+    |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "/tmp/tc-venv/lib/python3.12/site-packages/anyio/to_thread.py", line 65, in run_sync
+    |     return await get_async_backend().run_sync_in_worker_thread(
+    |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "/tmp/tc-venv/lib/python3.12/site-packages/anyio/_backends/_asyncio.py", line 2706, in run_sync_in_worker_thread
+    |     return await future
+    |            ^^^^^^^^^^^^
+    |   File "/tmp/tc-venv/lib/python3.12/site-packages/anyio/_backends/_asyncio.py", line 1100, in run
+    |     result = context.run(func, *args)
+    |              ^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "/tmp/tc-venv/lib/python3.12/site-packages/fastapi/telemetry/_api.py", line 244, in _run_sync_endpoint
+    |     return function(**arguments)
+    |            ^^^^^^^^^^^^^^^^^^^^^
+    |   File "/agent/repos/trust-copilot/apps/api/app/api/routes/auth.py", line 461, in resend_verification
+    |     _issue_verification(db, user, email)
+    |   File "/agent/repos/trust-copilot/apps/api/app/api/routes/auth.py", line 316, in _issue_verification
+    |     send_verification_code_email(email, code, verify_url=verify_url)
+    |   File "/agent/repos/trust-copilot/apps/api/app/services/email_service.py", line 210, in send_verification_code_email
+    |     return get_email_provider().send(msg)
+    |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "/agent/repos/trust-copilot/apps/api/tests/release/test_identity_tokens.py", line 55, in send
+    |     raise self.error
+    | RuntimeError: smtp down
+    +------------------------------------
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/agent/repos/trust-copilot/apps/api/tests/release/test_identity_tokens.py", line 586, in test_failed_verification_resend_keeps_the_previous_code
+    resent = client.post("/api/auth/resend-verification", json={"email": email})
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/tc-venv/lib/python3.12/site-packages/httpx2/_client.py", line 1203, in post
+    return self.request(
+           ^^^^^^^^^^^^^
+  File "/agent/repos/trust-copilot/apps/api/tests/conftest.py", line 825, in wrapped
+    response = original(self, method, url, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/tc-venv/lib/python3.12/site-packages/starlette/testclient.py", line 518, in request
+    return super().request(
+           ^^^^^^^^^^^^^^^^
+  File "/tmp/tc-venv/lib/python3.12/site-packages/httpx2/_client.py", line 796, in request
+    return self.send(request, auth=auth, follow_redirects=follow_redirects)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/tc-venv/lib/python3.12/site-packages/httpx2/_client.py", line 993, in send
+    raise exc
+  File "/tmp/tc-venv/lib/python3.12/site-packages/httpx2/_client.py", line 987, in send
+    response.read()
+  File "/tmp/tc-venv/lib/python3.12/site-packages/httpx2/_models.py", line 877, in read
+    self._content = b"".join(self.iter_bytes())
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/tc-venv/lib/python3.12/site-packages/httpx2/_models.py", line 893, in iter_bytes
+    for raw_bytes in self.iter_raw():
+  File "/tmp/tc-venv/lib/python3.12/site-packages/httpx2/_models.py", line 948, in iter_raw
+    for raw_stream_bytes in self.stream:
+  File "/tmp/tc-venv/lib/python3.12/site-packages/httpx2/_client.py", line 143, in __iter__
+    yield from self._stream
+  File "/tmp/tc-venv/lib/python3.12/site-packages/starlette/testclient.py", line 384, in iter_body
+    exit_stack.close()
+  File "/usr/lib/python3.12/contextlib.py", line 618, in close
+    self.__exit__(None, None, None)
+  File "/usr/lib/python3.12/contextlib.py", line 610, in __exit__
+    raise exc_details[1]
+  File "/usr/lib/python3.12/contextlib.py", line 595, in __exit__
+    if cb(*exc_details):
+       ^^^^^^^^^^^^^^^^
+  File "/tmp/tc-venv/lib/python3.12/site-packages/starlette/testclient.py", line 399, in close_app
+    raise exception
+  File "/tmp/tc-venv/lib/python3.12/site-packages/anyio/from_thread.py", line 265, in _call_func
+    retval = await retval_or_awaitable
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/tc-venv/lib/python3.12/site-packages/starlette/testclient.py", line 366, in run_app
+    await self.app(scope, receive, send)
+  File "/tmp/tc-venv/lib/python3.12/site-packages/fastapi/applications.py", line 1194, in __call__
+    await super().__call__(scope, receive, send)
+  File "/tmp/tc-venv/lib/python3.12/site-packages/starlette/applications.py", line 96, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/tmp/tc-venv/lib/python3.12/site-packages/starlette/middleware/errors.py", line 186, in __call__
+    raise exc
+  File "/tmp/tc-venv/lib/python3.12/site-packages/starlette/middleware/errors.py", line 164, in __call__
+    await self.app(scope, receive, _send)
+  File "/tmp/tc-venv/lib/python3.12/site-packages/fastapi/telemetry/_asgi.py", line 151, in __call__
+    await self.app(scope, receive, send)
+  File "/tmp/tc-venv/lib/python3.12/site-packages/starlette/middleware/cors.py", line 91, in __call__
+    await self.simple_response(scope, receive, send, request_headers=headers)
+  File "/tmp/tc-venv/lib/python3.12/site-packages/starlette/middleware/cors.py", line 149, in simple_response
+    await self.app(scope, receive, send)
+  File "/tmp/tc-venv/lib/python3.12/site-packages/starlette/middleware/base.py", line 203, in __call__
+    response = await self.dispatch_func(request, call_next)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/agent/repos/trust-copilot/apps/api/app/main.py", line 317, in dispatch
+    return await call_next(request)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/tc-venv/lib/python3.12/site-packages/starlette/middleware/base.py", line 179, in call_next
+    raise app_exc from app_exc.__cause__ or app_exc.__context__
+  File "/tmp/tc-venv/lib/python3.12/site-packages/starlette/middleware/base.py", line 149, in coro
+    await self.app(scope, receive_or_disconnect, send_no_error)
+  File "/tmp/tc-venv/lib/python3.12/site-packages/starlette/middleware/base.py", line 203, in __call__
+    response = await self.dispatch_func(request, call_next)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/agent/repos/trust-copilot/apps/api/app/main.py", line 364, in dispatch
+    return await call_next(request)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/tc-venv/lib/python3.12/site-packages/starlette/middleware/base.py", line 179, in call_next
+    raise app_exc from app_exc.__cause__ or app_exc.__context__
+  File "/tmp/tc-venv/lib/python3.12/site-packages/starlette/middleware/base.py", line 149, in coro
+    await self.app(scope, receive_or_disconnect, send_no_error)
+  File "/tmp/tc-venv/lib/python3.12/site-packages/starlette/middleware/base.py", line 203, in __call__
+    response = await self.dispatch_func(request, call_next)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/agent/repos/trust-copilot/apps/api/app/main.py", line 273, in dispatch
+    response = await call_next(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/tc-venv/lib/python3.12/site-packages/starlette/middleware/base.py", line 179, in call_next
+    raise app_exc from app_exc.__cause__ or app_exc.__context__
+  File "/tmp/tc-venv/lib/python3.12/site-packages/starlette/middleware/base.py", line 149, in coro
+    await self.app(scope, receive_or_disconnect, send_no_error)
+  File "/tmp/tc-venv/lib/python3.12/site-packages/starlette/middleware/exceptions.py", line 63, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "/tmp/tc-venv/lib/python3.12/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "/tmp/tc-venv/lib/python3.12/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "/tmp/tc-venv/lib/python3.12/site-packages/fastapi/middleware/asyncexitstack.py", line 18, in __call__
+    await self.app(scope, receive, send)
+  File "/tmp/tc-venv/lib/python3.12/site-packages/starlette/routing.py", line 683, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/tmp/tc-venv/lib/python3.12/site-packages/fastapi/routing.py", line 2811, in app
+    await route.handle(scope, receive, send)
+  File "/tmp/tc-venv/lib/python3.12/site-packages/fastapi/routing.py", line 1839, in handle
+    await self.original_router.handle(scope, receive, send)
+  File "/tmp/tc-venv/lib/python3.12/site-packages/fastapi/routing.py", line 2894, in handle
+    await included_router._handle_selected(scope, receive, send)
+  File "/tmp/tc-venv/lib/python3.12/site-packages/fastapi/routing.py", line 1865, in _handle_selected
+    await original_route.handle(scope, receive, send)
+  File "/tmp/tc-venv/lib/python3.12/site-packages/fastapi/routing.py", line 1328, in handle
+    await effective_context.app(scope, receive, send)
+  File "/tmp/tc-venv/lib/python3.12/site-packages/fastapi/routing.py", line 166, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "/tmp/tc-venv/lib/python3.12/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "/tmp/tc-venv/lib/python3.12/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "/tmp/tc-venv/lib/python3.12/site-packages/fastapi/routing.py", line 152, in app
+    response = await f(request)
+               ^^^^^^^^^^^^^^^^
+  File "/tmp/tc-venv/lib/python3.12/site-packages/fastapi/routing.py", line 745, in app
+    raw_response = await run_endpoint_function(
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/tc-venv/lib/python3.12/site-packages/fastapi/routing.py", line 374, in run_endpoint_function
+    return await run_in_threadpool(
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/tc-venv/lib/python3.12/site-packages/starlette/concurrency.py", line 34, in run_in_threadpool
+    return await anyio.to_thread.run_sync(func)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/tc-venv/lib/python3.12/site-packages/anyio/to_thread.py", line 65, in run_sync
+    return await get_async_backend().run_sync_in_worker_thread(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/tc-venv/lib/python3.12/site-packages/anyio/_backends/_asyncio.py", line 2706, in run_sync_in_worker_thread
+    return await future
+           ^^^^^^^^^^^^
+  File "/tmp/tc-venv/lib/python3.12/site-packages/anyio/_backends/_asyncio.py", line 1100, in run
+    result = context.run(func, *args)
+             ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/tc-venv/lib/python3.12/site-packages/fastapi/telemetry/_api.py", line 244, in _run_sync_endpoint
+    return function(**arguments)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/agent/repos/trust-copilot/apps/api/app/api/routes/auth.py", line 461, in resend_verification
+    _issue_verification(db, user, email)
+  File "/agent/repos/trust-copilot/apps/api/app/api/routes/auth.py", line 316, in _issue_verification
+    send_verification_code_email(email, code, verify_url=verify_url)
+  File "/agent/repos/trust-copilot/apps/api/app/services/email_service.py", line 210, in send_verification_code_email
+    return get_email_provider().send(msg)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/agent/repos/trust-copilot/apps/api/tests/release/test_identity_tokens.py", line 55, in send
+    raise self.error
+RuntimeError: smtp down
+
+The above exception was the direct cause of the following exception:
+E   RuntimeError: smtp down
+/agent/repos/trust-copilot/apps/api/tests/release/test_identity_tokens.py:55: RuntimeError: smtp down
+E   AssertionError: {'codes': [200, 200], 'arrived': 0}
+    assert [200, 200] == [200, 400]
+      
+      At index 1 diff: 200 != 400
+      Use -v to get more diff
+/agent/repos/trust-copilot/apps/api/tests/release/test_identity_tokens.py:662: AssertionError: {'codes': [200, 200], 'arrived': 0}
+E   AssertionError: {'codes': [200, 500], 'arrived': 0}
+    assert [200, 500] == [200, 400]
+      
+      At index 1 diff: 500 != 400
+      Use -v to get more diff
+/agent/repos/trust-copilot/apps/api/tests/release/test_identity_tokens.py:801: AssertionError: {'codes': [200, 500], 'arrived': 0}
+=============================== warnings summary ===============================
+tests/release/test_identity_tokens.py: 109 warnings
+  /tmp/tc-venv/lib/python3.12/site-packages/sqlalchemy/sql/schema.py:3627: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    return util.wrap_callable(lambda ctx: fn(), fn)  # type: ignore
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/release/test_identity_tokens.py::test_slow_reset_provider_does_not_delay_a_known_address
+FAILED tests/release/test_identity_tokens.py::test_slow_verification_provider_does_not_delay_a_known_address
+FAILED tests/release/test_identity_tokens.py::test_failed_verification_resend_keeps_the_previous_code[rejected]
+FAILED tests/release/test_identity_tokens.py::test_failed_verification_resend_keeps_the_previous_code[raised]
+FAILED tests/release/test_identity_tokens.py::test_concurrent_verify_email_of_one_link_succeeds_once
+FAILED tests/release/test_identity_tokens.py::test_concurrent_accept_of_one_invite_succeeds_once
+6 failed, 10 passed, 109 warnings in 6.61s

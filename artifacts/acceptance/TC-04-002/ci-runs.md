@@ -1,11 +1,10 @@
 # CI for TC-04-002
 
-Implementation head: `1229fb37f32b2bbd7bc188b1435b279199331de9`
-
-`build` and `web-release-e2e` are green on both `push` and `pull_request` for that commit.
-It is the reset-send and row-lock change. No migration. Master `d69109e7` had not moved when
-these runs finished. The commit that adds this file is evidence only and is polled separately.
-It does not change auth behavior.
+The runs in the table are head `1229fb37f32b2bbd7bc188b1435b279199331de9`.
+That commit still calls the reset provider on the request path. They do not cover the
+background send, the slow-provider timing tests, or the verification and invite scope.
+`build` and `web-release-e2e` for the follow-up head are recorded here after both events
+are green. No migration.
 
 | Event | Run | Job | Conclusion |
 |---|---|---|---|

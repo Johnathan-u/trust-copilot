@@ -1,10 +1,10 @@
-"""TC-04-002: password-reset send failures stay recoverable, and one reset token
-is single-use under a concurrent redeem.
+"""TC-04-002: identity-mail failures stay recoverable, and one token is single-use.
 
-A failed provider call must not delete a previously delivered unused link, and
-the HTTP response stays the same sentence for a known address and an unknown
-one. Two overlapping redeems of that same token must produce one success.
-SQLite drops ``FOR UPDATE``, so the overlap test runs on PostgreSQL only.
+A failed provider call must not delete a previously delivered reset link,
+verification code, or invite. The HTTP response for a known address matches an
+unknown one, and it returns before the provider answers. Two overlapping
+redeems of one reset link, verification link, or invite must produce one
+success. SQLite drops ``FOR UPDATE``, so the overlap tests run on PostgreSQL only.
 """
 
 from __future__ import annotations
@@ -455,6 +455,20 @@ def test_concurrent_redeem_of_one_reset_token_succeeds_once(
         http_two.close()
 
 
+def _verification_hashes(user_id: int) -> list[str]:
+    db = SessionLocal()
+    try:
+        rows = (
+            db.query(EmailVerificationToken)
+            .filter(EmailVerificationToken.user_id == user_id)
+            .order_by(EmailVerificationToken.id)
+            .all()
+        )
+        return [row.token_hash for row in rows]
+    finally:
+        db.close()
+
+
 def _verification_link(box: _ScriptedMail) -> tuple[str, str, int]:
     body = box.messages[-1].body_text
     code = _CODE_RE.search(body)
@@ -513,6 +527,39 @@ def test_slow_reset_provider_does_not_delay_a_known_address(
     assert _reset_audits(unknown_address) == []
 
 
+def test_slow_verification_provider_does_not_delay_a_known_address(
+    client: TestClient, box: _ScriptedMail, isolate
+) -> None:
+    """A resend for a real account returns before the provider, like an unknown address."""
+    import app.api.routes.auth as auth_routes
+
+    email = isolate(_address("verify-slow"))
+    _register_open(client, box, email, _password())
+
+    def slow_send(message) -> bool:
+        time.sleep(0.5)
+        box.messages.append(message)
+        return True
+
+    box.send = slow_send  # type: ignore[method-assign]
+    unknown_address = isolate(_address("verify-slow-missing"))
+    auth_routes._skip_identity_mail_drain = True
+    try:
+        started = time.perf_counter()
+        known = client.post("/api/auth/resend-verification", json={"email": email})
+        known_s = time.perf_counter() - started
+        started = time.perf_counter()
+        unknown = client.post("/api/auth/resend-verification", json={"email": unknown_address})
+        unknown_s = time.perf_counter() - started
+    finally:
+        auth_routes._skip_identity_mail_drain = False
+        auth_routes.drain_identity_mail()
+    assert known.status_code == unknown.status_code == 200
+    assert known.json() == unknown.json()
+    detail = {"known_s": known_s, "unknown_s": unknown_s}
+    assert known_s < 0.35 and unknown_s < 0.35, detail
+
+
 def _user_id_of(email: str) -> int:
     db = SessionLocal()
     try:
@@ -521,33 +568,33 @@ def _user_id_of(email: str) -> int:
         db.close()
 
 
+@pytest.mark.parametrize("mode", ["rejected", "raised"])
 def test_failed_verification_resend_keeps_the_previous_code(
-    client: TestClient, box: _ScriptedMail, isolate
+    client: TestClient, box: _ScriptedMail, isolate, mode: str
 ) -> None:
-    """A rejected resend leaves the delivered code usable and stores no new row."""
-    email = isolate(_address("verify-fail"))
+    """A false or raised resend leaves the delivered code and link, and stores no new row."""
+    email = isolate(_address(f"verify-{mode}"))
     code, _link, user_id = _register_open(client, box, email, _password())
-    box.accept = False
+    before = _verification_hashes(user_id)
+    assert len(before) == 2
+    if mode == "raised":
+        box.error = RuntimeError("smtp down")
+        reason = "provider_error"
+    else:
+        box.accept = False
+        reason = "provider_rejected"
     resent = client.post("/api/auth/resend-verification", json={"email": email})
-    unknown_address = isolate(_address("verify-missing"))
+    unknown_address = isolate(_address(f"verify-missing-{mode}"))
     unknown = client.post("/api/auth/resend-verification", json={"email": unknown_address})
     assert resent.status_code == unknown.status_code == 200
     assert resent.json() == unknown.json()
+    assert _verification_hashes(user_id) == before
     failed_audits = [item for item in _actions(email) if item[0] == "auth.verification_send_failed"]
     assert failed_audits, _actions(email)
-    assert json.loads(failed_audits[-1][1] or "") == {"reason": "provider_rejected"}
+    assert json.loads(failed_audits[-1][1] or "") == {"reason": reason}
     checked = client.post("/api/auth/verify-code", json={"email": email, "code": code})
     assert checked.status_code == 200, checked.text
-    db = SessionLocal()
-    try:
-        left = (
-            db.query(EmailVerificationToken)
-            .filter(EmailVerificationToken.user_id == user_id)
-            .count()
-        )
-    finally:
-        db.close()
-    assert left == 0
+    assert _verification_hashes(user_id) == []
 
 
 def test_verification_link_cannot_be_used_twice(
@@ -633,6 +680,47 @@ def _plant_invite(email: str) -> str:
     finally:
         db.close()
     return raw
+
+
+def test_failed_invite_send_leaves_the_code_usable(
+    client: TestClient, isolate, monkeypatch
+) -> None:
+    """A provider rejection does not delete the invite. The mailed code still accepts."""
+    import app.api.routes.members as members
+
+    email = isolate(_address("invite-fail"))
+    logged = client.post("/api/auth/login", json={"email": "admin@trust.local", "password": "a"})
+    assert logged.status_code == 200, logged.text
+    seen = threading.Event()
+    captured: dict[str, str] = {}
+
+    def reject(to, _inviter, _workspace, _url, code) -> bool:
+        captured["code"] = code
+        captured["to"] = to
+        seen.set()
+        return False
+
+    monkeypatch.setattr(members, "send_invite_email", reject)
+    created = client.post("/api/members/invites", json={"email": email, "role": "editor"})
+    assert created.status_code == 200, created.text
+    assert seen.wait(5), "invite send did not run"
+    assert captured["to"] == email
+    client.cookies.clear()
+    exchanged = client.post(
+        "/api/auth/verify-invite-code", json={"email": email, "code": captured["code"]}
+    )
+    assert exchanged.status_code == 200, exchanged.text
+    token = exchanged.json()["token"]
+    password = _password()
+    accepted = client.post("/api/auth/accept-invite", json={"token": token, "password": password})
+    assert accepted.status_code == 200, accepted.text
+    again = client.post("/api/auth/accept-invite", json={"token": token, "password": _password()})
+    assert again.status_code == 400, again.text
+    client.cookies.clear()
+    assert (
+        client.post("/api/auth/login", json={"email": email, "password": password}).status_code
+        == 200
+    )
 
 
 def test_invite_token_cannot_be_used_twice(client: TestClient, isolate) -> None:
