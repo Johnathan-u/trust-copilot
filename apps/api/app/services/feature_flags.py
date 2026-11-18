@@ -1,12 +1,30 @@
 """Per-workspace feature flag service.
 
-Resolution order for is_enabled(workspace_id, flag_name):
-  1. Database row for (workspace_id, flag_name) — if present, use its `enabled` value.
-  2. Global default from KNOWN_FLAGS registry.
-  3. False.
+Resolution for is_enabled(workspace_id, flag_name):
+
+Production (``app.core.session.is_production_env``, which reads ``APP_ENV`` on
+the settings object and the process environment):
+
+  1. Database row for (workspace_id, flag_name), when one exists.
+  2. ``FEATURE_<UPPER_SNAKE>`` when the variable is set and no row exists.
+  3. Built-in default from KNOWN_FLAGS.
+  4. False.
+
+Outside production (development, test, staging) the env var still overrides a
+stored row:
+
+  1. ``FEATURE_<UPPER_SNAKE>`` when set.
+  2. Database row.
+  3. KNOWN_FLAGS default.
+  4. False.
 
 The KNOWN_FLAGS dict is the canonical list of flag names the application understands.
 Each entry maps flag_name -> (default_enabled, description).
+
+``set_flag`` writes one ``feature_flag.updated`` audit event in the same
+transaction as the row change. A repeat of the stored value still writes that
+event and does not rewrite the row. ``seed_defaults`` inserts missing defaults
+and does not write this event.
 """
 
 import logging
@@ -15,9 +33,14 @@ from typing import Optional
 
 from sqlalchemy.orm import Session
 
+from app.core.audit import audit_log, persist_audit
+from app.core.session import is_production_env
 from app.models.feature_flag import FeatureFlag
 
 logger = logging.getLogger(__name__)
+
+# Durable record of a flag write. The feature_flags table has no actor column.
+FLAG_UPDATED_ACTION = "feature_flag.updated"
 
 
 KNOWN_FLAGS: dict[str, tuple[bool, str]] = {
@@ -44,7 +67,11 @@ KNOWN_FLAGS: dict[str, tuple[bool, str]] = {
 
 
 def _env_override(flag_name: str) -> Optional[bool]:
-    """Check for an env-var override: FEATURE_<UPPER_SNAKE_NAME>=1|0."""
+    """Read FEATURE_<UPPER_SNAKE_NAME>.
+
+    Absent returns None. ``1``, ``true`` and ``yes`` (any letter case) return
+    True. Any other set value, including ``0`` and an empty string, returns False.
+    """
     env_key = "FEATURE_" + flag_name.upper().replace(".", "_")
     val = os.getenv(env_key)
     if val is None:
@@ -52,25 +79,36 @@ def _env_override(flag_name: str) -> Optional[bool]:
     return val.lower() in ("1", "true", "yes")
 
 
-def is_enabled(db: Session, workspace_id: int, flag_name: str) -> bool:
-    """Check whether a feature flag is enabled for a workspace.
+def _resolve_enabled(row: Optional[FeatureFlag], flag_name: str) -> tuple[bool, str]:
+    """Return ``(enabled, source)`` for one flag.
 
-    Resolution: env-var override > DB row > KNOWN_FLAGS default > False.
+    In production a stored row wins over ``FEATURE_*``. The variable is a
+    default only when that workspace has no row. Outside production the
+    variable overrides the row.
     """
     env = _env_override(flag_name)
-    if env is not None:
-        return env
+    if is_production_env():
+        if row is not None:
+            return bool(row.enabled), "workspace"
+        if env is not None:
+            return env, "env"
+    elif env is not None:
+        return env, "env"
+    elif row is not None:
+        return bool(row.enabled), "workspace"
+    default, _description = KNOWN_FLAGS.get(flag_name, (False, ""))
+    return bool(default), "default"
 
+
+def is_enabled(db: Session, workspace_id: int, flag_name: str) -> bool:
+    """Check whether a feature flag is enabled for a workspace."""
     row = (
         db.query(FeatureFlag)
         .filter(FeatureFlag.workspace_id == workspace_id, FeatureFlag.flag_name == flag_name)
         .first()
     )
-    if row is not None:
-        return row.enabled
-
-    default, _ = KNOWN_FLAGS.get(flag_name, (False, ""))
-    return default
+    enabled, _source = _resolve_enabled(row, flag_name)
+    return enabled
 
 
 def get_all_flags(db: Session, workspace_id: int) -> list[dict]:
@@ -79,20 +117,9 @@ def get_all_flags(db: Session, workspace_id: int) -> list[dict]:
     db_map = {r.flag_name: r for r in db_rows}
 
     result = []
-    for flag_name, (default, description) in sorted(KNOWN_FLAGS.items()):
-        env = _env_override(flag_name)
+    for flag_name, (_default, description) in sorted(KNOWN_FLAGS.items()):
         row = db_map.get(flag_name)
-
-        if env is not None:
-            enabled = env
-            source = "env"
-        elif row is not None:
-            enabled = row.enabled
-            source = "workspace"
-        else:
-            enabled = default
-            source = "default"
-
+        enabled, source = _resolve_enabled(row, flag_name)
         result.append(
             {
                 "flag_name": flag_name,
@@ -104,12 +131,12 @@ def get_all_flags(db: Session, workspace_id: int) -> list[dict]:
 
     for row in db_rows:
         if row.flag_name not in KNOWN_FLAGS:
-            env = _env_override(row.flag_name)
+            enabled, source = _resolve_enabled(row, row.flag_name)
             result.append(
                 {
                     "flag_name": row.flag_name,
-                    "enabled": env if env is not None else row.enabled,
-                    "source": "env" if env is not None else "workspace",
+                    "enabled": enabled,
+                    "source": source,
                     "description": row.description or "",
                 }
             )
@@ -117,36 +144,89 @@ def get_all_flags(db: Session, workspace_id: int) -> list[dict]:
     return result
 
 
-def set_flag(db: Session, workspace_id: int, flag_name: str, enabled: bool) -> dict:
-    """Set a feature flag for a workspace. Creates the row if it doesn't exist."""
+def set_flag(
+    db: Session,
+    workspace_id: int,
+    flag_name: str,
+    enabled: bool,
+    *,
+    actor_user_id: int | None = None,
+    actor_email: str | None = None,
+) -> dict:
+    """Set a feature flag for a workspace. Creates the row if it doesn't exist.
+
+    Every call writes one audit event, including a no-op. A no-op is a row that
+    already stores ``enabled``: the event records ``old_enabled == new_enabled``
+    and ``changed: false``, and the row is left as it is. Creating a row records
+    ``old_enabled: null``. A rejected request never reaches this function, so it
+    writes no event.
+
+    ``persist_audit`` commits ``db``. The flag change is still pending on that
+    session, so the row and the event commit together. This function does not
+    commit on its own.
+    """
+    requested = bool(enabled)
     row = (
         db.query(FeatureFlag)
         .filter(FeatureFlag.workspace_id == workspace_id, FeatureFlag.flag_name == flag_name)
         .first()
     )
-    if row:
-        row.enabled = enabled
-    else:
+    if row is None:
+        old_enabled: bool | None = None
         default_desc = KNOWN_FLAGS.get(flag_name, (False, ""))[1]
         row = FeatureFlag(
             workspace_id=workspace_id,
             flag_name=flag_name,
-            enabled=enabled,
+            enabled=requested,
             description=default_desc or None,
         )
         db.add(row)
-    db.commit()
+        changed = True
+    else:
+        old_enabled = bool(row.enabled)
+        changed = old_enabled != requested
+        if changed:
+            row.enabled = requested
+    details = {
+        "flag_name": flag_name,
+        "old_enabled": old_enabled,
+        "new_enabled": requested,
+        "changed": changed,
+    }
+    audit_log(
+        FLAG_UPDATED_ACTION,
+        user_id=actor_user_id,
+        email=actor_email,
+        workspace_id=workspace_id,
+        resource_type="feature_flag",
+        resource_id=flag_name,
+        details=details,
+    )
+    persist_audit(
+        db,
+        FLAG_UPDATED_ACTION,
+        user_id=actor_user_id,
+        email=actor_email,
+        workspace_id=workspace_id,
+        resource_type="feature_flag",
+        resource_id=flag_name,
+        details=details,
+    )
     db.refresh(row)
     return {
         "flag_name": row.flag_name,
-        "enabled": row.enabled,
+        "enabled": bool(row.enabled),
         "source": "workspace",
         "description": row.description or "",
     }
 
 
 def seed_defaults(db: Session, workspace_id: int) -> int:
-    """Seed all known flags for a workspace (skip existing rows). Returns count created."""
+    """Seed all known flags for a workspace (skip existing rows). Returns count created.
+
+    Does not write ``feature_flag.updated``. Seeding inserts missing defaults
+    and leaves an existing row's value alone.
+    """
     existing = {
         r.flag_name
         for r in db.query(FeatureFlag.flag_name)

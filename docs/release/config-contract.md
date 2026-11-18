@@ -67,6 +67,18 @@ Source of truth: `apps/api/app/core/config_contract.py`. The table between the m
   In production that route fails closed (HTTP 503, a generic detail, and `Retry-After`) because workspace
   creation is rare and abuse-sensitive. Development and test keep the fail-open behaviour and log a warning.
   The log does not include store addresses or other secret values.
+* **Feature flags (TC-16-006).** `FEATURE_<NAME>` is optional and dynamic: `<NAME>` is the flag
+  key in upper snake case, with `.` turned into `_` (`connectors.aws` is `FEATURE_CONNECTORS_AWS`).
+  These names are not rows in the generated table below. `1`, `true`, and `yes` enable; any other
+  set value, including `0` and an empty string, disables; an unset variable is not a value.
+  Production is `app.core.session.is_production_env()` (`APP_ENV` on the settings object or the
+  process, whitespace and case ignored). In production the variable does not override a stored
+  workspace row. It is the default only when that workspace has no row, ahead of the built-in
+  default. Development, test, and staging keep the override: a set variable wins over the row.
+  `PATCH /api/feature-flags` (admin) writes `audit_events.action = feature_flag.updated` in the
+  same transaction as the row, including a no-op that leaves the stored value unchanged.
+  `POST /api/feature-flags/seed` does not write that event. Operator steps are
+  `docs/ops/feature-flags.md`.
 * **Trusted proxies (TC-07-004).** `TRUSTED_PROXY_IPS` is the only list of direct peers allowed to set
   `X-Forwarded-For`, `X-Forwarded-Host`, and `X-Forwarded-Proto`. Entries are IP addresses or CIDRs.
   Unset or empty trusts none of those headers. A browser `Origin` that is not in `TRUSTED_ORIGINS`,

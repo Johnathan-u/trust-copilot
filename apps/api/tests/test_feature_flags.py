@@ -1,12 +1,10 @@
 """Tests for the per-workspace feature flag system (P0-09)."""
 
-import os
-from unittest.mock import patch
-
 import pytest  # noqa: F401
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
+from app.core.config import get_settings
 from app.models.feature_flag import FeatureFlag
 from app.services.feature_flags import (
     KNOWN_FLAGS,
@@ -82,11 +80,23 @@ class TestServiceLayer:
         set_flag(db_session, 1, "connectors.aws", False)
         assert is_enabled(db_session, 1, "connectors.aws") is False
 
-    def test_env_override_takes_precedence(self, db_session: Session) -> None:
+    def test_env_override_takes_precedence(self, db_session: Session, monkeypatch) -> None:
+        """Outside production, FEATURE_* still overrides a stored row.
+
+        Production (APP_ENV, detected by is_production_env) does not. The same
+        variable is only a default when that workspace has no row. The release
+        file covers that matrix; this is the test the batch-7 report named.
+        """
         _cleanup_flags()
         set_flag(db_session, 1, "connectors.aws", False)
-        with patch.dict(os.environ, {"FEATURE_CONNECTORS_AWS": "1"}):
-            assert is_enabled(db_session, 1, "connectors.aws") is True
+        monkeypatch.setenv("APP_ENV", "development")
+        monkeypatch.setenv("FEATURE_CONNECTORS_AWS", "1")
+        get_settings.cache_clear()
+        assert is_enabled(db_session, 1, "connectors.aws") is True
+
+        monkeypatch.setenv("APP_ENV", "production")
+        get_settings.cache_clear()
+        assert is_enabled(db_session, 1, "connectors.aws") is False
 
     def test_seed_defaults_creates_all_known(self, db_session: Session) -> None:
         _cleanup_flags()
