@@ -400,7 +400,7 @@ export default function MembersPage() {
   const revokeSessions = (member: Member) => {
     openConfirm({
       title: 'Revoke sessions',
-      body: `Sign out ${member.display_name || member.email} from all devices? They will need to log in again.`,
+      body: `Sign ${member.display_name || member.email} out of this workspace on existing sessions? They stay signed in to other workspaces and need to sign in again to use this one.`,
       confirmLabel: 'Revoke sessions',
       variant: 'warning',
       onConfirm: async () => {
@@ -411,8 +411,8 @@ export default function MembersPage() {
         const data = await res.json().catch(() => ({}))
         if (!res.ok) throw new Error(data.detail || 'Failed to revoke sessions')
         showToast(
-          'Sessions revoked',
-          `Revoked ${data.revoked ?? 0} session(s) for ${member.display_name || member.email}.`
+          'Workspace sessions revoked',
+          `Existing sessions can no longer use this workspace (${data.revoked ?? 0}). Other workspaces stay signed in.`
         )
       },
     })

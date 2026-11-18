@@ -8,6 +8,7 @@ from datetime import datetime, timedelta, timezone
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
+from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
 from app.core.audit import persist_audit
@@ -507,22 +508,35 @@ async def admin_revoke_member_sessions(
     )
     if not mem:
         raise HTTPException(status_code=404, detail="Member not found")
-    deleted = (
+    # user_sessions has no workspace column. The active workspace lives only in
+    # the signed cookie, and switch-workspace will reissue that cookie for any
+    # workspace the user still belongs to. Deleting rows would sign the user
+    # out of every workspace. Stamp this membership instead. enforce_session_record
+    # rejects sessions created at or before the stamp when they ask for this
+    # workspace, including a switch onto it, and leaves other workspaces alone.
+    # Global sign-out remains POST /api/auth/sessions/revoke-all.
+    cutoff = datetime.utcnow()
+    mem.sessions_revoked_at = cutoff
+    blocked = (
         db.query(UserSession)
         .filter(
             UserSession.user_id == mem.user_id,
+            or_(UserSession.created_at.is_(None), UserSession.created_at <= cutoff),
         )
-        .delete(synchronize_session=False)
+        .count()
     )
-    db.commit()
     persist_audit(
         db,
         "auth.sessions_revoked_by_admin",
         user_id=session.get("user_id"),
         workspace_id=workspace_id,
-        details={"target_user_id": mem.user_id, "sessions_revoked": deleted},
+        details={
+            "target_user_id": mem.user_id,
+            "sessions_revoked": blocked,
+            "scope": "workspace",
+        },
     )
-    return {"ok": True, "revoked": deleted}
+    return {"ok": True, "revoked": blocked}
 
 
 @router.post("/reset-mfa/{user_id}")

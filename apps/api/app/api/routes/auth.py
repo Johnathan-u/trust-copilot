@@ -29,6 +29,7 @@ from app.core.auth_deps import (  # noqa: E402
     enforce_session_record,
     get_session,
     require_session,
+    require_session_leaving_workspace,
     require_valid_session,
     resolve_current_membership,
     workspace_session_max_age_seconds,
@@ -1904,7 +1905,9 @@ async def switch_workspace(
     db: Session = Depends(get_db),
 ):
     """Switch active workspace; reissue session with new workspace_id and role."""
-    session = await require_session(request, db)
+    # The current workspace's cutoff does not block leaving it. The target
+    # check below still rejects a workspace whose sessions were revoked.
+    session = await require_session_leaving_workspace(request, db)
     user_id = session.get("user_id")
     email = session.get("email", "")
     member = (

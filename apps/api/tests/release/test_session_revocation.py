@@ -450,11 +450,19 @@ def test_admin_revoke_sessions_invalidates_the_cookie_and_leaves_api_keys(revoca
     assert response.json()["ok"] is True
     assert response.json()["revoked"] == 1
     state["db"].expire_all()
-    assert state["db"].query(UserSession).filter_by(user_id=state["target_id"]).count() == 0
+    # The row stays. Revoke stamps this workspace only; the same session can
+    # still be used where it was not revoked. The cookie for this workspace
+    # is rejected below.
+    rows = state["db"].query(UserSession).filter_by(user_id=state["target_id"]).all()
+    assert [row.session_id for row in rows] == [state["target_sid"]]
+    home = _membership(state, state["ws"][0])
+    other = _membership(state, state["ws"][1])
+    assert home.sessions_revoked_at is not None
+    assert other.sessions_revoked_at is None
     admin_sid = verify_token(state["admin_token"])["session_id"]
     assert state["db"].query(UserSession).filter_by(session_id=admin_sid).count() == 1
-    assert _membership(state, state["ws"][0]).role == HOME_ROLE
-    assert _membership(state, state["ws"][1]).role == OTHER_ROLE
+    assert home.role == HOME_ROLE
+    assert other.role == OTHER_ROLE
     info = _me(state)
     assert info.status_code == 401
     assert info.json()["detail"] == "Session invalidated"

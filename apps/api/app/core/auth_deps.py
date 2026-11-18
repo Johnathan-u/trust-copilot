@@ -74,8 +74,34 @@ def workspace_session_max_age_seconds(db: Session, workspace_id: int) -> int:
     return int(age) if age is not None and age > 0 else DEFAULT_SESSION_MAX_AGE_SECONDS
 
 
-def enforce_session_record(session: dict, db: Session) -> float:
-    """Validate the owned row and return its absolute, currently permitted deadline."""
+def _naive_utc(value: datetime) -> datetime:
+    if value.tzinfo is None:
+        return value
+    return value.astimezone(timezone.utc).replace(tzinfo=None)
+
+
+def _session_blocked_by_workspace_revocation(
+    created_at: datetime | None, revoked_at: datetime | None
+) -> bool:
+    """Sessions that already existed at the workspace cutoff cannot use it.
+
+    A null ``created_at`` is treated as already existing. A later sign-in stores
+    a newer ``created_at`` and is allowed. Comparison is UTC, naive or aware.
+    """
+    if revoked_at is None:
+        return False
+    if created_at is None:
+        return True
+    return _naive_utc(created_at) <= _naive_utc(revoked_at)
+
+
+def enforce_session_record(session: dict, db: Session, *, enforce_revocation: bool = True) -> float:
+    """Validate the owned row and return its absolute, currently permitted deadline.
+
+    ``enforce_revocation`` is false only when leaving the current workspace.
+    The target workspace is then checked with the default, before its cookie
+    is issued. Every other caller keeps the cutoff.
+    """
     user_id = session.get("user_id")
     if not user_id:
         # Preserve the existing denial for a cookie with no human identity.
@@ -93,6 +119,27 @@ def enforce_session_record(session: dict, db: Session) -> float:
     )
     if row is None:
         raise HTTPException(status_code=401, detail="Session invalidated")
+    workspace_id = session.get("workspace_id")
+    if enforce_revocation and type(workspace_id) is int and workspace_id > 0:
+        # Switch and workspace creation call this with the target workspace
+        # before they reissue the cookie. Blocking here stops a session that
+        # is pointed at another workspace from adopting a revoked one.
+        try:
+            member = (
+                db.query(WorkspaceMember)
+                .filter(
+                    WorkspaceMember.user_id == user_id,
+                    WorkspaceMember.workspace_id == workspace_id,
+                )
+                .populate_existing()
+                .first()
+            )
+        except SQLAlchemyError as exc:
+            raise HTTPException(status_code=503, detail="Session policy unavailable") from exc
+        if member is not None and _session_blocked_by_workspace_revocation(
+            row.created_at, member.sessions_revoked_at
+        ):
+            raise HTTPException(status_code=401, detail="Session invalidated")
     try:
         created = row.created_at
         created = (
@@ -199,6 +246,27 @@ def resolve_current_membership(request: Request, session: dict, db: Session) -> 
         )
     # MFA enrollment stays account-only even when the current member is admin.
     return {**session, "role": "mfa_enrol" if session.get("mfa_enrol_only") else member.role}
+
+
+async def require_session_leaving_workspace(request: Request, db: Session) -> dict:
+    """Authenticate a switch off the current workspace.
+
+    A workspace cutoff must not trap the browser there. This skips the cutoff
+    for the workspace being left. Callers still run ``enforce_session_record``
+    on the target workspace, which applies the cutoff, before setting a cookie.
+    """
+    api_ctx = get_api_key_context(request, db)
+    if api_ctx is not None:
+        _set_request_workspace_id(request, api_ctx.get("workspace_id"))
+        return api_ctx
+    session = get_session(request)
+    if not session:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    enforce_session_record(session, db, enforce_revocation=False)
+    enforce_mfa_enrol_session(request, session, db)
+    session = resolve_current_membership(request, session, db)
+    _set_request_workspace_id(request, session.get("workspace_id"))
+    return session
 
 
 async def require_session(request: Request, db: Session = Depends(get_db)) -> dict:
