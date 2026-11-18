@@ -37,7 +37,7 @@ Both `build` and `web-release-e2e` succeeded on the push and on the pull request
 | pull_request | [42870961877](https://github.com/Johnathan-u/trust-copilot/actions/runs/42870961877) | 130021800483 | 130021800675 |
 
 - Command: from `apps/api`, `pytest -rs`, with `SESSION_SECRET=test-secret`, `TC_REQUIRE_DB=1`, `TC_REQUIRE_WEB_TOOLCHAIN=1` and `TC_REQUIRE_API_QUALITY=1`. That suite runs the ticket command `python -m pytest tests/release/test_job_retries.py -q`.
-- Environment: GitHub-hosted `ubuntu-26.04` image `20261101.186.1`; Python 3.11.18; pytest 9.1.1; SQLAlchemy 2.0.55; psycopg2-binary 2.9.13; pgvector 0.5.1. PostgreSQL image `pgvector/pgvector:pg16` digest `sha256:7b822b0aac60967beb1ea5e576b8602c94c300a157d187f385ae3e0da199b90a` (16.15). Push database `tc_ci_42870916373_1_test`. Pull-request database `tc_ci_42870961877_1_test`.
+- Environment: GitHub-hosted `ubuntu-26.04` image `20261101.186.1`; Python 3.11.18; pytest 9.1.1; SQLAlchemy 2.0.55; psycopg2-binary 2.9.13; pgvector 0.5.1. PostgreSQL image `pgvector/pgvector:pg16` digest `sha256:7b822b0aac60967beb1ea5e576b8602c94c300a157d187f385ae3e0da199b90a`. PostgreSQL 16.15 is inferred from the workflow comment on that digest; the CI logs show only the image digest and do not print `SELECT version()`. Push database `tc_ci_42870916373_1_test`. Pull-request database `tc_ci_42870961877_1_test`.
 - Exit status: 0 on both build jobs.
 - Totals for this file: 71 passed, 0 skipped. Pytest wraps the progress line. Both build logs show 38 dots, then 33 dots, and no `s`.
 - Full suite, both runs: 6420 passed, 1 skipped, 51 warnings. Push pytest duration 637.71s. Pull-request pytest duration 747.07s. The skip is `tests/test_trust_scoring_blind.py:33` (external data) and is unrelated.
