@@ -86,7 +86,13 @@ Source of truth: `apps/api/app/core/config_contract.py`. The table between the m
   Production Caddy overwrites `X-Forwarded-Host` and `X-Forwarded-Proto` with the host and scheme it
   received (`infra/caddy/Caddyfile.production`). Set `TRUSTED_PROXY_IPS` to the Caddy container's
   address on `trustnet`, or to that network's CIDR, when a cookie request with no Origin should be
-  accepted from the proxy's public host.
+  accepted from the proxy's public host. The localhost/`testserver` host fallback is dev and test
+  only. `CSRFMiddleware` passes `is_production_env()` (`APP_ENV`). In production a cookie
+  state-changing request needs an allowed Origin, an allowed Referer, or that trusted-proxy
+  origin. Host `localhost` is not enough. CORS allows methods GET, POST, PUT, PATCH, DELETE, and
+  OPTIONS, and headers Accept, Authorization, Cache-Control, Content-Type, Idempotency-Key, and
+  Pragma. `allow_credentials` stays true. The origin list is still `TRUSTED_ORIGINS` /
+  `FRONTEND_URL`, not a method or header setting.
 
 ## Owner-account / infrastructure prerequisites
 

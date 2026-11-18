@@ -51,3 +51,41 @@ Pytest did not report a skipped test. Log: `passing-after.txt`.
 `tests/test_csrf_origins.py::test_csrf_safe_x_forwarded_host_matches_trusted` now passes a trusted peer (`10.0.0.8`). Before this change it supplied `X-Forwarded-Host` with no peer, which is the insecure fallback. The other seven origin tests are unchanged.
 
 `TestClientIpTrust` (4) and `test_contract_doc_is_generated_from_code` also passed in the same environment (22 passed together with the two files above). Those commands are not the named release command.
+
+## CORS lists and the production host fallback
+
+A second change on `b7cc339bd537a0f7649243743a2b87755a20a94e`. CORS methods and headers are explicit. In production, Host `localhost` or `testserver` does not allow a cookie write that has no Origin and no Referer. The #300 files above are unchanged.
+
+The red run is the new tests against the tree before that change (master `fff358ab`, with the new tests present and the product code not). The green run is the same tests after the change.
+
+### Red command
+
+Working directory `apps/api`. Interpreter `python3` (3.12.3). pytest 9.1.1. Starlette 1.10.0, the lock pin. No database.
+
+```text
+python3 -m pytest tests/release/test_csrf_proxy.py -q --tb=short
+```
+
+| Command | Exit | Total |
+|---|---|---|
+| the red command above | 1 | 5 failed, 12 passed, 0.24s |
+
+The five failures: the installed method list was `["*"]`; a QUERY preflight was 200; an unknown request header was 200; Host `localhost` with `production` set was still allowed; the middleware did not pass `is_production_env()`. The allowed preflight and the disallowed-origin preflight passed on that tree. Log: `failing-before-cors.txt`.
+
+### Green command
+
+Same interpreter and tests, after the lists and the production flag.
+
+```text
+python3 -m pytest tests/release/test_csrf_proxy.py -q --tb=short
+python3 -m pytest tests/test_csrf_origins.py -q --tb=short
+```
+
+| Command | Exit | Total |
+|---|---|---|
+| the named file | 0 | 17 passed, 0.22s |
+| `tests/test_csrf_origins.py` | 0 | 8 passed, 0.14s |
+
+Pytest did not report a skipped test. Log: `passing-after-cors.txt`.
+
+The re-verify is `docs/release/verification/TC-07-004.md`. Notes for this pass: `reverify.md`. No CI run id is in these files.
