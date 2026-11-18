@@ -23,7 +23,7 @@ E   AssertionError: {'known_s': 0.5107483620000721, 'unknown_s': 0.0062154869999
     assert (0.5107483620000721 < 0.35)
 /agent/repos/trust-copilot/apps/api/tests/release/test_identity_tokens.py:560: AssertionError: {'known_s': 0.5107483620000721, 'unknown_s': 0.006215486999963105}
 E   AssertionError: assert ['e98c0a659ee...e4ecb643c170'] == ['d856d4c221c...e31d1b9eed82']
-      
+
       At index 0 diff: 'e98c0a659ee37d6d5f83742fc53cd8ba3b12d17cca30c7b3674fdb38f64d5964' != 'd856d4c221cbce0d5303dba6ebfafb5a1a6f025ef239782899fe0b29e0642c5c'
       Use -v to get more diff
 /agent/repos/trust-copilot/apps/api/tests/release/test_identity_tokens.py:591: AssertionError: assert ['e98c0a659ee...e4ecb643c170'] == ['d856d4c221c...e31d1b9eed82']
@@ -391,13 +391,13 @@ E   RuntimeError: smtp down
 /agent/repos/trust-copilot/apps/api/tests/release/test_identity_tokens.py:55: RuntimeError: smtp down
 E   AssertionError: {'codes': [200, 200], 'arrived': 0}
     assert [200, 200] == [200, 400]
-      
+
       At index 1 diff: 200 != 400
       Use -v to get more diff
 /agent/repos/trust-copilot/apps/api/tests/release/test_identity_tokens.py:662: AssertionError: {'codes': [200, 200], 'arrived': 0}
 E   AssertionError: {'codes': [200, 500], 'arrived': 0}
     assert [200, 500] == [200, 400]
-      
+
       At index 1 diff: 500 != 400
       Use -v to get more diff
 /agent/repos/trust-copilot/apps/api/tests/release/test_identity_tokens.py:801: AssertionError: {'codes': [200, 500], 'arrived': 0}
