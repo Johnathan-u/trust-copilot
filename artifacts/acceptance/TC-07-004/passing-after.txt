@@ -1,0 +1,17 @@
+# TC-07-004 passing after the origin and trusted-proxy change
+# product commit e8010631481a70ea4cc4027088622f7f08c86ae2
+# cwd apps/api
+# interpreter /tmp/tc-venv/bin/python
+# Python 3.12.3
+# pytest 9.1.1
+# no database
+
+## python -m pytest tests/release/test_csrf_proxy.py -q --tb=short
+.........                                                                [100%]
+9 passed in 0.25s
+exit:0
+
+## python -m pytest tests/test_csrf_origins.py -q --tb=short
+........                                                                 [100%]
+8 passed in 0.22s
+exit:0

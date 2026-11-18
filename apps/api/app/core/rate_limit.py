@@ -177,20 +177,22 @@ def retry_after_seconds(key: str, window_sec: float) -> int:
 def get_client_ip(request) -> str:
     """Get client IP from request.
 
-    Only trusts X-Forwarded-For when TRUSTED_PROXY_IPS is configured (comma-separated)
-    and request.client.host is one of those proxies. Otherwise uses the direct
-    connection IP, which prevents X-Forwarded-For spoofing from untrusted clients.
+    Only trusts X-Forwarded-For when TRUSTED_PROXY_IPS is configured (comma-separated
+    IPs or CIDRs) and request.client.host is one of those proxies. Otherwise uses
+    the direct connection IP, which prevents X-Forwarded-For spoofing from untrusted
+    clients. Unset trusts nothing.
     """
     direct_ip = "unknown"
     if getattr(request, "client", None) and request.client:
         direct_ip = request.client.host or "unknown"
 
+    # Same peer rule as CSRF (TC-07-004): exact IPs and CIDRs, default trust nothing.
     trusted_raw = os.getenv("TRUSTED_PROXY_IPS", "").strip()
-    if trusted_raw:
-        trusted_set = {ip.strip() for ip in trusted_raw.split(",") if ip.strip()}
-        if direct_ip in trusted_set:
-            forwarded = getattr(request, "headers", None) and request.headers.get("x-forwarded-for")
-            if forwarded:
-                return forwarded.split(",")[0].strip()
+    from app.core.csrf import peer_is_trusted_proxy
+
+    if peer_is_trusted_proxy(direct_ip, trusted_raw):
+        forwarded = getattr(request, "headers", None) and request.headers.get("x-forwarded-for")
+        if forwarded:
+            return forwarded.split(",")[0].strip()
 
     return direct_ip

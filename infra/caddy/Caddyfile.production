@@ -7,33 +7,57 @@ trustcopilot.app, www.trustcopilot.app {
         Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
     }
 
+    # TC-07-004: every API upstream replaces client X-Forwarded-Host and
+    # X-Forwarded-Proto with the host and scheme Caddy received. The API
+    # honours those headers only when the direct peer is in TRUSTED_PROXY_IPS.
+
     handle /healthz {
         reverse_proxy api:8000 {
             header_up Host {hostport}
+            header_up -X-Forwarded-Host
+            header_up X-Forwarded-Host {http.request.host}
+            header_up -X-Forwarded-Proto
+            header_up X-Forwarded-Proto {http.request.scheme}
         }
     }
 
     handle /readyz {
         reverse_proxy api:8000 {
             header_up Host {hostport}
+            header_up -X-Forwarded-Host
+            header_up X-Forwarded-Host {http.request.host}
+            header_up -X-Forwarded-Proto
+            header_up X-Forwarded-Proto {http.request.scheme}
         }
     }
 
     handle /workerz {
         reverse_proxy api:8000 {
             header_up Host {hostport}
+            header_up -X-Forwarded-Host
+            header_up X-Forwarded-Host {http.request.host}
+            header_up -X-Forwarded-Proto
+            header_up X-Forwarded-Proto {http.request.scheme}
         }
     }
 
     handle /metrics {
         reverse_proxy api:8000 {
             header_up Host {hostport}
+            header_up -X-Forwarded-Host
+            header_up X-Forwarded-Host {http.request.host}
+            header_up -X-Forwarded-Proto
+            header_up X-Forwarded-Proto {http.request.scheme}
         }
     }
 
     handle /api* {
         reverse_proxy api:8000 {
             header_up Host {hostport}
+            header_up -X-Forwarded-Host
+            header_up X-Forwarded-Host {http.request.host}
+            header_up -X-Forwarded-Proto
+            header_up X-Forwarded-Proto {http.request.scheme}
         }
     }
 

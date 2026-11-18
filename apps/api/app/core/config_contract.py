@@ -411,11 +411,12 @@ CONTRACT: tuple[ConfigVar, ...] = (
     ),
     ConfigVar(
         "TRUSTED_PROXY_IPS",
-        "comma-separated IPs",
+        "comma-separated IPs or CIDRs",
         "optional",
         False,
         "unset",
-        "Proxies allowed to set X-Forwarded-For.",
+        "Direct peers allowed to set X-Forwarded-For, X-Forwarded-Host, and X-Forwarded-Proto. "
+        "Unset trusts none of those headers.",
     ),
     ConfigVar("MAX_UPLOAD_BYTES", "int > 0", "optional", False, "52428800", "Upload size limit."),
     ConfigVar(

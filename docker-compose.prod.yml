@@ -79,6 +79,10 @@ services:
       S3_ENDPOINT: ${S3_ENDPOINT:?S3_ENDPOINT must be set in .env.production to the external S3-compatible endpoint (see docs/acceptance/license-resolution.md)}
       APP_BASE_URL: https://trustcopilot.app
       FRONTEND_URL: https://trustcopilot.app
+      # TC-07-004: TRUSTED_PROXY_IPS comes from .env.production (env_file). Do not
+      # default it here. Unset trusts no X-Forwarded-* header. Set it to the Caddy
+      # container's address on trustnet, or that network's CIDR. Caddyfile.production
+      # overwrites X-Forwarded-Host and X-Forwarded-Proto so a client cannot inject them.
     expose:
       - "8000"
     healthcheck:

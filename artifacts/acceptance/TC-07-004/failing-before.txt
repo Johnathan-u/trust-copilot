@@ -1,0 +1,41 @@
+# TC-07-004 failing before the origin and trusted-proxy change
+# Product code is e8ed98aa (batch 7). The new test file was the only test change.
+# cwd apps/api
+# /tmp/tc-venv/bin/python -m pytest tests/release/test_csrf_proxy.py -q --tb=short
+# Python 3.12.3, pytest 9.1.1, no database
+# exit 1. 5 failed, 4 passed, 0.27s
+
+FFFF....F                                                                [100%]
+=================================== FAILURES ===================================
+____________ test_hostile_origin_with_matching_referer_is_rejected _____________
+tests/release/test_csrf_proxy.py:48: in test_hostile_origin_with_matching_referer_is_rejected
+    assert (
+E   AssertionError: assert True is False
+E    +  where True = _check(origin='https://evil.example.com', referer='https://app.example.com/dashboard', request_host='localhost', client_ip='10.0.0.8', trusted_proxy_ips='10.0.0.8', x_forwarded_host='app.example.com', x_forwarded_proto='https')
+_________ test_hostile_origin_with_allowed_forwarded_host_is_rejected __________
+tests/release/test_csrf_proxy.py:64: in test_hostile_origin_with_allowed_forwarded_host_is_rejected
+    assert (
+E   AssertionError: assert True is False
+E    +  where True = _check(origin='https://evil.example.com', referer=None, client_ip='10.0.0.8', trusted_proxy_ips='10.0.0.0/8', x_forwarded_host='app.example.com', x_forwarded_proto='https')
+________________ test_origin_null_is_rejected_before_fallbacks _________________
+tests/release/test_csrf_proxy.py:80: in test_origin_null_is_rejected_before_fallbacks
+    assert (
+E   AssertionError: null
+E   assert True is False
+E    +  where True = _check(origin='null', referer='https://app.example.com/dashboard', request_host='testserver', client_ip='10.0.0.8', trusted_proxy_ips='10.0.0.8', x_forwarded_host='app.example.com', x_forwarded_proto='https')
+____________ test_forwarded_headers_from_untrusted_peer_are_ignored ____________
+tests/release/test_csrf_proxy.py:102: in test_forwarded_headers_from_untrusted_peer_are_ignored
+    assert _check(**forwarded, client_ip=OUTSIDER_IP, trusted_proxy_ips="") is False
+E   AssertionError: assert True is False
+E    +  where True = _check(**{'origin': None, 'referer': None, 'x_forwarded_host': 'app.example.com', 'x_forwarded_proto': 'https'}, client_ip='203.0.113.10', trusted_proxy_ips='')
+__________ test_production_caddy_overwrites_forwarded_host_and_proto ___________
+tests/release/test_csrf_proxy.py:183: in test_production_caddy_overwrites_forwarded_host_and_proto
+    assert "header_up -X-Forwarded-Host" in body
+E   AssertionError: assert 'header_up -X-Forwarded-Host' in ' {\n            header_up Host {hostport}\n        }\n    }\n\n    handle /readyz {\n        '
+=========================== short test summary info ============================
+FAILED tests/release/test_csrf_proxy.py::test_hostile_origin_with_matching_referer_is_rejected
+FAILED tests/release/test_csrf_proxy.py::test_hostile_origin_with_allowed_forwarded_host_is_rejected
+FAILED tests/release/test_csrf_proxy.py::test_origin_null_is_rejected_before_fallbacks
+FAILED tests/release/test_csrf_proxy.py::test_forwarded_headers_from_untrusted_peer_are_ignored
+FAILED tests/release/test_csrf_proxy.py::test_production_caddy_overwrites_forwarded_host_and_proto
+5 failed, 4 passed in 0.27s
