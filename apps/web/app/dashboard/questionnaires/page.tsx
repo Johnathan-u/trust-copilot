@@ -25,12 +25,7 @@ import {
 } from '@/lib/api-error'
 import { actionVerb, confirmedActionNotice } from '@/lib/action-copy'
 import { listLoadFlags } from '@/lib/render-state'
-import {
-  failureOf,
-  isAbortError,
-  listFromPayload,
-  readSectionJson,
-} from '@/lib/section-load'
+import { failureOf, isAbortError, readSectionJson } from '@/lib/section-load'
 import {
   FRAMEWORK_OPTIONS,
   SUBJECT_AREA_OPTIONS,
@@ -54,6 +49,10 @@ type Qnr = {
   review_total?: number
   mapping_ambiguous?: boolean
   mapping_confirmation_url?: string | null
+  job_id?: number
+  job_status?: string
+  job_progress?: { generated?: unknown; total?: unknown } | null
+  needs_review?: boolean
 }
 
 type ParseJob = { id: number; status: string }
@@ -73,6 +72,14 @@ type Filters = {
   createdFrom: string
   createdTo: string
   archivedMode: string
+  page: number
+  sort: string
+  order: string
+}
+
+type QuestionnairePage = {
+  rows: Qnr[]
+  total: number
 }
 
 /** Extensions accepted by FileService.ALLOWED_RAW_EXTENSIONS. */
@@ -82,12 +89,13 @@ const FORMAT_LINE = 'Accepted formats: PDF, DOCX, DOC, XLSX, XLS, and TXT.'
 const SIZE_LINE = 'Size limit: 50 MB.'
 const WORKBOOK_CONTRACT =
   'Workbook contract: an XLSX or XLS answer cell is read from a header named Answer, Response, Reply, Vendor response, Vendor answer, or Answer text. The parser does not use the next column. A sheet with no answer header stores no answer cell. DOCX and PDF imports do not store a workbook answer cell. A new CSV upload is rejected. CSV parsing applies only to a file that is already stored with a .csv name.'
+const PAGE_SIZE = 25
 const LIST_CONTRACT =
-  'The questionnaire list returns every match in one response, sorted by newest first. It does not accept page, page size, or sort parameters.'
+  'The questionnaire list accepts page, page size, sort, and order. This screen requests one page of 25 and does not reorder that page in the browser.'
 const SELECTION_SCOPE =
-  'Selection applies to every questionnaire in this result for the current workspace. Changing the workspace or a filter clears it. This result is not a page.'
+  'Selection applies to every questionnaire on this page for the current workspace. Changing the workspace, a filter, or the page clears it.'
 const RETRY_NOTE =
-  'There is no questionnaire reparse route. An administrator can retry a failed parse job when that job is on the newest job page.'
+  'There is no questionnaire reparse route. An administrator can retry a failed parse job from the questionnaire row. When the row has no job id, retry is offered only if that job is on the newest job page.'
 const DELETE_NOTE =
   'Permanent deletion is not available. The questionnaire API archives a questionnaire and does not erase one questionnaire.'
 const SEARCH_DEBOUNCE_MS = 300
@@ -97,11 +105,18 @@ const LABEL_CLASS = 'mb-tc-1 block text-tc-label font-medium text-tc-muted'
 const STATUSES = [
   'uploaded',
   'parsed',
+  'needs_review',
   'draft',
   'completed',
   'archived',
   'failed',
 ]
+const SORTS = [
+  { value: 'created_at', label: 'Created time' },
+  { value: 'filename', label: 'Filename' },
+  { value: 'status', label: 'Status' },
+  { value: 'id', label: 'Id' },
+] as const
 
 function delay(ms: number, signal: AbortSignal) {
   return new Promise<void>((resolve, reject) => {
@@ -238,7 +253,27 @@ function listUrl(input: Filters): string {
   if (createdFrom) params.set('created_from', createdFrom)
   if (createdTo) params.set('created_to', createdTo)
   params.set('archived', input.archivedMode)
+  params.set('page', String(input.page))
+  params.set('page_size', String(PAGE_SIZE))
+  params.set('sort', input.sort)
+  params.set('order', input.order)
   return `/api/questionnaires/?${params.toString()}`
+}
+
+function parseQuestionnairePage(data: unknown): QuestionnairePage {
+  if (Array.isArray(data)) {
+    return { rows: data as Qnr[], total: data.length }
+  }
+  if (
+    data &&
+    typeof data === 'object' &&
+    Array.isArray((data as { items?: unknown }).items)
+  ) {
+    const record = data as { items: Qnr[]; total?: unknown }
+    const total = wholeCount(record.total)
+    return { rows: record.items, total: total ?? record.items.length }
+  }
+  throw new Error('malformed questionnaire list')
 }
 
 function statusLabel(status: string): string {
@@ -248,6 +283,7 @@ function statusLabel(status: string): string {
   if (status === 'draft') return 'Draft'
   if (status === 'completed') return 'Completed'
   if (status === 'archived') return 'Archived'
+  if (status === 'needs_review') return 'Needs review'
   return status
 }
 
@@ -279,6 +315,10 @@ export default function QuestionnairesPage() {
   const [archivedMode, setArchivedMode] = useState<
     'active' | 'include' | 'only'
   >('active')
+  const [page, setPage] = useState(1)
+  const [sort, setSort] = useState('created_at')
+  const [order, setOrder] = useState('desc')
+  const [total, setTotal] = useState(0)
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set())
   const [parseJobs, setParseJobs] = useState<Map<number, ParseJob>>(new Map())
   const [jobProgress, setJobProgress] = useState<Map<number, Counts>>(new Map())
@@ -319,6 +359,9 @@ export default function QuestionnairesPage() {
     createdFrom,
     createdTo,
     archivedMode,
+    page,
+    sort,
+    order,
     loadAttempt,
   ].join('\n')
   const [seenLoadKey, setSeenLoadKey] = useState<string | null>(null)
@@ -342,6 +385,9 @@ export default function QuestionnairesPage() {
     createdFrom,
     createdTo,
     archivedMode,
+    page,
+    sort,
+    order,
   ].join('\n')
   const [seenSelection, setSeenSelection] = useState<string | null>(null)
   if (seenSelection !== selectionScopeKey) {
@@ -361,6 +407,22 @@ export default function QuestionnairesPage() {
     }
   }
 
+  const filterKey = [
+    workspaceId ?? '',
+    search,
+    framework,
+    subjectArea,
+    status,
+    createdFrom,
+    createdTo,
+    archivedMode,
+  ].join('\n')
+  const [seenFilter, setSeenFilter] = useState<string | null>(null)
+  if (seenFilter !== filterKey) {
+    setSeenFilter(filterKey)
+    if (seenFilter !== null && page !== 1) setPage(1)
+  }
+
   const filters: Filters = {
     workspaceId: workspaceId ?? 0,
     search,
@@ -370,6 +432,9 @@ export default function QuestionnairesPage() {
     createdFrom,
     createdTo,
     archivedMode,
+    page,
+    sort,
+    order,
   }
 
   const loadJobs = useCallback(
@@ -391,6 +456,14 @@ export default function QuestionnairesPage() {
         if (signal.aborted || gen !== generation.current) return
         const nextJobs = new Map<number, ParseJob>()
         const nextProgress = new Map<number, Counts>()
+        for (const row of rows) {
+          const jobId = readPositiveInt(row, 'job_id')
+          if (jobId && typeof row.job_status === 'string' && row.job_status) {
+            nextJobs.set(row.id, { id: jobId, status: row.job_status })
+          }
+          const listed = countPair(row.job_progress)
+          if (listed) nextProgress.set(row.id, listed)
+        }
         for (const job of history.items) {
           if (job.objectRef?.type !== 'questionnaire') continue
           if (
@@ -430,6 +503,9 @@ export default function QuestionnairesPage() {
       createdFrom,
       createdTo,
       archivedMode,
+      page,
+      sort,
+      order,
     })
     void (async () => {
       await Promise.resolve()
@@ -441,15 +517,17 @@ export default function QuestionnairesPage() {
           cache: 'no-store',
         })
         const data = await readSectionJson(response)
-        const rows = listFromPayload<Qnr>(data, ['items', 'questionnaires'])
+        const listed = parseQuestionnairePage(data)
         if (controller.signal.aborted || gen !== generation.current) return
-        setQnrs(rows)
+        setQnrs(listed.rows)
+        setTotal(listed.total)
         setLoadFailure(null)
-        void loadJobs(controller.signal, gen, rows)
+        void loadJobs(controller.signal, gen, listed.rows)
       } catch (error) {
         if (controller.signal.aborted || isAbortError(error)) return
         if (gen !== generation.current) return
         setQnrs([])
+        setTotal(0)
         setParseJobs(new Map())
         setJobProgress(new Map())
         setLoadFailure(failureOf(error))
@@ -470,6 +548,9 @@ export default function QuestionnairesPage() {
     createdFrom,
     createdTo,
     archivedMode,
+    page,
+    sort,
+    order,
     loadAttempt,
     loadJobs,
   ])
@@ -496,6 +577,7 @@ export default function QuestionnairesPage() {
     if (element) element.indeterminate = selectSome && !selectAll
   }, [selectSome, selectAll])
 
+  const pageCount = Math.max(1, Math.ceil(total / PAGE_SIZE))
   const narrowed = Boolean(
     search ||
     framework ||
@@ -597,6 +679,20 @@ export default function QuestionnairesPage() {
         const jobStatus = readStatus(payload)
         if (jobStatus === 'queued' || jobStatus === 'running') {
           setParsePhase('queued')
+          const running = await fetch(url, {
+            credentials: 'include',
+            signal: controller.signal,
+            cache: 'no-store',
+          })
+          if (!controller.signal.aborted && running.ok) {
+            const parsed = parseQuestionnairePage(
+              await readSectionJson(running)
+            )
+            const row = parsed.rows.find((item) => item.id === qnrId)
+            const progress =
+              readProgress(payload) ?? countPair(row?.job_progress)
+            if (progress) setParseCounts(progress)
+          }
           await delay(1000, controller.signal)
           continue
         }
@@ -611,17 +707,15 @@ export default function QuestionnairesPage() {
             signal: controller.signal,
             cache: 'no-store',
           })
-          const rows = listFromPayload<Qnr>(await readSectionJson(listed), [
-            'items',
-            'questionnaires',
-          ])
+          const parsed = parseQuestionnairePage(await readSectionJson(listed))
           if (controller.signal.aborted) return
-          setQnrs(rows)
-          const row = rows.find((item) => item.id === qnrId)
+          setQnrs(parsed.rows)
+          setTotal(parsed.total)
+          const row = parsed.rows.find((item) => item.id === qnrId)
           if (row?.status === 'parsed') setParsePhase('parsed')
           else if (row?.status === 'failed') setParsePhase('failed')
           else setParsePhase('queued')
-          setParseCounts(readProgress(payload))
+          setParseCounts(readProgress(payload) ?? countPair(row?.job_progress))
           return
         }
         return
@@ -1025,7 +1119,7 @@ export default function QuestionnairesPage() {
                 <option value="">All statuses</option>
                 {STATUSES.map((option) => (
                   <option key={option} value={option}>
-                    {option}
+                    {statusLabel(option)}
                   </option>
                 ))}
               </select>
@@ -1049,7 +1143,70 @@ export default function QuestionnairesPage() {
                 <option value="only">Archived only</option>
               </select>
             </div>
+            <div className="min-w-0">
+              <label htmlFor="qnr-sort" className={LABEL_CLASS}>
+                Sort by
+              </label>
+              <select
+                id="qnr-sort"
+                className={FIELD_CLASS}
+                value={sort}
+                onChange={(event) => {
+                  setSort(event.target.value)
+                  setPage(1)
+                }}
+              >
+                {SORTS.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="min-w-0">
+              <label htmlFor="qnr-order" className={LABEL_CLASS}>
+                Sort order
+              </label>
+              <select
+                id="qnr-order"
+                className={FIELD_CLASS}
+                value={order}
+                onChange={(event) => {
+                  setOrder(event.target.value)
+                  setPage(1)
+                }}
+              >
+                <option value="desc">Descending</option>
+                <option value="asc">Ascending</option>
+              </select>
+            </div>
           </div>
+          <nav
+            aria-label="Questionnaire pages"
+            className="mt-tc-3 flex flex-wrap items-center gap-tc-2"
+          >
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              disabled={page <= 1}
+              onClick={() => setPage((value) => Math.max(1, value - 1))}
+            >
+              Previous page
+            </Button>
+            <span className="text-tc-label text-tc-muted">
+              Page {page} of {pageCount}
+            </span>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              disabled={page >= pageCount}
+              onClick={() => setPage((value) => value + 1)}
+            >
+              Next page
+            </Button>
+          </nav>
           {chips.length > 0 && (
             <div className="mt-tc-3 flex flex-wrap gap-tc-2">
               {chips.map((chip) => (
