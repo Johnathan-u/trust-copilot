@@ -4,9 +4,8 @@ import { mkdirSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
 
 // Deterministic control paths for /dashboard/questionnaires. Real API
-// qualification stays outside this spec. The list endpoint has no page or
-// sort parameters, and it does not report review progress, job progress, or
-// an ambiguity flag.
+// qualification stays outside this spec. The screen asks for one page of 25,
+// newest first. Rows report counts only when the payload includes them.
 test.use({ storageState: { cookies: [], origins: [] } })
 test.describe.configure({ timeout: 90_000 })
 
@@ -391,7 +390,7 @@ async function audit(page: Page, surface: string, width: number) {
   expect(violations).toEqual([])
 }
 
-test('search is debounced, stale responses are dropped, and page or sort are not sent', async ({
+test('search is debounced, stale responses are dropped, and the first page is requested', async ({
   page,
 }) => {
   const alpha = gate()
@@ -406,13 +405,16 @@ test('search is debounced, stale responses are dropped, and page or sort are not
   await expect(page.getByText('Alpha.xlsx')).toBeVisible()
   await expect(
     page.getByText(
-      'The questionnaire list returns every match in one response, sorted by newest first. It does not accept page, page size, or sort parameters.'
+      'The questionnaire list accepts page, page size, sort, and order. This screen requests one page of 25 and does not reorder that page in the browser.'
     )
   ).toBeVisible()
   const initial = listReads(calls)
   expect(initial.length).toBeGreaterThan(0)
   for (const call of initial) {
-    expect(call.search).not.toMatch(/[?&](?:page|page_size|sort|order)=/)
+    expect(hasParam(call.search, 'page', '1')).toBe(true)
+    expect(hasParam(call.search, 'page_size', '25')).toBe(true)
+    expect(hasParam(call.search, 'sort', 'created_at')).toBe(true)
+    expect(hasParam(call.search, 'order', 'desc')).toBe(true)
   }
   const search = page.getByLabel('Search questionnaires')
   await search.pressSequentially('abc', { delay: 40 })
@@ -452,7 +454,7 @@ test('selection resets when the filter or workspace changes and states its scope
   await open(page)
   await expect(
     page.getByText(
-      'Selection applies to every questionnaire in this result for the current workspace. Changing the workspace or a filter clears it. This result is not a page.'
+      'Selection applies to every questionnaire on this page for the current workspace. Changing the workspace, a filter, or the page clears it.'
     )
   ).toBeVisible()
   await page.getByRole('checkbox', { name: 'Select QNR-3' }).check()
@@ -665,7 +667,7 @@ test('retry follows a listed parse job, and missing progress stays unreported', 
   ).toBeVisible()
   await expect(
     page.getByText(
-      'There is no questionnaire reparse route. An administrator can retry a failed parse job when that job is on the newest job page.'
+      'There is no questionnaire reparse route. An administrator can retry a failed parse job from the questionnaire row. When the row has no job id, retry is offered only if that job is on the newest job page.'
     )
   ).toBeVisible()
   const counted = page.locator('li').filter({ hasText: 'Counted.xlsx' })
@@ -721,7 +723,7 @@ test('editors do not see parse retry', async ({ page }) => {
   ).toHaveCount(0)
   await expect(
     page.getByText(
-      'There is no questionnaire reparse route. An administrator can retry a failed parse job when that job is on the newest job page.'
+      'There is no questionnaire reparse route. An administrator can retry a failed parse job from the questionnaire row. When the row has no job id, retry is offered only if that job is on the newest job page.'
     )
   ).toBeVisible()
 })

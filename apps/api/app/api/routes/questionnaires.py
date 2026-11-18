@@ -11,7 +11,7 @@ from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, Form, HTTPException, Query, Request, UploadFile
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
-from sqlalchemy import func  # noqa: F401
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.api.schemas import BulkDeleteBody, MetadataUpdateBody
@@ -41,6 +41,9 @@ from app.models import (
     ExportRecord,  # noqa: F401
     Framework,
     FrameworkControl,
+    Job,
+    JobKind,
+    JobStatus,
     Question,
     Questionnaire,
     WorkspaceControl,
@@ -238,6 +241,191 @@ def upload_questionnaire(
 
 
 _SEARCH_QUERY_MAX_LEN = 200
+_PAGE_SIZE_DEFAULT = 25
+_PAGE_SIZE_MAX = 100
+_PAGE_MAX = 1_000_000
+_ID_MAX = 2_147_483_647
+_PROGRESS_LIMIT = 9_007_199_254_740_991
+_SORT_COLUMNS = {
+    "created_at": Questionnaire.created_at,
+    "filename": Questionnaire.filename,
+    "status": Questionnaire.status,
+    "id": Questionnaire.id,
+}
+_JOB_KINDS = (JobKind.PARSE_QUESTIONNAIRE.value, JobKind.GENERATE_ANSWERS.value)
+_JOB_STATUSES = {status.value for status in JobStatus}
+
+
+def _same_workspace(session: dict, workspace_id: int) -> None:
+    if session.get("workspace_id") != workspace_id:
+        raise HTTPException(status_code=403, detail="Access denied")
+
+
+def _progress_pair(raw: str | None) -> dict | None:
+    """The history pair, or None when the stored result did not record one."""
+    if not isinstance(raw, str) or not raw.lstrip().startswith("{"):
+        return None
+    try:
+        data = json.loads(raw)
+    except (TypeError, ValueError):
+        return None
+    if not isinstance(data, dict):
+        return None
+    generated, total = data.get("generated"), data.get("total")
+    if type(generated) is int and type(total) is int and 0 <= generated <= total <= _PROGRESS_LIMIT:
+        return {"generated": generated, "total": total}
+    return None
+
+
+def _payload_questionnaire_id(raw: str | None) -> int | None:
+    if not isinstance(raw, str) or not raw.lstrip().startswith("{"):
+        return None
+    try:
+        data = json.loads(raw)
+    except (TypeError, ValueError):
+        return None
+    if not isinstance(data, dict):
+        return None
+    questionnaire_id = data.get("questionnaire_id")
+    if type(questionnaire_id) is not int or not 0 < questionnaire_id <= _ID_MAX:
+        return None
+    return questionnaire_id
+
+
+def _paging(page: int | None, page_size: int | None, sort: str | None, order: str | None):
+    """None keeps the unpaged array. Any paging parameter selects one page."""
+    if page is None and page_size is None and sort is None and order is None:
+        return None
+    page = 1 if page is None else page
+    page_size = _PAGE_SIZE_DEFAULT if page_size is None else page_size
+    sort = "created_at" if sort is None else sort
+    order = "desc" if order is None else order
+    if type(page) is not int or not 1 <= page <= _PAGE_MAX:
+        raise HTTPException(status_code=400, detail="Invalid page")
+    if type(page_size) is not int or not 1 <= page_size <= _PAGE_SIZE_MAX:
+        raise HTTPException(status_code=400, detail="Invalid page_size")
+    if sort not in _SORT_COLUMNS:
+        raise HTTPException(status_code=400, detail="Invalid sort")
+    if order not in ("asc", "desc"):
+        raise HTTPException(status_code=400, detail="Invalid order")
+    return page, page_size, sort, order
+
+
+def _active_questionnaire(db: Session, workspace_id: int, qnr_id: int) -> Questionnaire:
+    qnr = (
+        db.query(Questionnaire)
+        .filter(
+            Questionnaire.id == qnr_id,
+            Questionnaire.workspace_id == workspace_id,
+            Questionnaire.deleted_at.is_(None),
+        )
+        .first()
+    )
+    if not qnr:
+        raise HTTPException(status_code=404, detail="Questionnaire not found")
+    return qnr
+
+
+def _confirmation_url(qnr_id: int, ambiguous: bool) -> str | None:
+    if not ambiguous:
+        return None
+    return f"/dashboard/questionnaires/{qnr_id}/confirm-mapping"
+
+
+def _job_metadata(db: Session, workspace_id: int, ids: list[int]) -> dict[int, dict]:
+    """Newest parse job, and the newest generated/total pair, for these rows."""
+    found = {qnr_id: {"job_id": None, "job_status": None, "job_progress": None} for qnr_id in ids}
+    if not ids:
+        return found
+    rows = (
+        db.query(Job.id, Job.kind, Job.status, Job.payload, Job.result)
+        .filter(Job.workspace_id == workspace_id, Job.kind.in_(_JOB_KINDS))
+        .order_by(Job.id.desc())
+        .all()
+    )
+    wanted = set(ids)
+    for job_id, kind, status, payload, result in rows:
+        questionnaire_id = _payload_questionnaire_id(payload)
+        if questionnaire_id not in wanted:
+            continue
+        slot = found[questionnaire_id]
+        if kind == JobKind.PARSE_QUESTIONNAIRE.value and slot["job_id"] is None:
+            slot["job_id"] = job_id
+            slot["job_status"] = status if status in _JOB_STATUSES else None
+        if slot["job_progress"] is None:
+            pair = _progress_pair(result)
+            if pair is not None:
+                slot["job_progress"] = pair
+    return found
+
+
+def _row_metadata(db: Session, workspace_id: int, qnrs: list[Questionnaire]) -> list[dict]:
+    ids = [qnr.id for qnr in qnrs]
+    question_counts: dict[int, int] = {}
+    reviewed_counts: dict[int, int] = {}
+    ambiguous: set[int] = set()
+    if ids:
+        question_counts = {
+            qnr_id: count
+            for qnr_id, count in db.query(Question.questionnaire_id, func.count(Question.id))
+            .filter(Question.questionnaire_id.in_(ids))
+            .group_by(Question.questionnaire_id)
+            .all()
+        }
+        reviewed_counts = {
+            qnr_id: count
+            for qnr_id, count in db.query(
+                Question.questionnaire_id, func.count(func.distinct(Question.id))
+            )
+            .join(Answer, Answer.question_id == Question.id)
+            .filter(Question.questionnaire_id.in_(ids), Answer.status == "approved")
+            .group_by(Question.questionnaire_id)
+            .all()
+        }
+        ambiguous = {
+            qnr_id
+            for (qnr_id,) in db.query(QuestionMappingPreference.questionnaire_id)
+            .filter(
+                QuestionMappingPreference.workspace_id == workspace_id,
+                QuestionMappingPreference.questionnaire_id.in_(ids),
+                QuestionMappingPreference.status == "suggested",
+            )
+            .distinct()
+            .all()
+        }
+    jobs = _job_metadata(db, workspace_id, ids)
+    rows = []
+    for qnr in qnrs:
+        question_count = int(question_counts.get(qnr.id, 0))
+        job = jobs.get(qnr.id) or {"job_id": None, "job_status": None, "job_progress": None}
+        is_ambiguous = qnr.id in ambiguous
+        rows.append(
+            {
+                "id": qnr.id,
+                "display_id": qnr.display_id or build_display_id("questionnaire", qnr.id),
+                "filename": qnr.filename,
+                "status": qnr.status,
+                "parse_metadata": qnr.parse_metadata,
+                "created_at": qnr.created_at.isoformat() if qnr.created_at else None,
+                "deleted_at": qnr.deleted_at.isoformat() if qnr.deleted_at else None,
+                "frameworks": normalize_labels(
+                    parse_json_list(qnr.frameworks_json), allowed=FRAMEWORK_LABELS
+                ),
+                "subject_areas": normalize_labels(
+                    parse_json_list(qnr.subject_areas_json), allowed=SUBJECT_AREA_LABELS
+                ),
+                "question_count": question_count,
+                "review_reviewed": int(reviewed_counts.get(qnr.id, 0)),
+                "review_total": question_count,
+                "job_id": job["job_id"],
+                "job_status": job["job_status"],
+                "job_progress": job["job_progress"],
+                "mapping_ambiguous": is_ambiguous,
+                "mapping_confirmation_url": _confirmation_url(qnr.id, is_ambiguous),
+                "needs_review": qnr.status == "needs_review",
+            }
+        )
+    return rows
 
 
 def _list_questionnaires_impl(
@@ -251,6 +439,10 @@ def _list_questionnaires_impl(
     created_from: str | None = None,
     created_to: str | None = None,
     archived: str | None = None,
+    page: int | None = None,
+    page_size: int | None = None,
+    sort: str | None = None,
+    order: str | None = None,
 ):
     """Shared implementation for list questionnaires (QNR-02). Optional search_q filters by filename substring."""
     if session.get("workspace_id") != workspace_id:
@@ -287,25 +479,27 @@ def _list_questionnaires_impl(
         except ValueError:
             raise HTTPException(status_code=400, detail="Invalid created_to datetime")
 
-    qnrs = query.order_by(Questionnaire.created_at.desc(), Questionnaire.id.desc()).all()
-    return [
-        {
-            "id": q.id,
-            "display_id": q.display_id or build_display_id("questionnaire", q.id),
-            "filename": q.filename,
-            "status": q.status,
-            "parse_metadata": q.parse_metadata,
-            "created_at": q.created_at.isoformat() if q.created_at else None,
-            "deleted_at": q.deleted_at.isoformat() if q.deleted_at else None,
-            "frameworks": normalize_labels(
-                parse_json_list(q.frameworks_json), allowed=FRAMEWORK_LABELS
-            ),
-            "subject_areas": normalize_labels(
-                parse_json_list(q.subject_areas_json), allowed=SUBJECT_AREA_LABELS
-            ),
-        }
-        for q in qnrs
-    ]
+    paging = _paging(page, page_size, sort, order)
+    total = query.count()
+    if paging is None:
+        qnrs = query.order_by(Questionnaire.created_at.desc(), Questionnaire.id.desc()).all()
+        return _row_metadata(db, workspace_id, qnrs)
+    page_number, size, sort_name, direction = paging
+    column = _SORT_COLUMNS[sort_name]
+    ordered = column.desc() if direction == "desc" else column.asc()
+    if sort_name == "id":
+        query = query.order_by(ordered)
+    else:
+        query = query.order_by(ordered, Questionnaire.id.desc())
+    qnrs = query.offset((page_number - 1) * size).limit(size).all()
+    return {
+        "items": _row_metadata(db, workspace_id, qnrs),
+        "page": page_number,
+        "page_size": size,
+        "total": total,
+        "sort": sort_name,
+        "order": direction,
+    }
 
 
 @router.get("/")
@@ -322,10 +516,20 @@ def list_questionnaires(
     created_from: str | None = Query(None),
     created_to: str | None = Query(None),
     archived: str | None = Query(None, description="active|include|only"),
+    page: int | None = Query(None, description="1-based page. Selects the paged response."),
+    page_size: int | None = Query(None, description="Page size, 1 to 100."),
+    sort: str | None = Query(None, description="created_at, filename, status, or id"),
+    order: str | None = Query(None, description="asc or desc"),
     session: dict = Depends(require_can_review),
     db: Session = Depends(get_db),
 ):
-    """List questionnaires. Optional q filters by filename substring. Accepts with or without trailing slash."""
+    """List questionnaires. Optional q filters by filename substring. Accepts with or without trailing slash.
+
+    Omitting page, page_size, sort, and order keeps the historical JSON array, newest first.
+    Sending any of them returns one page. Rows include question and review counts, the newest
+    parse job, job progress, needs_review, and a mapping-confirmation path when a suggestion
+    is still unconfirmed.
+    """
     return _list_questionnaires_impl(
         workspace_id,
         session,
@@ -337,7 +541,127 @@ def list_questionnaires(
         created_from=created_from,
         created_to=created_to,
         archived=archived,
+        page=page,
+        page_size=page_size,
+        sort=sort,
+        order=order,
     )
+
+
+class MappingConfirmationBody(BaseModel):
+    mapping_ids: list[int] = Field(min_length=1, max_length=200)
+
+
+def _confirmation_payload(db: Session, workspace_id: int, qnr: Questionnaire) -> dict:
+    mappings = (
+        db.query(QuestionMappingPreference)
+        .filter(
+            QuestionMappingPreference.questionnaire_id == qnr.id,
+            QuestionMappingPreference.workspace_id == workspace_id,
+            QuestionMappingPreference.status == "suggested",
+        )
+        .order_by(QuestionMappingPreference.id)
+        .all()
+    )
+    question_ids = [row.question_id for row in mappings if type(row.question_id) is int]
+    questions = {}
+    if question_ids:
+        questions = {
+            question.id: question
+            for question in db.query(Question)
+            .filter(Question.id.in_(question_ids), Question.questionnaire_id == qnr.id)
+            .all()
+        }
+    items = []
+    for mapping in mappings:
+        question = questions.get(mapping.question_id)
+        text = (
+            question.text if question and question.text else mapping.normalized_question_text or ""
+        )
+        items.append(
+            {
+                "id": mapping.id,
+                "question_id": mapping.question_id if question else None,
+                "question_text": text,
+                "status": mapping.status,
+                "preferred_control_id": mapping.preferred_control_id,
+                "preferred_framework_key": mapping.preferred_framework_key,
+            }
+        )
+    ambiguous = bool(items)
+    return {
+        "questionnaire_id": qnr.id,
+        "display_id": qnr.display_id or build_display_id("questionnaire", qnr.id),
+        "filename": qnr.filename,
+        "mapping_ambiguous": ambiguous,
+        "needs_review": qnr.status == "needs_review",
+        "mapping_confirmation_url": _confirmation_url(qnr.id, ambiguous),
+        "items": items,
+    }
+
+
+@router.get("/{qnr_id}/mapping-confirmation")
+def get_mapping_confirmation(
+    qnr_id: int,
+    workspace_id: int = Query(...),
+    session: dict = Depends(require_can_review),
+    db: Session = Depends(get_db),
+):
+    """Suggested mappings a reviewer can read and an editor can confirm."""
+    _same_workspace(session, workspace_id)
+    qnr = _active_questionnaire(db, workspace_id, qnr_id)
+    return _confirmation_payload(db, workspace_id, qnr)
+
+
+@router.post("/{qnr_id}/mapping-confirmation")
+def confirm_mapping(
+    qnr_id: int,
+    body: MappingConfirmationBody,
+    workspace_id: int = Query(...),
+    session: dict = Depends(require_can_edit),
+    db: Session = Depends(get_db),
+):
+    """Approve the named suggested mappings. Unknown or non-suggested ids change nothing."""
+    _same_workspace(session, workspace_id)
+    qnr = _active_questionnaire(db, workspace_id, qnr_id)
+    mapping_ids = list(body.mapping_ids)
+    if len(mapping_ids) != len(set(mapping_ids)):
+        raise HTTPException(status_code=400, detail="mapping_ids must be unique")
+    if any(
+        type(mapping_id) is not int or not 0 < mapping_id <= _ID_MAX for mapping_id in mapping_ids
+    ):
+        raise HTTPException(status_code=400, detail="Invalid mapping id")
+    rows = (
+        db.query(QuestionMappingPreference)
+        .filter(
+            QuestionMappingPreference.id.in_(mapping_ids),
+            QuestionMappingPreference.questionnaire_id == qnr.id,
+            QuestionMappingPreference.workspace_id == workspace_id,
+            QuestionMappingPreference.status == "suggested",
+        )
+        .all()
+    )
+    if len(rows) != len(mapping_ids):
+        raise HTTPException(
+            status_code=400,
+            detail="Mapping is not a suggested mapping for this questionnaire",
+        )
+    now = datetime.now(timezone.utc)
+    for mapping in rows:
+        mapping.status = "approved"
+        mapping.approved = True
+        mapping.updated_at = now
+    db.commit()
+    remaining = (
+        db.query(QuestionMappingPreference.id)
+        .filter(
+            QuestionMappingPreference.questionnaire_id == qnr.id,
+            QuestionMappingPreference.workspace_id == workspace_id,
+            QuestionMappingPreference.status == "suggested",
+        )
+        .count()
+    )
+    return {"ok": True, "confirmed": len(rows), "mapping_ambiguous": remaining > 0}
 
 
 @router.get("/{qnr_id}")

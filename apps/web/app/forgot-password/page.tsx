@@ -56,7 +56,7 @@ export default function ForgotPasswordPage() {
             If that email is registered, you will receive a reset link shortly.
           </p>
           {devResetUrl && (
-            <div className="mt-4 rounded-xl border border-[var(--tc-border)] bg-white/5 p-3 text-sm">
+            <div className="mt-4 rounded-xl border border-[var(--tc-border)] bg-tc-surface-sunken p-3 text-sm">
               <p className="font-medium text-[var(--tc-text)]">
                 Development mode
               </p>

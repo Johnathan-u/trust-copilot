@@ -1,0 +1,38 @@
+Command: TC_REQUIRE_DB=1 python -m pytest tests/release/test_tc15017b_questionnaire_list.py --tb=line -q
+Working directory: apps/api
+Result: 5 failed, exit 1, before the list contract.
+
+FFFFF                                                                    [100%]
+=================================== FAILURES ===================================
+E   AssertionError: assert {'job_id', 'job_progress', 'job_status', 'mapping_ambiguous', 'mapping_confirmation_url', 'needs_review', ...} <= dict_keys(['id', 'display_id', 'filename', 'status', 'parse_metadata', 'created_at', 'deleted_at', 'frameworks', 'subject_areas'])
+     +  where dict_keys(['id', 'display_id', 'filename', 'status', 'parse_metadata', 'created_at', 'deleted_at', 'frameworks', 'subject_areas']) = <built-in method keys of dict object at 0x7f15e8931840>()
+     +    where <built-in method keys of dict object at 0x7f15e8931840> = {'id': 26, 'display_id': 'QNR-000026', 'filename': 'Alpha.xlsx', 'status': 'parsed', ...}.keys
+/agent/repos/trust-copilot/apps/api/tests/release/test_tc15017b_questionnaire_list.py:309: AssertionError: assert {'job_id', 'job_progress', 'job_status', 'mapping_ambiguous', 'mapping_confirmation_url', 'needs_review', ...} <= dict_keys(['id', 'display_id', 'filename', 'status', 'parse_metadata', 'created_at', 'deleted_at', 'frameworks', 'subject_areas'])
+E   TypeError: list indices must be integers or slices, not str
+/agent/repos/trust-copilot/apps/api/tests/release/test_tc15017b_questionnaire_list.py:353: TypeError: list indices must be integers or slices, not str
+E   AssertionError: [{"id":38,"display_id":"QNR-000038","filename":"Empty.xlsx","status":"needs_review","parse_metadata":"{\"count\": 0, \"questions\": [], \"review\": \"No questions were detected in this workbook.\"}","created_at":"2026-11-03T12:00:00","deleted_at":null,"frameworks":["Other"],"subject_areas":["Other"]},{"id":36,"display_id":"QNR-000036","filename":"Alpha.xlsx","status":"parsed","parse_metadata":null,"created_at":"2026-11-02T12:00:00","deleted_at":null,"frameworks":["Other"],"subject_areas":["Other"]},{"id":37,"display_id":"QNR-000037","filename":"Zeta.xlsx","status":"parsed","parse_metadata":null,"created_at":"2026-11-01T12:00:00","deleted_at":null,"frameworks":["Other"],"subject_areas":["Other"]}]
+    assert 200 == 400
+     +  where 200 = <Response [200 OK]>.status_code
+/agent/repos/trust-copilot/apps/api/tests/release/test_tc15017b_questionnaire_list.py:376: AssertionError: [{"id":38,"display_id":"QNR-000038","filename":"Empty.xlsx","status":"needs_review","parse_metadata":"{\"count\": 0, \"questions\": [], \"review\": \"No questions were detected in this workbook.\"}","created_at":"2026-11-03T12:00:00","deleted_at":null,"frameworks":["Other"],"subject_areas":["Other"]},{"id":36,"display_id":"QNR-000036","filename":"Alpha.xlsx","status":"parsed","parse_metadata":null,"created_at":"2026-11-02T12:00:00","deleted_at":null,"frameworks":["Other"],"subject_areas":["Other"]},{"id":37,"display_id":"QNR-000037","filename":"Zeta.xlsx","status":"parsed","parse_metadata":null,"created_at":"2026-11-01T12:00:00","deleted_at":null,"frameworks":["Other"],"subject_areas":["Other"]}]
+E   AssertionError: {"detail":"Not Found"}
+    assert 404 == 403
+     +  where 404 = <Response [404 Not Found]>.status_code
+/agent/repos/trust-copilot/apps/api/tests/release/test_tc15017b_questionnaire_list.py:395: AssertionError: {"detail":"Not Found"}
+E   AssertionError: {"detail":"Not Found"}
+    assert 404 == 200
+     +  where 404 = <Response [404 Not Found]>.status_code
+/agent/repos/trust-copilot/apps/api/tests/release/test_tc15017b_questionnaire_list.py:410: AssertionError: {"detail":"Not Found"}
+=============================== warnings summary ===============================
+tests/release/test_tc15017b_questionnaire_list.py: 30 warnings
+  /tmp/tc-venv/lib/python3.12/site-packages/sqlalchemy/sql/schema.py:3627: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    return util.wrap_callable(lambda ctx: fn(), fn)  # type: ignore
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/release/test_tc15017b_questionnaire_list.py::test_unpaged_list_reports_counts_jobs_and_needs_review
+FAILED tests/release/test_tc15017b_questionnaire_list.py::test_page_and_sort_return_one_page
+FAILED tests/release/test_tc15017b_questionnaire_list.py::test_invalid_paging_is_rejected
+FAILED tests/release/test_tc15017b_questionnaire_list.py::test_other_workspace_cannot_read_the_list_or_confirmation
+FAILED tests/release/test_tc15017b_questionnaire_list.py::test_mapping_confirmation_is_editor_only_and_confirms_suggested_rows
+5 failed, 30 warnings in 1.43s
+EXIT:1

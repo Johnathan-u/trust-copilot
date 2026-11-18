@@ -1,0 +1,26 @@
+TC-14-001d passing-after
+Same widened detector, after the public pages and CommandPalette moved onto --tc-* tokens.
+Command (cwd apps/web): npx vitest run tests/unit/ui-raw-palette.test.ts --reporter=verbose
+Node: v24.22.1
+Vitest: 5.0.5
+apps/web/app hits=0
+apps/web/components hits=0
+Total hits=0
+Exit: 0
+
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - ESM syntax in a file loaded as CommonJS (vitest.config.ts:1:1). Use a `.mjs` extension or set `"type": "module"` in the closest package.json
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+
+ RUN  v5.0.5 /agent/repos/trust-copilot/apps/web
+
+ ✓ tests/unit/ui-raw-palette.test.ts > components/ui raw colours > flags palette classes and rgba colours, and allows token utilities 3ms
+ ✓ tests/unit/ui-raw-palette.test.ts > components/ui raw colours > keeps raw palette classes and rgba colours out of components/ui 6ms
+ ✓ tests/unit/ui-raw-palette.test.ts > dashboard and layout raw colours > keeps raw palette classes and hex/rgb colours out of app/dashboard 36ms
+ ✓ tests/unit/ui-raw-palette.test.ts > dashboard and layout raw colours > keeps raw palette classes and hex/rgb colours out of components/layout 3ms
+ ✓ tests/unit/ui-raw-palette.test.ts > app and components raw colours > keeps raw palette classes and hex/rgb colours out of app and components, except token definitions 47ms
+
+ Test Files  1 passed (1)
+      Tests  5 passed (5)
+   Start at  04:01:25
+   Duration  322ms (tests 79%, import 9%, worker 7%, transform 6%)

@@ -2,17 +2,19 @@
 
 import json
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 
 from fastapi import APIRouter, Depends, Form, HTTPException, Query, Request, UploadFile
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, StreamingResponse
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.api.schemas import BulkDeleteBody, MetadataUpdateBody
 from app.core.api_errors import ApiError, FieldError, api_error_response, current_request_id
 from app.core.auth_deps import require_can_edit, require_can_review
 from app.core.audit import audit_log, persist_audit
+from app.core.config import get_settings
 from app.core.database import get_db
 from app.core.idempotency import (
     IdempotencyKeyError,
@@ -22,8 +24,10 @@ from app.core.idempotency import (
     scoped_key as idempotency_scoped_key,
     set as idempotency_set,
 )
-from app.models import Document
-from app.services.file_service import FileService
+from app.models import Document, EvidenceItem, EvidenceVersion, Job
+from app.models.job import JobStatus
+from app.services.file_service import FileService, sanitize_filename, validate_storage_key
+from app.services.freshness_policy_service import get_effective_policy
 from app.services.job_effects import enqueue_job, job_idempotency_key
 from app.services.storage_reconcile import discard_if_unreferenced
 from app.services.upload_enqueue import UPLOAD_IDEMPOTENCY_RESOURCE
@@ -177,6 +181,139 @@ def upload_document(
 
 
 _SEARCH_QUERY_MAX_LEN = 200
+_PAGE_SIZE_DEFAULT = 25
+_SORTS = {
+    "created_at": Document.created_at,
+    "filename": Document.filename,
+    "status": Document.status,
+    "id": Document.id,
+}
+_ORDERS = {"asc", "desc"}
+_INDEX_JOB_STATUSES = frozenset(status.value for status in JobStatus)
+_PREVIEW_MEDIA = {
+    ".pdf": "application/pdf",
+    ".txt": "text/plain; charset=utf-8",
+    ".docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    ".doc": "application/msword",
+    ".xlsx": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    ".xls": "application/vnd.ms-excel",
+}
+
+
+def _list_paging(
+    page: int | None, page_size: int | None, sort: str | None, order: str | None
+) -> dict | None:
+    """Return the page contract, or None when the caller asked for the legacy array."""
+    if page is None and page_size is None and sort is None and order is None:
+        return None
+    if sort is not None and sort not in _SORTS:
+        raise HTTPException(status_code=400, detail="Invalid sort")
+    if order is not None and order not in _ORDERS:
+        raise HTTPException(status_code=400, detail="Invalid order")
+    return {
+        "page": page or 1,
+        "page_size": page_size or _PAGE_SIZE_DEFAULT,
+        "sort": sort or "created_at",
+        "order": order or "desc",
+    }
+
+
+def _list_ordering(sort_name: str, order_name: str):
+    column = _SORTS[sort_name]
+    primary = column.asc() if order_name == "asc" else column.desc()
+    if sort_name == "id":
+        return (primary,)
+    tie = Document.id.asc() if order_name == "asc" else Document.id.desc()
+    return (primary, tie)
+
+
+def _payload_document_id(payload: str | None) -> int | None:
+    if not payload:
+        return None
+    try:
+        data = json.loads(payload)
+    except (TypeError, ValueError):
+        return None
+    if not isinstance(data, dict):
+        return None
+    value = data.get("document_id")
+    if type(value) is not int or not 0 < value <= 2147483647:
+        return None
+    return value
+
+
+def _latest_index_jobs(db: Session, workspace_id: int, document_ids: list[int]) -> dict:
+    """Newest valid index_document job per document. Stored payload text is not returned."""
+    if not document_ids:
+        return {}
+    wanted = set(document_ids)
+    rows = (
+        db.query(Job.id, Job.status, Job.payload)
+        .filter(Job.workspace_id == workspace_id, Job.kind == "index_document")
+        .order_by(Job.id.desc())
+        .all()
+    )
+    found: dict[int, tuple[int, str | None]] = {}
+    for job_id, status, payload in rows:
+        if len(found) == len(wanted):
+            break
+        document_id = _payload_document_id(payload)
+        if document_id is None or document_id not in wanted or document_id in found:
+            continue
+        safe_status = status if status in _INDEX_JOB_STATUSES else None
+        found[document_id] = (job_id, safe_status)
+    return found
+
+
+def _document_versions(db: Session, workspace_id: int, document_ids: list[int]) -> dict:
+    if not document_ids:
+        return {}
+    rows = (
+        db.query(EvidenceItem.document_id, func.max(EvidenceVersion.version_number))
+        .join(EvidenceVersion, EvidenceVersion.evidence_id == EvidenceItem.id)
+        .filter(
+            EvidenceItem.workspace_id == workspace_id,
+            EvidenceItem.document_id.in_(document_ids),
+        )
+        .group_by(EvidenceItem.document_id)
+        .all()
+    )
+    versions = {}
+    for document_id, number in rows:
+        if document_id is None or number is None:
+            continue
+        versions[document_id] = str(int(number))
+    return versions
+
+
+def _freshness_label(created_at: datetime | None, policy: dict) -> str | None:
+    """Same thresholds as the document freshness policy: fresh, warning, then stale."""
+    if created_at is None:
+        return None
+    ref = created_at if created_at.tzinfo is not None else created_at.replace(tzinfo=timezone.utc)
+    age_days = (datetime.now(timezone.utc) - ref).days
+    max_age = int(policy["max_age_days"])
+    warn_at = max_age - int(policy["warn_before_days"])
+    if age_days >= max_age:
+        return "stale"
+    if age_days >= warn_at:
+        return "warning"
+    return "fresh"
+
+
+def _source_preview_url(document: Document, workspace_id: int) -> str | None:
+    key = document.storage_key or ""
+    if not key or ".." in key or key.startswith("/") or "\0" in key or len(key) > 600:
+        return None
+    return f"/api/documents/{document.id}/content?workspace_id={workspace_id}"
+
+
+def _preview_headers(filename: str | None) -> tuple[str, str]:
+    safe = sanitize_filename(filename)
+    ext = Path(safe).suffix.lower()
+    media = _PREVIEW_MEDIA.get(ext, "application/octet-stream")
+    disposition = "inline" if ext == ".pdf" else "attachment"
+    return media, f'{disposition}; filename="{safe}"'
 
 
 @router.get("/")
@@ -195,10 +332,19 @@ def list_documents(
     archived: str | None = Query(None, description="active|include|only"),
     tag_category: str | None = Query(None, description="Legacy tag category filter"),
     tag_key: str | None = Query(None, description="Legacy tag key filter"),
+    page: int | None = Query(None, ge=1),
+    page_size: int | None = Query(None, ge=1, le=100),
+    sort: str | None = Query(None, description="created_at, filename, status, or id"),
+    order: str | None = Query(None, description="asc or desc"),
     session: dict = Depends(require_can_review),
     db: Session = Depends(get_db),
 ):
-    """List documents for workspace. Optional q filters by filename substring. Accepts with or without trailing slash."""
+    """List documents for workspace.
+
+    With no page, page_size, sort, or order, the body stays a JSON array of every
+    match, newest first. Those parameters return one page, the total, and the
+    configured upload limit. Accepts a trailing slash.
+    """
     if session.get("workspace_id") != workspace_id:
         raise HTTPException(status_code=403, detail="Access denied")
     query = db.query(Document).filter(Document.workspace_id == workspace_id)
@@ -245,37 +391,115 @@ def list_documents(
             query = query.filter(Tag.key == tag_key)
         query = query.distinct()
 
-    docs = query.order_by(Document.created_at.desc(), Document.id.desc()).all()
+    paging = _list_paging(page, page_size, sort, order)
+    sort_name = paging["sort"] if paging else "created_at"
+    order_name = paging["order"] if paging else "desc"
+    ordered = query.order_by(*_list_ordering(sort_name, order_name))
+    if paging:
+        total = query.count()
+        offset = (paging["page"] - 1) * paging["page_size"]
+        docs = ordered.offset(offset).limit(paging["page_size"]).all()
+    else:
+        total = None
+        docs = ordered.all()
     doc_ids = [d.id for d in docs]
     tags_map = list_tags_for_documents(db, doc_ids, workspace_id) if doc_ids else {}
-    return [
-        {
-            "id": d.id,
-            "display_id": d.display_id or build_display_id("document", d.id),
-            "filename": d.filename,
-            "status": d.status,
-            "index_error": getattr(d, "index_error", None),
-            "created_at": d.created_at.isoformat() if d.created_at else None,
-            "deleted_at": d.deleted_at.isoformat() if d.deleted_at else None,
-            "file_type": Path(d.filename or "").suffix.lstrip(".").lower() or None,
-            "frameworks": normalize_labels(
-                (
-                    [t["label"] for t in tags_map.get(d.id, []) if t.get("category") == "framework"]
-                    + parse_json_list(d.frameworks_json)
+    jobs = _latest_index_jobs(db, workspace_id, doc_ids)
+    versions = _document_versions(db, workspace_id, doc_ids)
+    policy = get_effective_policy(db, workspace_id, "document")
+    items = []
+    for d in docs:
+        job = jobs.get(d.id)
+        items.append(
+            {
+                "id": d.id,
+                "display_id": d.display_id or build_display_id("document", d.id),
+                "filename": d.filename,
+                "status": d.status,
+                "index_error": getattr(d, "index_error", None),
+                "created_at": d.created_at.isoformat() if d.created_at else None,
+                "deleted_at": d.deleted_at.isoformat() if d.deleted_at else None,
+                "file_type": Path(d.filename or "").suffix.lstrip(".").lower() or None,
+                "frameworks": normalize_labels(
+                    (
+                        [
+                            t["label"]
+                            for t in tags_map.get(d.id, [])
+                            if t.get("category") == "framework"
+                        ]
+                        + parse_json_list(d.frameworks_json)
+                    ),
+                    allowed=FRAMEWORK_LABELS,
                 ),
-                allowed=FRAMEWORK_LABELS,
-            ),
-            "subject_areas": normalize_labels(
-                (
-                    [t["label"] for t in tags_map.get(d.id, []) if t.get("category") == "topic"]
-                    + parse_json_list(d.subject_areas_json)
+                "subject_areas": normalize_labels(
+                    (
+                        [t["label"] for t in tags_map.get(d.id, []) if t.get("category") == "topic"]
+                        + parse_json_list(d.subject_areas_json)
+                    ),
+                    allowed=SUBJECT_AREA_LABELS,
                 ),
-                allowed=SUBJECT_AREA_LABELS,
-            ),
-            "tags": tags_map.get(d.id, []),
-        }
-        for d in docs
-    ]
+                "tags": tags_map.get(d.id, []),
+                "source_eligibility": "ineligible" if d.deleted_at is not None else "eligible",
+                "freshness": _freshness_label(d.created_at, policy),
+                "version": versions.get(d.id),
+                "index_job_id": job[0] if job else None,
+                "index_job_status": job[1] if job else None,
+                "source_preview_url": _source_preview_url(d, workspace_id),
+            }
+        )
+    if not paging:
+        return items
+    return {
+        "items": items,
+        "total": total,
+        "page": paging["page"],
+        "page_size": paging["page_size"],
+        "sort": sort_name,
+        "order": order_name,
+        "max_upload_bytes": get_settings().max_upload_bytes,
+    }
+
+
+@router.get("/{document_id}/content")
+def document_content(
+    document_id: int,
+    workspace_id: int = Query(...),
+    session: dict = Depends(require_can_review),
+    db: Session = Depends(get_db),
+    storage: StorageClient = Depends(get_storage),
+):
+    """Stream the stored file for a reviewer in this workspace.
+
+    The media type comes from the filename extension. Stored content types are
+    not reflected. The storage key is not part of the URL or the error text.
+    """
+    if session.get("workspace_id") != workspace_id:
+        raise HTTPException(status_code=403, detail="Access denied")
+    doc = (
+        db.query(Document)
+        .filter(Document.id == document_id, Document.workspace_id == workspace_id)
+        .first()
+    )
+    if not doc or not doc.storage_key:
+        raise HTTPException(status_code=404, detail="Document not found")
+    validate_storage_key(doc.storage_key)
+    try:
+        stream = storage.download_stream(storage.bucket_raw, doc.storage_key)
+    except HTTPException:
+        raise
+    except Exception:
+        logger.warning("document content unavailable document_id=%s", document_id)
+        raise HTTPException(status_code=404, detail="Document file not found")
+    media_type, disposition = _preview_headers(doc.filename)
+    return StreamingResponse(
+        stream,
+        media_type=media_type,
+        headers={
+            "Content-Disposition": disposition,
+            "X-Content-Type-Options": "nosniff",
+            "Cache-Control": "private, no-store",
+        },
+    )
 
 
 @router.post("/bulk-delete")

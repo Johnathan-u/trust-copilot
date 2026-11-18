@@ -1,0 +1,31 @@
+FFFF                                                                     [100%]
+=================================== FAILURES ===================================
+E   AssertionError: assert False
+     +  where False = isinstance([{'id': 2, 'display_id': 'DOC-000002', 'filename': 'Beta.pdf', 'status': 'uploaded', ...}, {'id': 3, 'display_id': 'DO...df', 'status': 'indexed', ...}, {'id': 4, 'display_id': 'DOC-000004', 'filename': 'Old.pdf', 'status': 'indexed', ...}], dict)
+/agent/repos/trust-copilot/apps/api/tests/release/test_tc_15_016a_documents_list.py:210: AssertionError: assert False
+E   KeyError: 'source_eligibility'
+/agent/repos/trust-copilot/apps/api/tests/release/test_tc_15_016a_documents_list.py:331: KeyError: 'source_eligibility'
+E   AssertionError: {"detail":"Not Found"}
+    assert 404 == 200
+     +  where 404 = <Response [404 Not Found]>.status_code
+/agent/repos/trust-copilot/apps/api/tests/release/test_tc_15_016a_documents_list.py:353: AssertionError: {"detail":"Not Found"}
+E   TypeError: list indices must be integers or slices, not str
+/agent/repos/trust-copilot/apps/api/tests/release/test_tc_15_016a_documents_list.py:397: TypeError: list indices must be integers or slices, not str
+=============================== warnings summary ===============================
+tests/release/test_tc_15_016a_documents_list.py::test_tc_15_016a_paged_list_sorts_reports_metadata_and_upload_limit
+tests/release/test_tc_15_016a_documents_list.py::test_tc_15_016a_paged_list_sorts_reports_metadata_and_upload_limit
+tests/release/test_tc_15_016a_documents_list.py::test_tc_15_016a_paged_list_sorts_reports_metadata_and_upload_limit
+tests/release/test_tc_15_016a_documents_list.py::test_tc_15_016a_paged_list_sorts_reports_metadata_and_upload_limit
+tests/release/test_tc_15_016a_documents_list.py::test_tc_15_016a_paged_list_sorts_reports_metadata_and_upload_limit
+tests/release/test_tc_15_016a_documents_list.py::test_tc_15_016a_freshness_follows_the_document_policy
+tests/release/test_tc_15_016a_documents_list.py::test_tc_15_016a_freshness_follows_the_document_policy
+  /tmp/tc-api/lib/python3.12/site-packages/sqlalchemy/sql/schema.py:3627: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    return util.wrap_callable(lambda ctx: fn(), fn)  # type: ignore
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/release/test_tc_15_016a_documents_list.py::test_tc_15_016a_paged_list_sorts_reports_metadata_and_upload_limit
+FAILED tests/release/test_tc_15_016a_documents_list.py::test_tc_15_016a_legacy_list_returns_every_row_with_the_same_metadata
+FAILED tests/release/test_tc_15_016a_documents_list.py::test_tc_15_016a_content_preview_stays_in_workspace_and_hides_the_storage_key
+FAILED tests/release/test_tc_15_016a_documents_list.py::test_tc_15_016a_freshness_follows_the_document_policy
+4 failed, 7 warnings in 0.70s

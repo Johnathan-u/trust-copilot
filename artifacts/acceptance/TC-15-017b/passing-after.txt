@@ -1,0 +1,13 @@
+Command: TC_REQUIRE_DB=1 python -m pytest tests/release/test_tc15017b_questionnaire_list.py --tb=line -q
+Working directory: apps/api
+Result: 5 passed, exit 0, after the list contract.
+
+.....                                                                    [100%]
+=============================== warnings summary ===============================
+tests/release/test_tc15017b_questionnaire_list.py: 30 warnings
+  /tmp/tc-venv/lib/python3.12/site-packages/sqlalchemy/sql/schema.py:3627: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    return util.wrap_callable(lambda ctx: fn(), fn)  # type: ignore
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+5 passed, 30 warnings in 1.29s
+EXIT:0
