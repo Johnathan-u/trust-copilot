@@ -1,0 +1,49 @@
+# TC-16-006 gap 1, red run
+# Working directory: apps/api
+# Interpreter: /tmp/tc-venv/bin/python
+# Python 3.12.3, pytest 9.1.1
+# PostgreSQL 16.15, database trustcopilot_test on localhost
+# Product code: 08443a69 (master). The tests in this branch were present.
+# Command:
+#   python -m pytest tests/release/test_feature_flags.py tests/test_feature_flags.py -q --tb=line
+# Exit: 1
+# Total: 7 failed, 22 passed, 12 warnings in 2.56s
+
+FF..FFFF........F............                                            [100%]
+=================================== FAILURES ===================================
+E   assert 0 == 2
+     +  where 0 = len([])
+/agent/repos/trust-copilot/apps/api/tests/release/test_feature_flags.py:132: assert 0 == 2
+E   assert 0 == 2
+     +  where 0 = len([])
+/agent/repos/trust-copilot/apps/api/tests/release/test_feature_flags.py:166: assert 0 == 2
+E   TypeError: set_flag() got an unexpected keyword argument 'actor_user_id'
+/agent/repos/trust-copilot/apps/api/tests/release/test_feature_flags.py:232: TypeError: set_flag() got an unexpected keyword argument 'actor_user_id'
+E   AssertionError: assert True is False
+     +  where True = is_enabled(<sqlalchemy.orm.session.Session object at 0x7f811c2d8500>, 1, 'connectors.aws')
+/agent/repos/trust-copilot/apps/api/tests/release/test_feature_flags.py:253: AssertionError: assert True is False
+E   AssertionError: assert True is False
+     +  where True = is_enabled(<sqlalchemy.orm.session.Session object at 0x7f811d670b30>, 1, 'connectors.aws')
+/agent/repos/trust-copilot/apps/api/tests/release/test_feature_flags.py:253: AssertionError: assert True is False
+E   AssertionError: assert True is False
+     +  where True = is_enabled(<sqlalchemy.orm.session.Session object at 0x7f811c2daed0>, 1, 'connectors.aws')
+/agent/repos/trust-copilot/apps/api/tests/release/test_feature_flags.py:253: AssertionError: assert True is False
+E   AssertionError: assert True is False
+     +  where True = is_enabled(<sqlalchemy.orm.session.Session object at 0x7f811c2e5d60>, 1, 'connectors.aws')
+/agent/repos/trust-copilot/apps/api/tests/test_feature_flags.py:99: AssertionError: assert True is False
+=============================== warnings summary ===============================
+tests/release/test_feature_flags.py: 4 warnings
+tests/test_feature_flags.py: 8 warnings
+  /tmp/tc-venv/lib/python3.12/site-packages/sqlalchemy/sql/schema.py:3627: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    return util.wrap_callable(lambda ctx: fn(), fn)  # type: ignore
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/release/test_feature_flags.py::test_flag_change_writes_audit_with_actor_old_and_new
+FAILED tests/release/test_feature_flags.py::test_noop_flag_set_still_writes_one_audit
+FAILED tests/release/test_feature_flags.py::test_set_flag_commits_the_row_and_the_audit_together
+FAILED tests/release/test_feature_flags.py::test_production_env_does_not_override_an_existing_row[production]
+FAILED tests/release/test_feature_flags.py::test_production_env_does_not_override_an_existing_row[ Production ]
+FAILED tests/release/test_feature_flags.py::test_production_env_does_not_override_an_existing_row[PRODUCTION]
+FAILED tests/test_feature_flags.py::TestServiceLayer::test_env_override_takes_precedence
+7 failed, 22 passed, 12 warnings in 2.56s

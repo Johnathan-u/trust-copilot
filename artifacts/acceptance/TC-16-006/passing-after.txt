@@ -1,0 +1,33 @@
+# TC-16-006 gap 1, green run
+# Working directory: apps/api
+# Interpreter: /tmp/tc-venv/bin/python
+# Python 3.12.3, pytest 9.1.1
+# PostgreSQL 16.15, database trustcopilot_test on localhost
+# Product code: 0c8e9615df4b63f9295265b520b4dedb14e170c0
+# The evidence commit that adds this file does not change that code.
+
+# python -m pytest tests/release/test_feature_flags.py -q --tb=short
+# Exit: 0
+# Total: 12 passed, 15 warnings in 1.90s
+
+............                                                             [100%]
+=============================== warnings summary ===============================
+tests/release/test_feature_flags.py: 15 warnings
+  /tmp/tc-venv/lib/python3.12/site-packages/sqlalchemy/sql/schema.py:3627: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    return util.wrap_callable(lambda ctx: fn(), fn)  # type: ignore
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+12 passed, 15 warnings in 1.90s
+
+# python -m pytest tests/test_feature_flags.py -q --tb=short
+# Exit: 0
+# Total: 17 passed, 18 warnings in 2.13s
+
+.................                                                        [100%]
+=============================== warnings summary ===============================
+tests/test_feature_flags.py: 18 warnings
+  /tmp/tc-venv/lib/python3.12/site-packages/sqlalchemy/sql/schema.py:3627: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    return util.wrap_callable(lambda ctx: fn(), fn)  # type: ignore
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+17 passed, 18 warnings in 2.13s

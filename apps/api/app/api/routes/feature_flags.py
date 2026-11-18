@@ -53,12 +53,25 @@ async def set_flag(
     db: Session = Depends(get_db),
     session: dict = Depends(require_can_admin),
 ):
-    """Set a feature flag for the current workspace."""
+    """Set a feature flag for the current workspace.
+
+    ``set_flag`` writes the audit event in the same transaction as the row.
+    A name this handler rejects is not a change and is not audited.
+    """
     workspace_id = session["workspace_id"]
     flag_name = req.flag_name.strip().lower()
     if not flag_name or len(flag_name) > 128:
         raise HTTPException(status_code=400, detail="Invalid flag name")
-    result = ff_service.set_flag(db, workspace_id, flag_name, req.enabled)
+    raw_id = session.get("user_id")
+    raw_email = session.get("email")
+    result = ff_service.set_flag(
+        db,
+        workspace_id,
+        flag_name,
+        req.enabled,
+        actor_user_id=raw_id if type(raw_id) is int else None,
+        actor_email=raw_email if isinstance(raw_email, str) else None,
+    )
     return result
 
 
@@ -67,7 +80,10 @@ async def seed_defaults(
     db: Session = Depends(get_db),
     session: dict = Depends(require_can_admin),
 ):
-    """Seed all known default flags for the current workspace (skip existing)."""
+    """Seed all known default flags for the current workspace (skip existing).
+
+    Does not write feature_flag.updated. An existing row keeps its value.
+    """
     workspace_id = session["workspace_id"]
     created = ff_service.seed_defaults(db, workspace_id)
     return {"created": created}

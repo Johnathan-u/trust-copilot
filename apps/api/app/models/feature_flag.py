@@ -23,9 +23,10 @@ def _utc_now() -> datetime:
 class FeatureFlag(Base):
     """A feature flag scoped to a workspace.
 
-    Flags override global env-var defaults on a per-workspace basis.
-    When no row exists for a workspace+flag_name, the system falls back
-    to the global env-var or built-in default.
+    In production a row wins over FEATURE_*. Outside production, FEATURE_*
+    overrides the row. When no row exists, resolution uses the env var and
+    then the built-in default. Who changed a flag is an audit_events row
+    (action feature_flag.updated), not a column on this table.
     """
 
     __tablename__ = "feature_flags"
