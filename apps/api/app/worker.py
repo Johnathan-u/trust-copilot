@@ -28,7 +28,7 @@ from datetime import datetime, timedelta, timezone  # noqa: E402
 from pathlib import Path  # noqa: E402
 
 from sqlalchemy import and_, create_engine, func, or_, text  # noqa: E402
-from sqlalchemy.exc import IntegrityError  # noqa: E402
+from sqlalchemy.exc import IntegrityError, OperationalError  # noqa: E402
 from sqlalchemy.orm import sessionmaker  # noqa: E402
 
 from app.core.config import get_settings  # noqa: E402
@@ -269,6 +269,13 @@ def _record_progress(job: Job, generated: int, total: int) -> None:
 PROGRESS_PUBLISH_INTERVAL = 1.0
 _progress_publish_lock = threading.Lock()
 _progress_published_at: dict[tuple[int, str], float] = {}
+# Postgres lock_not_available: lock_timeout expired, or FOR UPDATE NOWAIT lost the race.
+_LOCK_NOT_AVAILABLE = "55P03"
+
+
+def _is_lock_timeout(exc: BaseException) -> bool:
+    orig = getattr(exc, "orig", None)
+    return getattr(orig, "pgcode", None) == _LOCK_NOT_AVAILABLE
 
 
 def publish_running_progress(
@@ -286,6 +293,10 @@ def publish_running_progress(
     Uses a short session of its own, so the worker transaction stays uncommitted.
     The update matches only a row this owner still has in ``running``, the same
     guard as ``renew_lease``. A lost lease writes nothing and does not fail the job.
+
+    The session waits at most 250ms for the job-row lock (TC-15-038d). A lock
+    timeout is a skipped publish: this returns False and leaves the row unchanged,
+    so a worker that still holds the row cannot stall on its own publisher.
     """
     if not isinstance(owner, str) or not owner:
         return False
@@ -304,6 +315,8 @@ def publish_running_progress(
     factory = SessionFactory if session_factory is None else session_factory
     session = factory()
     try:
+        # Same transaction as the FOR UPDATE below. SET LOCAL does not outlive it.
+        session.execute(text("SET LOCAL lock_timeout = '250ms'"))
         row = session.execute(
             text(
                 """
@@ -342,6 +355,17 @@ def publish_running_progress(
         )
         session.commit()
         return True
+    except OperationalError as exc:
+        session.rollback()
+        if _is_lock_timeout(exc):
+            logging.getLogger(__name__).info(
+                "progress publish skipped; job row locked job_id=%s", job_id
+            )
+            return False
+        logging.getLogger(__name__).warning(
+            "progress publish failed job_id=%s", job_id, exc_info=True
+        )
+        return False
     except Exception:
         session.rollback()
         logging.getLogger(__name__).warning(
