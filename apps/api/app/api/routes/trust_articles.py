@@ -34,6 +34,14 @@ class TrustArticleUpdate(BaseModel):
     category: str | None = None
     published: int | None = None
     is_policy: bool | None = None
+    # Accepted only so a different or null value can be rejected. Never written.
+    workspace_id: int | None = None
+
+
+# Same wording for a null, omitted, or different body workspace. This route
+# already uses 400 for a body it will not accept (duplicate slug). 422 stays
+# the schema-validation status.
+_WORKSPACE_DETAIL = "workspace_id must match the current workspace"
 
 
 def _to_dict(a: TrustArticle) -> dict:
@@ -49,6 +57,30 @@ def _to_dict(a: TrustArticle) -> dict:
         "created_at": a.created_at.isoformat() if a.created_at else None,
         "updated_at": a.updated_at.isoformat() if a.updated_at else None,
     }
+
+
+def _session_workspace(session: dict) -> int | None:
+    """Positive workspace id from the session, or None when the caller has none."""
+    workspace_id = session.get("workspace_id")
+    if type(workspace_id) is int and workspace_id > 0:
+        return workspace_id
+    return None
+
+
+def _require_body_workspace(session: dict, body_workspace_id: int | None) -> int:
+    """Workspace to store. It comes from the session. A null or different body value is 400."""
+    workspace_id = _session_workspace(session)
+    if workspace_id is None or body_workspace_id != workspace_id:
+        raise HTTPException(status_code=400, detail=_WORKSPACE_DETAIL)
+    return workspace_id
+
+
+def _require_article_workspace(article: TrustArticle, session: dict) -> int:
+    """403 unless the article belongs to the session workspace. A null workspace does not."""
+    workspace_id = _session_workspace(session)
+    if workspace_id is None or article.workspace_id != workspace_id:
+        raise HTTPException(status_code=403, detail="Access denied")
+    return workspace_id
 
 
 @router.get("/")
@@ -76,7 +108,10 @@ def list_trust_articles(
         effective_ws = workspace_id
     q = (
         db.query(TrustArticle)
-        .filter(TrustArticle.workspace_id == effective_ws)
+        .filter(
+            TrustArticle.workspace_id == effective_ws,
+            TrustArticle.workspace_id.isnot(None),
+        )
         .order_by(TrustArticle.created_at.desc())
     )
     if published_only:
@@ -109,18 +144,27 @@ def list_my_policy_acknowledgments(
 @router.get("/{article_id}")
 def get_trust_article(
     article_id: int,
+    workspace_id: int | None = Query(None),
     session: dict | None = Depends(require_valid_session_optional),
     db: Session = Depends(get_db),
 ):
-    """Get a single trust article by id. Authenticated users see own workspace only; unauthenticated see published only."""
+    """Get one trust article.
+
+    A signed-in caller sees only their workspace. An anonymous caller sees a
+    published article, never one whose workspace is null. When the anonymous
+    caller names a workspace (the public trust centre does, after resolving
+    the centre slug), the article must belong to that workspace.
+    """
     article = db.query(TrustArticle).filter(TrustArticle.id == article_id).first()
-    if not article:
+    if not article or article.workspace_id is None:
         raise HTTPException(status_code=404, detail="Trust article not found")
     if session and session.get("workspace_id") is not None:
         if article.workspace_id != session.get("workspace_id"):
             raise HTTPException(status_code=404, detail="Trust article not found")
     else:
         if not article.published or article.published != 1:
+            raise HTTPException(status_code=404, detail="Trust article not found")
+        if workspace_id is not None and article.workspace_id != workspace_id:
             raise HTTPException(status_code=404, detail="Trust article not found")
     return _to_dict(article)
 
@@ -131,22 +175,20 @@ def create_trust_article(
     session: dict = Depends(require_can_admin),
     db: Session = Depends(get_db),
 ):
-    """Create a new trust article. Requires auth."""
-    ws = body.workspace_id or session.get("workspace_id")
-    if ws is not None and session.get("workspace_id") != ws:
-        raise HTTPException(status_code=403, detail="Access denied")
+    """Create a new trust article. Requires auth. The workspace is the session's."""
+    ws = _require_body_workspace(session, body.workspace_id)
     existing = (
         db.query(TrustArticle)
         .filter(
             TrustArticle.slug == body.slug,
-            TrustArticle.workspace_id == body.workspace_id,
+            TrustArticle.workspace_id == ws,
         )
         .first()
     )
     if existing:
         raise HTTPException(status_code=400, detail=f"Slug '{body.slug}' already exists")
     article = TrustArticle(
-        workspace_id=body.workspace_id,
+        workspace_id=ws,
         slug=body.slug,
         title=body.title,
         content=body.content or "",
@@ -177,12 +219,13 @@ def update_trust_article(
     session: dict = Depends(require_can_admin),
     db: Session = Depends(get_db),
 ):
-    """Update a trust article. Requires auth."""
+    """Update a trust article. Requires auth. The workspace cannot be moved or cleared."""
     article = db.query(TrustArticle).filter(TrustArticle.id == article_id).first()
     if not article:
         raise HTTPException(status_code=404, detail="Trust article not found")
-    if article.workspace_id is not None and session.get("workspace_id") != article.workspace_id:
-        raise HTTPException(status_code=403, detail="Access denied")
+    _require_article_workspace(article, session)
+    if "workspace_id" in body.model_fields_set and body.workspace_id != article.workspace_id:
+        raise HTTPException(status_code=400, detail=_WORKSPACE_DETAIL)
     if body.slug is not None:
         existing = (
             db.query(TrustArticle)
@@ -217,12 +260,11 @@ def delete_trust_article(
     session: dict = Depends(require_can_admin),
     db: Session = Depends(get_db),
 ):
-    """Delete a trust article. Requires auth."""
+    """Delete a trust article. Requires auth. A null workspace is not the caller's."""
     article = db.query(TrustArticle).filter(TrustArticle.id == article_id).first()
     if not article:
         raise HTTPException(status_code=404, detail="Trust article not found")
-    if article.workspace_id is not None and session.get("workspace_id") != article.workspace_id:
-        raise HTTPException(status_code=403, detail="Access denied")
+    _require_article_workspace(article, session)
     slug, ws_id = article.slug, article.workspace_id
     db.delete(article)
     db.commit()
@@ -249,7 +291,7 @@ def acknowledge_policy(
     article = db.query(TrustArticle).filter(TrustArticle.id == article_id).first()
     if not article:
         raise HTTPException(status_code=404, detail="Trust article not found")
-    if article.workspace_id != session.get("workspace_id"):
+    if article.workspace_id is None or article.workspace_id != session.get("workspace_id"):
         raise HTTPException(status_code=404, detail="Trust article not found")
     if not article.is_policy:
         raise HTTPException(status_code=400, detail="Article is not marked as a policy")

@@ -1,0 +1,26 @@
+# TC-17-001 gap 1 passing after the workspace-scope change
+# cwd apps/api
+# /tmp/tc-venv/bin/python -m pytest tests/release/test_domain_trust_articles.py -q --tb=short
+# /tmp/tc-venv/bin/python -m pytest tests/test_trust_articles_api.py -q --tb=short
+# Python 3.12.3, pytest 9.1.1, PostgreSQL 16.15, pgvector 0.6.0
+# database postgresql://postgres:postgres@127.0.0.1:5432/trustcopilot_test
+# release file: exit 0, 8 passed. existing API file: exit 0, 11 passed.
+
+........                                                                 [100%]
+=============================== warnings summary ===============================
+tests/release/test_domain_trust_articles.py: 18 warnings
+  /tmp/tc-venv/lib/python3.12/site-packages/sqlalchemy/sql/schema.py:3627: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    return util.wrap_callable(lambda ctx: fn(), fn)  # type: ignore
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+8 passed, 18 warnings in 1.89s
+release_exit:0
+...........                                                              [100%]
+=============================== warnings summary ===============================
+tests/test_trust_articles_api.py: 32 warnings
+  /tmp/tc-venv/lib/python3.12/site-packages/sqlalchemy/sql/schema.py:3627: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    return util.wrap_callable(lambda ctx: fn(), fn)  # type: ignore
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+11 passed, 32 warnings in 2.13s
+api_exit:0
