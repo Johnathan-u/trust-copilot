@@ -36,8 +36,13 @@ async def get_flag(
     db: Session = Depends(get_db),
     session: dict = Depends(require_can_admin),
 ):
-    """Check if a specific feature flag is enabled."""
+    """Check if a specific feature flag is enabled.
+
+    A security-control name is 400. Those controls are not flags.
+    """
     workspace_id = session["workspace_id"]
+    if ff_service.is_security_sensitive_flag(flag_name):
+        raise HTTPException(status_code=400, detail="Security controls are not feature flags")
     enabled = ff_service.is_enabled(db, workspace_id, flag_name)
     default, description = ff_service.KNOWN_FLAGS.get(flag_name, (False, ""))
     return {
@@ -56,12 +61,15 @@ async def set_flag(
     """Set a feature flag for the current workspace.
 
     ``set_flag`` writes the audit event in the same transaction as the row.
-    A name this handler rejects is not a change and is not audited.
+    A name this handler rejects is not a change and is not audited. A
+    security-control name is 400 and is not stored.
     """
     workspace_id = session["workspace_id"]
     flag_name = req.flag_name.strip().lower()
     if not flag_name or len(flag_name) > 128:
         raise HTTPException(status_code=400, detail="Invalid flag name")
+    if ff_service.is_security_sensitive_flag(flag_name):
+        raise HTTPException(status_code=400, detail="Security controls are not feature flags")
     raw_id = session.get("user_id")
     raw_email = session.get("email")
     result = ff_service.set_flag(

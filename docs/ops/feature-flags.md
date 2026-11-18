@@ -64,6 +64,20 @@ variable is off.
 
 ## What a flag does not do
 
-A flag does not grant a role. Turning a flag off does not disable CSRF, session
-checks, or audit. Nothing in the build fails when an advertised feature is
-flagged off. Those checks are still open on TC-16-006.
+A flag does not grant a role. A name for a security control is rejected.
+`PATCH /api/feature-flags` and `GET /api/feature-flags/{flag_name}` return 400
+with `Security controls are not feature flags`, and no audit row is written.
+`is_enabled` and `set_flag` raise `SecurityFlagError` instead of resolving that
+name to false. `POST /api/feature-flags/seed` skips such a name.
+
+The controls are permissions, CSRF, sessions, authentication, MFA, audit, rate
+limits and tenant isolation. The match is the flag's path segment: it equals
+one of those tokens, or starts with the token and an underscore (`csrf`,
+`audit.write`, `auth_bypass`, `rate-limit.login`). A product flag such as
+`connectors.aws` is not in that set.
+
+The build runs `python -m pytest tests/release/test_feature_flags.py -q` from
+`apps/api` as part of `pytest -rs`. That file fails if a denylist of security
+modules looks a flag up, and if Gmail or Slack (the flags named by the public
+home and pricing pages) is default-off. Other registered flags may default off
+only when the test classifies them as not advertised.
