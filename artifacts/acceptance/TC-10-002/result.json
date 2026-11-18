@@ -38,7 +38,8 @@
     "psycopg2_binary": "2.9.13",
     "pgvector": "0.5.1",
     "postgresql_image": "pgvector/pgvector:pg16@sha256:7b822b0aac60967beb1ea5e576b8602c94c300a157d187f385ae3e0da199b90a",
-    "postgresql": "16.15"
+    "postgresql": "16.15 (inferred)",
+    "postgresql_note": "Inferred from the workflow comment on the image digest. The CI logs show only the image digest and do not print SELECT version()."
   },
   "runs": [
     {
@@ -103,6 +104,7 @@
     "The 38 dots and the following 33 dots are the 71 tests in tests/release/test_job_retries.py. None failed and none skipped. Both build logs have the same two lines.",
     "The one suite skip is tests/test_trust_scoring_blind.py:33. It is the known external_data skip.",
     "The local run of 3952d2d skipped 28 database tests because Postgres was not listening. Those skips are not the CI result.",
+    "PostgreSQL 16.15 is inferred from the workflow comment on the image digest. The CI logs show only that digest and do not print SELECT version().",
     "Reviewer signoff is still pending. This record does not accept the ticket."
   ]
 }

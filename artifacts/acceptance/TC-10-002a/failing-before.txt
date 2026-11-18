@@ -1,0 +1,30 @@
+# TC-10-002a failing before the wording fix
+# Base: d69109e720df3a697ff4af9eb1b222ae1553a628 (origin/master)
+# The new test file was present. docs/release/tickets/TC-10-002.md,
+# artifacts/acceptance/TC-10-002/README.md and result.json were still the master text.
+# Command, from apps/api:
+#   python -m pytest tests/release/test_tc10002a_rollback_wording.py -q --tb=short -p no:cacheprovider
+# Python 3.12.3, pytest 9.1.1. The tests read files only. 2026-11-18T08:02:00Z.
+# Result: 2 failed, 0 passed. Exit 1.
+
+FF                                                                       [100%]
+=================================== FAILURES ===================================
+______________ test_tc10002a_rollback_doc_names_archive_restores _______________
+tests/release/test_tc10002a_rollback_wording.py:40: in test_tc10002a_rollback_doc_names_archive_restores
+    assert phrase not in lowered, phrase
+E   AssertionError: does not put those rows back
+E   assert 'does not pu...se rows back' not in '# tc-10-002...remove it.\n'
+E
+E     'does not put those rows back' is contained here:
+E       ing again does not put those rows back. take a backup before any downgrade.
+E     ?           ++++++++++++++++++++++++++++
+E
+E         **safe tc-10-002-only rollback:** deploy an application build that does not schedule retries, and leave `jobs.next_attempt_at` in place. the column is nullable and additive; older code ignores it. `job_retry_base_seconds` and `job_retry_max_seconds` change only the delay (including clamping it to 0). they do not turn retries off. if the column itself has to go, add a forward migration that drops only `jobs.next_attempt_at`. do not downgrade the chain to remove it.
+_____________ test_tc10002a_postgresql_16_15_is_labelled_inferred ______________
+tests/release/test_tc10002a_rollback_wording.py:51: in test_tc10002a_postgresql_16_15_is_labelled_inferred
+    readme_line = next(
+E   StopIteration
+=========================== short test summary info ============================
+FAILED tests/release/test_tc10002a_rollback_wording.py::test_tc10002a_rollback_doc_names_archive_restores
+FAILED tests/release/test_tc10002a_rollback_wording.py::test_tc10002a_postgresql_16_15_is_labelled_inferred
+2 failed in 0.21s
