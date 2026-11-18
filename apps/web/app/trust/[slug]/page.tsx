@@ -300,7 +300,7 @@ export default function WorkspaceTrustPage() {
                 {formError && (
                   <div
                     role="alert"
-                    className="mb-4 rounded-xl bg-red-500/10 p-3 text-sm text-red-400"
+                    className="mb-4 rounded-xl bg-[var(--tc-danger-surface)] p-3 text-sm text-tc-danger"
                   >
                     {formError}
                   </div>
@@ -357,7 +357,7 @@ export default function WorkspaceTrustPage() {
                     <textarea
                       required
                       maxLength={PUBLIC_INTAKE_MESSAGE_MAX}
-                      className="w-full rounded-xl border border-[var(--tc-border)] bg-white/5 px-3 py-2.5 text-[var(--tc-text)] placeholder:text-[var(--tc-muted)] focus:border-[var(--tc-primary)] focus:outline-none focus:ring-1 focus:ring-[var(--tc-primary)] min-h-[100px]"
+                      className="w-full rounded-xl border border-[var(--tc-border)] bg-[var(--tc-surface-overlay)] px-3 py-2.5 text-[var(--tc-text)] placeholder:text-[var(--tc-muted)] focus:border-[var(--tc-primary)] focus:outline-none focus:ring-1 focus:ring-[var(--tc-primary)] min-h-[100px]"
                       placeholder="Your message"
                       value={form.message}
                       onChange={(e) =>

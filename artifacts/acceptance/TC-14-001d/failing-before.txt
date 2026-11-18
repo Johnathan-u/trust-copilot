@@ -1,0 +1,165 @@
+TC-14-001d failing-before
+Widened detector: apps/web/tests/unit/ui-raw-palette.test.ts
+The new test scans apps/web/app and apps/web/components and skips app/globals.css (token definitions).
+The page sources are master d69109e720df3a697ff4af9eb1b222ae1553a628. Only the test file differed from that tree.
+Command (cwd apps/web): npx vitest run tests/unit/ui-raw-palette.test.ts --reporter=verbose
+Node: v24.22.1
+Vitest: 5.0.5
+apps/web/app hits=93 files=7
+apps/web/components hits=2 files=1
+Total hits=95
+Exit: 1
+
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - ESM syntax in a file loaded as CommonJS (vitest.config.ts:1:1). Use a `.mjs` extension or set `"type": "module"` in the closest package.json
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+
+ RUN  v5.0.5 /agent/repos/trust-copilot/apps/web
+
+ ✓ tests/unit/ui-raw-palette.test.ts > components/ui raw colours > flags palette classes and rgba colours, and allows token utilities 3ms
+ ✓ tests/unit/ui-raw-palette.test.ts > components/ui raw colours > keeps raw palette classes and rgba colours out of components/ui 5ms
+ ✓ tests/unit/ui-raw-palette.test.ts > dashboard and layout raw colours > keeps raw palette classes and hex/rgb colours out of app/dashboard 30ms
+ ✓ tests/unit/ui-raw-palette.test.ts > dashboard and layout raw colours > keeps raw palette classes and hex/rgb colours out of components/layout 2ms
+ × tests/unit/ui-raw-palette.test.ts > app and components raw colours > keeps raw palette classes and hex/rgb colours out of app and components, except token definitions 45ms
+   → apps/web/app hits=93 files=7
+31 page.tsx
+22 vendor-response/page.tsx
+16 pricing/page.tsx
+15 login/page.tsx
+5 register/page.tsx
+3 trust/[slug]/page.tsx
+1 forgot-password/page.tsx
+apps/web/components hits=2 files=1
+2 CommandPalette.tsx: expected [ …(95) ] to deeply equal []
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/unit/ui-raw-palette.test.ts > app and components raw colours > keeps raw palette classes and hex/rgb colours out of app and components, except token definitions
+AssertionError: apps/web/app hits=93 files=7
+31 page.tsx
+22 vendor-response/page.tsx
+16 pricing/page.tsx
+15 login/page.tsx
+5 register/page.tsx
+3 trust/[slug]/page.tsx
+1 forgot-password/page.tsx
+apps/web/components hits=2 files=1
+2 CommandPalette.tsx: expected [ …(95) ] to deeply equal []
+
+- Expected
++ Received
+
+- []
++ [
++   "forgot-password/page.tsx 59: bg-white/5",
++   "login/page.tsx 255: text-white",
++   "login/page.tsx 258: #7c96ff",
++   "login/page.tsx 258: #5b7cff",
++   "login/page.tsx 258: #2dd4bf",
++   "login/page.tsx 259: rgba(91,124,255,0.35)",
++   "login/page.tsx 313: bg-white/5",
++   "login/page.tsx 334: bg-white/5",
++   "login/page.tsx 432: text-white",
++   "login/page.tsx 435: #7c96ff",
++   "login/page.tsx 435: #5b7cff",
++   "login/page.tsx 435: #2dd4bf",
++   "login/page.tsx 436: rgba(91,124,255,0.35)",
++   "login/page.tsx 469: bg-white/5",
++   "login/page.tsx 518: hover:bg-white/10",
++   "login/page.tsx 545: hover:bg-white/10",
++   "page.tsx 49: rgba(91,124,255,0.25)",
++   "page.tsx 49: rgba(91,124,255,0.08)",
++   "page.tsx 65: rgba(91,124,255,0.3)",
++   "page.tsx 65: rgba(91,124,255,0.08)",
++   "page.tsx 66: rgba(91,124,255,0.1)",
++   "page.tsx 88: rgba(91,124,255,0.3)",
++   "page.tsx 88: rgba(91,124,255,0.08)",
++   "page.tsx 143: bg-white/5",
++   "page.tsx 143: rgba(91,124,255,0.4)",
++   "page.tsx 143: rgba(91,124,255,0.25)",
++   "page.tsx 155: rgba(34,197,94,0.12)",
++   "page.tsx 155: rgba(34,197,94,0.18)",
++   "page.tsx 162: rgba(91,124,255,0.25)",
++   "page.tsx 220: rgba(8,17,31,0.82)",
++   "page.tsx 233: #7c96ff",
++   "page.tsx 233: #5b7cff",
++   "page.tsx 233: #2dd4bf",
++   "page.tsx 234: rgba(91,124,255,0.3)",
++   "page.tsx 262: bg-white/5",
++   "page.tsx 262: hover:bg-white/10",
++   "page.tsx 283: bg-white/5",
++   "page.tsx 303: rgba(91,124,255,0.18)",
++   "page.tsx 327: hover:bg-white/10",
++   "page.tsx 441: text-red-400",
++   "page.tsx 445: text-red-400",
++   "page.tsx 449: text-red-400",
++   "page.tsx 453: text-red-400",
++   "page.tsx 530: hover:bg-white/10",
++   "page.tsx 545: #7c96ff",
++   "page.tsx 545: #5b7cff",
++   "page.tsx 545: #2dd4bf",
++   "pricing/page.tsx 39: rgba(8,17,31,0.82)",
++   "pricing/page.tsx 52: #7c96ff",
++   "pricing/page.tsx 52: #5b7cff",
++   "pricing/page.tsx 52: #2dd4bf",
++   "pricing/page.tsx 53: rgba(91,124,255,0.3)",
++   "pricing/page.tsx 83: rgba(91,124,255,0.14)",
++   "pricing/page.tsx 107: bg-white/5",
++   "pricing/page.tsx 107: rgba(91,124,255,0.4)",
++   "pricing/page.tsx 107: rgba(91,124,255,0.25)",
++   "pricing/page.tsx 119: rgba(34,197,94,0.12)",
++   "pricing/page.tsx 119: rgba(34,197,94,0.18)",
++   "pricing/page.tsx 127: rgba(91,124,255,0.25)",
++   "pricing/page.tsx 127: rgba(91,124,255,0.06)",
++   "pricing/page.tsx 219: #7c96ff",
++   "pricing/page.tsx 219: #5b7cff",
++   "pricing/page.tsx 219: #2dd4bf",
++   "register/page.tsx 103: text-white",
++   "register/page.tsx 106: #7c96ff",
++   "register/page.tsx 106: #5b7cff",
++   "register/page.tsx 106: #2dd4bf",
++   "register/page.tsx 107: rgba(91,124,255,0.35)",
++   "trust/[slug]/page.tsx 303: bg-red-500/10",
++   "trust/[slug]/page.tsx 303: text-red-400",
++   "trust/[slug]/page.tsx 360: bg-white/5",
++   "vendor-response/page.tsx 33: #5b7cff",
++   "vendor-response/page.tsx 81: #5b7cff",
++   "vendor-response/page.tsx 301: #5b7cff",
++   "vendor-response/page.tsx 301: #5b7cff",
++   "vendor-response/page.tsx 305: text-red-400",
++   "vendor-response/page.tsx 312: text-white",
++   "vendor-response/page.tsx 312: #5b7cff",
++   "vendor-response/page.tsx 312: #4a6ae8",
++   "vendor-response/page.tsx 312: #3b5bdb",
++   "vendor-response/page.tsx 312: #5b7cff",
++   "vendor-response/page.tsx 324: #0c0e14",
++   "vendor-response/page.tsx 329: text-white",
++   "vendor-response/page.tsx 329: #5b7cff",
++   "vendor-response/page.tsx 332: #e4e6ea",
++   "vendor-response/page.tsx 347: bg-amber-500/15",
++   "vendor-response/page.tsx 347: text-amber-400",
++   "vendor-response/page.tsx 348: bg-blue-500/15",
++   "vendor-response/page.tsx 348: text-blue-400",
++   "vendor-response/page.tsx 349: bg-emerald-500/15",
++   "vendor-response/page.tsx 349: text-emerald-400",
++   "vendor-response/page.tsx 352: bg-slate-500/15",
++   "vendor-response/page.tsx 352: text-slate-400",
++   "CommandPalette.tsx 190: bg-white/10",
++   "CommandPalette.tsx 191: hover:bg-white/5",
++ ]
+
+ ❯ tests/unit/ui-raw-palette.test.ts:133:27
+    131|     const hits = [...app.hits, ...components.hits]
+    132|     const summary = [app.summary, components.summary].join('\n')
+    133|     expect(hits, summary).toEqual([])
+       |                           ^
+    134|   })
+    135| })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 4 passed (5)
+   Start at  03:53:18
+   Duration  263ms (tests 72%, transform 18%, import 7%, worker 2%)
