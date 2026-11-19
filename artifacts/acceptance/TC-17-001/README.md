@@ -115,7 +115,7 @@ Claude requested changes on #307. The first upgrade was skipping the bind of exi
 
 Acknowledge now requires `article_version_id`. A stale id is 409. The current published id is 200. The dashboard sends the published version it is showing.
 
-The code SHA for those fixes is `383467b54170b143eccd738d61956548d1b87880`. The commit that records this line does not change the route, migration, or tests.
+The code SHA for those fixes is `383467b54170b143eccd738d61956548d1b87880`. CI is green on `559bd9d7f3c921a0400929d411770bfb4292d28c`. Run IDs are in `ci-runs.md`. The commit that records this line does not change the route, migration, or tests.
 
 `npm run test:unit` in `apps/web` on that tree, Node 24.22.1: 60 files, 551 passed. `npm run typecheck` exited 0.
 
