@@ -66,6 +66,13 @@ type Question = {
     citations?: string
     outcome_code?: string | null
     outcome?: ApiErrorInfo | null
+    draft_revision?: {
+      id: number
+      revision_number: number
+      text: string | null
+      citations?: string | null
+      status: string
+    } | null
   } | null
 }
 
@@ -117,6 +124,10 @@ export default function ReviewPage() {
   const [errorToast, setErrorToast] = useState<string | null>(null)
   const [errorTitle, setErrorTitle] = useState('Could not complete that')
   const [approving, setApproving] = useState(false)
+  const [revisionBusy, setRevisionBusy] = useState<{
+    questionId: number
+    action: 'regenerate' | 'approve'
+  } | null>(null)
   const [approveToast, setApproveToast] = useState(false)
   const [savePhase, setSavePhase] = useState<Record<number, RowSavePhase>>({})
   const saveSeq = useRef<Map<number, number>>(new Map())
@@ -487,6 +498,65 @@ export default function ReviewPage() {
     }
     queueMicrotask(doRequest)
   }
+
+  const postRevision = useCallback(
+    async (
+      questionId: number,
+      action: 'regenerate' | 'approve',
+      url: string,
+      failure: string
+    ) => {
+      setRevisionBusy({ questionId, action })
+      setErrorToast(null)
+      try {
+        const response = await fetch(url, {
+          method: 'POST',
+          credentials: 'include',
+        })
+        const data = await response.json().catch(() => null)
+        if (!response.ok) {
+          const notice = mutationFailureNotice(response.status, data, failure)
+          showFailure(notice.message, notice.title)
+          return
+        }
+        refresh()
+      } catch {
+        showFailure(failure)
+      } finally {
+        setRevisionBusy(null)
+      }
+    },
+    [refresh, showFailure]
+  )
+
+  const regenerateAnswer = useCallback(
+    (question: Question) => {
+      const answerId = question.answer?.id
+      if (!answerId || revisionBusy != null) return
+      void postRevision(
+        question.id,
+        'regenerate',
+        `/api/answers/${answerId}/regenerate`,
+        'The draft was not started. Try again.'
+      )
+    },
+    [postRevision, revisionBusy]
+  )
+
+  const approveDraft = useCallback(
+    (question: Question) => {
+      const answerId = question.answer?.id
+      const revisionId = question.answer?.draft_revision?.id
+      if (!answerId || !revisionId || revisionBusy != null) return
+      void postRevision(
+        question.id,
+        'approve',
+        `/api/answers/${answerId}/revisions/${revisionId}/approve`,
+        'The draft was not approved. Try again.'
+      )
+    },
+    [postRevision, revisionBusy]
+  )
 
   const handleExport = async (format: 'xlsx' | 'docx' = 'xlsx') => {
     if (workspaceId == null) {
@@ -1184,6 +1254,24 @@ export default function ReviewPage() {
                     } catch {
                       /* ignore */
                     }
+                    const draft =
+                      q.answer?.status === 'approved'
+                        ? (q.answer.draft_revision ?? null)
+                        : null
+                    let draftCitations: Citation[] = []
+                    try {
+                      if (draft?.citations)
+                        draftCitations = JSON.parse(
+                          draft.citations
+                        ) as Citation[]
+                    } catch {
+                      /* ignore */
+                    }
+                    const rowBusy = revisionBusy?.questionId === q.id
+                    const approvingDraft =
+                      rowBusy && revisionBusy?.action === 'approve'
+                    const regenerating =
+                      rowBusy && revisionBusy?.action === 'regenerate'
                     return (
                       <tr
                         key={q.id}
@@ -1204,46 +1292,116 @@ export default function ReviewPage() {
                           {q.text}
                         </td>
                         <td className="px-6 py-4">
-                          <div className="min-w-[300px] rounded-2xl border border-tc-border bg-tc-surface-sunken p-3.5 text-[var(--tc-text)] leading-snug shadow-inner">
-                            <textarea
-                              data-question-id={q.id}
-                              className="w-full min-h-[80px] resize-y rounded-lg border-0 bg-transparent p-0 text-[var(--tc-text)] placeholder:text-[var(--tc-muted)] focus:ring-0"
-                              value={q.answer?.text ?? ''}
-                              onBlur={() => handleBlur(q)}
-                              onChange={(e) => {
-                                const v = e.target.value
-                                updateAnswerText(q.id, v)
-                                scheduleSave(q.id, v.trim(), q.answer?.id)
-                              }}
-                              placeholder="Edit draft answer…"
-                            />
-                            <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-[var(--tc-muted)]">
-                              <span data-save-state={savePhase[q.id] ?? 'idle'}>
-                                {rowSaveLabel(savePhase[q.id])}
-                              </span>
-                              <span>·</span>
-                              <span>
-                                {citations.length > 0
-                                  ? `${citations.length} supporting source${citations.length !== 1 ? 's' : ''}`
-                                  : 'No supporting evidence linked yet'}
-                              </span>
-                              {q.answer?.outcome &&
-                              q.answer.outcome.code !==
-                                VERIFIED_GROUNDED_OUTCOME ? (
-                                <>
-                                  <span>·</span>
-                                  <span
-                                    data-outcome-code={q.answer.outcome.code}
-                                    title={q.answer.outcome.code}
-                                  >
-                                    {presentActionFailure({
-                                      data: q.answer.outcome,
-                                    })?.message ?? q.answer.outcome.message}
-                                  </span>
-                                </>
-                              ) : null}
+                          {draft ? (
+                            <div
+                              className="grid min-w-[300px] gap-3 lg:grid-cols-2"
+                              data-answer-comparison="open"
+                            >
+                              <div
+                                data-approved-answer
+                                className="rounded-2xl border border-tc-border bg-tc-surface-sunken p-3.5 text-[var(--tc-text)] leading-snug shadow-inner"
+                              >
+                                <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-[var(--tc-muted)]">
+                                  Approved
+                                </p>
+                                <p className="whitespace-pre-wrap">
+                                  {q.answer?.text || 'No approved text'}
+                                </p>
+                                <p className="mt-2 text-xs text-[var(--tc-muted)]">
+                                  {citations.length > 0
+                                    ? `${citations.length} supporting source${citations.length !== 1 ? 's' : ''}`
+                                    : 'No supporting evidence linked yet'}
+                                  . Export uses this approved answer until the
+                                  draft is approved.
+                                </p>
+                              </div>
+                              <div
+                                data-draft-revision={draft.revision_number}
+                                className="rounded-2xl border border-tc-border bg-tc-surface-sunken p-3.5 text-[var(--tc-text)] leading-snug shadow-inner"
+                              >
+                                <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-[var(--tc-muted)]">
+                                  Draft revision {draft.revision_number}
+                                </p>
+                                <p className="whitespace-pre-wrap">
+                                  {draft.text || 'No draft text'}
+                                </p>
+                                <p className="mt-2 text-xs text-[var(--tc-muted)]">
+                                  {draftCitations.length > 0
+                                    ? `${draftCitations.length} supporting source${draftCitations.length !== 1 ? 's' : ''}`
+                                    : 'No supporting evidence linked yet'}
+                                </p>
+                                <button
+                                  type="button"
+                                  className="mt-3 rounded-xl border border-[var(--tc-border)] bg-tc-surface-sunken px-2.5 py-1.5 text-xs text-[var(--tc-text)] hover:bg-[var(--tc-hover)] disabled:opacity-60"
+                                  data-approve-draft-state={
+                                    approvingDraft ? 'pending' : 'idle'
+                                  }
+                                  disabled={rowBusy}
+                                  onClick={() => approveDraft(q)}
+                                >
+                                  {approvingDraft
+                                    ? 'Approving draft'
+                                    : 'Approve draft'}
+                                </button>
+                              </div>
                             </div>
-                          </div>
+                          ) : (
+                            <div className="min-w-[300px] rounded-2xl border border-tc-border bg-tc-surface-sunken p-3.5 text-[var(--tc-text)] leading-snug shadow-inner">
+                              <textarea
+                                data-question-id={q.id}
+                                className="w-full min-h-[80px] resize-y rounded-lg border-0 bg-transparent p-0 text-[var(--tc-text)] placeholder:text-[var(--tc-muted)] focus:ring-0"
+                                value={q.answer?.text ?? ''}
+                                onBlur={() => handleBlur(q)}
+                                onChange={(e) => {
+                                  const v = e.target.value
+                                  updateAnswerText(q.id, v)
+                                  scheduleSave(q.id, v.trim(), q.answer?.id)
+                                }}
+                                placeholder="Edit draft answer…"
+                              />
+                              <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-[var(--tc-muted)]">
+                                <span
+                                  data-save-state={savePhase[q.id] ?? 'idle'}
+                                >
+                                  {rowSaveLabel(savePhase[q.id])}
+                                </span>
+                                <span>·</span>
+                                <span>
+                                  {citations.length > 0
+                                    ? `${citations.length} supporting source${citations.length !== 1 ? 's' : ''}`
+                                    : 'No supporting evidence linked yet'}
+                                </span>
+                                {q.answer?.outcome &&
+                                q.answer.outcome.code !==
+                                  VERIFIED_GROUNDED_OUTCOME ? (
+                                  <>
+                                    <span>·</span>
+                                    <span
+                                      data-outcome-code={q.answer.outcome.code}
+                                      title={q.answer.outcome.code}
+                                    >
+                                      {presentActionFailure({
+                                        data: q.answer.outcome,
+                                      })?.message ?? q.answer.outcome.message}
+                                    </span>
+                                  </>
+                                ) : null}
+                              </div>
+                            </div>
+                          )}
+                          {q.answer?.status === 'approved' && q.answer.id ? (
+                            <button
+                              type="button"
+                              className="mt-2 rounded-xl border border-[var(--tc-border)] bg-tc-surface-sunken px-2.5 py-1.5 text-xs text-[var(--tc-text)] hover:bg-[var(--tc-hover)] disabled:opacity-60"
+                              data-regenerate-state={
+                                regenerating ? 'pending' : 'idle'
+                              }
+                              disabled={rowBusy}
+                              onClick={() => regenerateAnswer(q)}
+                            >
+                              {regenerating ? 'Regenerating' : 'Regenerate'}
+                            </button>
+                          ) : null}
                         </td>
                         <td className="px-6 py-4">
                           <select

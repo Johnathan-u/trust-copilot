@@ -878,7 +878,7 @@ def run_export(job: Job, session, payload: dict) -> None:
     from pathlib import Path
 
     from app.models import Answer, ExportRecord, Question, Questionnaire
-    from app.services.answer_evidence_policy import answer_text_for_export
+    from app.services.answer_revisions import answers_for_export
     from app.services.docx_writer import create_export_from_questionnaire_docx
     from app.services.fallback_export import create_fallback_pack_docx
     from app.services.xlsx_writer import (
@@ -949,13 +949,7 @@ def run_export(job: Job, session, payload: dict) -> None:
         }
         for q in questions
     ]
-    question_to_answer = {
-        q.id: answer_text_for_export(
-            text=(answers[q.id].text if answers.get(q.id) else None),
-            status=(answers[q.id].status if answers.get(q.id) else None),
-        )
-        for q in questions
-    }
+    question_to_answer = answers_for_export(questions, answers)
     offset = settings.export_answer_col_offset
     from app.core.job_errors import EXPORT_MAPPING_STALE, TerminalJobError
     from app.services.export_service import (

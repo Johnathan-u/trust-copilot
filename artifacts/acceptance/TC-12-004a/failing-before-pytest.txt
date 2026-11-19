@@ -1,0 +1,57 @@
+# SHA of product code: master (0387a992). New tests only.
+# cwd apps/api
+# Python 3.12.3
+TC_REQUIRE_DB=1 TC_TEST_DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:5432/trustcopilot_test python -m pytest tests/release/test_tc12004a_regenerate_keeps_approved.py -q --tb=line
+FEFFFFFFF                                                                [100%]
+==================================== ERRORS ====================================
+_ ERROR at setup of test_upgrade_downgrade_upgrade_restores_revisions_and_leaves_the_answer _
+E   FileNotFoundError: [Errno 2] No such file or directory: '/agent/repos/trust-copilot/apps/api/alembic/versions/tc12004a_answer_revisions.py'
+=================================== FAILURES ===================================
+E   KeyError: 'tc12004a_answer_revisions'
+/agent/repos/trust-copilot/apps/api/tests/release/test_tc12004a_regenerate_keeps_approved.py:93: KeyError: 'tc12004a_answer_revisions'
+E   AssertionError: {"detail":"Not Found"}
+    assert 404 == 200
+     +  where 404 = <Response [404 Not Found]>.status_code
+/agent/repos/trust-copilot/apps/api/tests/release/test_tc12004a_regenerate_keeps_approved.py:383: AssertionError: {"detail":"Not Found"}
+E   AssertionError: {"detail":"Not Found"}
+    assert 404 == 200
+     +  where 404 = <Response [404 Not Found]>.status_code
+/agent/repos/trust-copilot/apps/api/tests/release/test_tc12004a_regenerate_keeps_approved.py:407: AssertionError: {"detail":"Not Found"}
+E   AssertionError: {"detail":"Not Found"}
+    assert 404 == 200
+     +  where 404 = <Response [404 Not Found]>.status_code
+/agent/repos/trust-copilot/apps/api/tests/release/test_tc12004a_regenerate_keeps_approved.py:428: AssertionError: {"detail":"Not Found"}
+E   AssertionError: {"detail":"Not Found"}
+    assert 404 == 200
+     +  where 404 = <Response [404 Not Found]>.status_code
+/agent/repos/trust-copilot/apps/api/tests/release/test_tc12004a_regenerate_keeps_approved.py:454: AssertionError: {"detail":"Not Found"}
+E   AssertionError: {"detail":"Not Found"}
+    assert 404 == 403
+     +  where 404 = <Response [404 Not Found]>.status_code
+/agent/repos/trust-copilot/apps/api/tests/release/test_tc12004a_regenerate_keeps_approved.py:516: AssertionError: {"detail":"Not Found"}
+E   AssertionError: {"detail":"Not Found"}
+    assert 404 == 403
+     +  where 404 = <Response [404 Not Found]>.status_code
+/agent/repos/trust-copilot/apps/api/tests/release/test_tc12004a_regenerate_keeps_approved.py:516: AssertionError: {"detail":"Not Found"}
+E   AssertionError: {"detail":"Not Found"}
+    assert 404 == 409
+     +  where 404 = <Response [404 Not Found]>.status_code
+/agent/repos/trust-copilot/apps/api/tests/release/test_tc12004a_regenerate_keeps_approved.py:516: AssertionError: {"detail":"Not Found"}
+=============================== warnings summary ===============================
+tests/release/test_tc12004a_regenerate_keeps_approved.py: 63 warnings
+  /tmp/tc-venv/lib/python3.12/site-packages/sqlalchemy/sql/schema.py:3627: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    return util.wrap_callable(lambda ctx: fn(), fn)  # type: ignore
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/release/test_tc12004a_regenerate_keeps_approved.py::test_answer_revision_migration_is_the_only_head
+FAILED tests/release/test_tc12004a_regenerate_keeps_approved.py::test_regenerate_leaves_the_approved_row_byte_identical_and_inserts_a_draft
+FAILED tests/release/test_tc12004a_regenerate_keeps_approved.py::test_a_second_regenerate_keeps_the_approved_row_and_opens_a_new_draft
+FAILED tests/release/test_tc12004a_regenerate_keeps_approved.py::test_read_and_export_keep_the_approved_revision_until_the_draft_is_approved
+FAILED tests/release/test_tc12004a_regenerate_keeps_approved.py::test_approving_the_draft_supersedes_the_previous_approved_text
+FAILED tests/release/test_tc12004a_regenerate_keeps_approved.py::test_a_rejected_regenerate_does_not_change_the_answer_row[permission-403]
+FAILED tests/release/test_tc12004a_regenerate_keeps_approved.py::test_a_rejected_regenerate_does_not_change_the_answer_row[foreign-403]
+FAILED tests/release/test_tc12004a_regenerate_keeps_approved.py::test_a_rejected_regenerate_does_not_change_the_answer_row[unapproved-409]
+ERROR tests/release/test_tc12004a_regenerate_keeps_approved.py::test_upgrade_downgrade_upgrade_restores_revisions_and_leaves_the_answer
+8 failed, 63 warnings, 1 error in 0.97s
+exit 1

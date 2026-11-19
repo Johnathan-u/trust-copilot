@@ -49,6 +49,7 @@ from app.models import (
     WorkspaceControl,
 )
 from app.models.ai_mapping import QuestionMappingPreference
+from app.services.answer_revisions import open_drafts_by_answer, revision_payload
 from app.services.compliance_hooks import (
     get_mapping_timing_snapshot,
     match_keywords_for_mapping_row,
@@ -692,6 +693,8 @@ def get_questionnaire(
         if qids
         else {}
     )
+    # TC-12-004a: the answer fields stay the approved row. An open draft is beside them.
+    drafts = open_drafts_by_answer(db, [a.id for a in answers.values()])
     _log.info(
         "API: questionnaire fetched questionnaire_id=%s workspace_id=%s questions=%s answers=%s",
         qnr_id,
@@ -737,6 +740,7 @@ def get_questionnaire(
                         "outcome": outcome_payload(
                             getattr(answers[q.id], "outcome_code", None), _rid
                         ),
+                        "draft_revision": revision_payload(drafts.get(answers[q.id].id)),
                     }
                     if q.id in answers
                     else None

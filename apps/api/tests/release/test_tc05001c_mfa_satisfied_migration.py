@@ -35,11 +35,20 @@ def _revisions() -> dict[str, str | None]:
 
 
 @pytest.mark.unit
-def test_mfa_satisfied_revision_is_the_only_head():
+def test_mfa_satisfied_revision_stays_on_the_single_head():
+    """Parent stays tc17001. A later revision may be the only head."""
     revisions = _revisions()
     assert revisions[REVISION] == PARENT
     heads = [revision for revision in revisions if revision not in set(revisions.values())]
-    assert heads == [REVISION]
+    assert len(heads) == 1
+    current: str | None = heads[0]
+    seen: set[str] = set()
+    while isinstance(current, str) and current not in seen:
+        if current == REVISION:
+            break
+        seen.add(current)
+        current = revisions.get(current)
+    assert current == REVISION
 
 
 @pytest.fixture

@@ -1,0 +1,273 @@
+# unfixed review page. cwd apps/web
+npx vitest run tests/unit/review-approved-draft.test.ts
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - ESM syntax in a file loaded as CommonJS (vitest.config.ts:1:1). Use a `.mjs` extension or set `"type": "module"` in the closest package.json
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+
+ RUN  v5.0.5 /agent/repos/trust-copilot/apps/web
+
+ ❯ tests/unit/review-approved-draft.test.ts (1 test | 1 failed) 1060ms
+   ❯ approved answer beside a draft revision (1)
+     × shows the approved text and the draft, and posts regenerate and reapproval 1059ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/unit/review-approved-draft.test.ts > approved answer beside a draft revision > shows the approved text and the draft, and posts regenerate and reapproval
+TestingLibraryElementError: Unable to find an element with the text: Fresh draft from regenerate.. This could be because the text is broken up by multiple elements. In this case, you can provide a function for your text matcher to make your matcher more flexible.
+
+Ignored nodes: comments, script, style
+[36m<body>[39m
+  [36m<div>[39m
+    [36m<div[39m
+      [33mclass[39m=[32m"min-w-0 p-7"[39m
+    [36m>[39m
+      [36m<div[39m
+        [33mclass[39m=[32m"grid min-w-[1120px] gap-6"[39m
+      [36m>[39m
+        [36m<section[39m
+          [33mclass[39m=[32m"grid grid-cols-1 gap-6 lg:grid-cols-[1.35fr_0.75fr]"[39m
+        [36m>[39m
+          [36m<div[39m
+            [33mclass[39m=[32m"relative overflow-hidden rounded-3xl border border-[var(--tc-border)] p-6"[39m
+            [33mstyle[39m=[32m"background: var(--tc-panel); box-shadow: var(--tc-shadow); backdrop-filter: blur(20px);"[39m
+          [36m>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"inline-flex items-center gap-2 rounded-full border px-3 py-2 text-xs"[39m
+              [33mstyle[39m=[32m"background: var(--tc-info-surface); border-color: var(--tc-primary); color: var(--tc-soft);"[39m
+            [36m>[39m
+              [0mAnswer review · Evidence-backed drafts[0m
+            [36m</div>[39m
+            [36m<h1[39m
+              [33mclass[39m=[32m"mt-4 text-3xl font-bold leading-tight tracking-tight text-[var(--tc-text)]"[39m
+            [36m>[39m
+              [0mReview draft answers, check supporting evidence, then approve and export.[0m
+            [36m</h1>[39m
+            [36m<p[39m
+              [33mclass[39m=[32m"mt-3 max-w-[740px] text-[15px] leading-relaxed text-[var(--tc-muted)]"[39m
+            [36m>[39m
+              [0mDraft answers are generated from your indexed documents. Edit text anytime, open supporting evidence when you need detail, then use bulk actions for approval. Export when the questionnaire is ready to share.[0m
+            [36m</p>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"mt-5 flex flex-wrap items-center gap-3"[39m
+            [36m>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"contents"[39m
+                [33mdata-microcopy[39m=[32m"actions"[39m
+              [36m>[39m
+                [36m<button[39m
+                  [33mclass[39m=[32m"inline-flex items-center justify-center gap-tc-2 font-semibold transition-colors duration-[var(--tc-duration-fast)] ease-[var(--tc-ease)] disabled:cursor-not-allowed disabled:border-[var(--tc-disabled-border)] disabled:bg-[var(--tc-disabled-bg)] disabled:text-[var(--tc-disabled-fg)] disabled:hover:bg-[var(--tc-disabled-bg)] border border-transparent bg-tc-primary-solid text-tc-on-primary hover:bg-[var(--tc-primary-solid-hover)] min-h-tc-8 rounded-tc-sm px-tc-4 py-tc-3 text-tc-label "[39m
+                  [33mdata-generate-state[39m=[32m"idle"[39m
+                [36m>[39m
+                  [0mGenerate[0m
+                [36m</button>[39m
+                [36m<button[39m
+                  [33mclass[39m=[32m"inline-flex items-center justify-center gap-tc-2 font-semibold transition-[background-color,border-color,text-decoration-color,fill,stroke] duration-[var(--tc-duration-fast)] ease-[var(--tc-ease)] disabled:cursor-not-allowed disabled:border-[var(--tc-disabled-border)] disabled:bg-[var(--tc-disabled-bg)] disabled:text-[var(--tc-disabled-fg)] disabled:hover:bg-[var(--tc-disabled-bg)] border border-transparent bg-transparent text-tc-text hover:bg-[var(--tc-hover)] min-h-tc-8 rounded-tc-sm px-tc-4 py-tc-3 text-tc-label "[39m
+                  [33mdata-export-state[39m=[32m"idle"[39m
+                [36m>[39m
+                  [0mExport XLSX[0m
+                [36m</button>[39m
+                [36m<button[39m
+                  [33mclass[39m=[32m"inline-flex items-center justify-center gap-tc-2 font-semibold transition-[background-color,border-color,text-decoration-color,fill,stroke] duration-[var(--tc-duration-fast)] ease-[var(--tc-ease)] disabled:cursor-not-allowed disabled:border-[var(--tc-disabled-border)] disabled:bg-[var(--tc-disabled-bg)] disabled:text-[var(--tc-disabled-fg)] disabled:hover:bg-[var(--tc-disabled-bg)] border border-transparent bg-transparent text-tc-text hover:bg-[var(--tc-hover)] min-h-tc-8 rounded-tc-sm px-tc-4 py-tc-3 text-tc-label "[39m
+                [36m>[39m
+                  [0mExport DOCX[0m
+                [36m</button>[39m
+              [36m</div>[39m
+              [36m<span[39m
+                [33mclass[39m=[32m"text-xs text-[var(--tc-muted)]"[39m
+              [36m>[39m
+                [0mAI settings: [0m
+                [0mgpt-4o-mini[0m
+                [0m · style[0m
+                [0m [0m
+                [0mbalanced[0m
+              [36m</span>[39m
+            [36m</div>[39m
+            [36m<p[39m
+              [33mclass[39m=[32m"mt-3 max-w-[740px] text-xs leading-relaxed text-[var(--tc-muted)]"[39m
+            [36m>[39m
+              [0mRows marked “needs more evidence” stay in the table for review; XLSX/DOCX exports replace them with a clear placeholder so they are not shared as if they were finalized answers.[0m
+            [36m</p>[39m
+          [36m</div>[39m
+          [36m<div[39m
+            [33mclass[39m=[32m"flex flex-col justify-center gap-3"[39m
+          [36m>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"flex items-center justify-between rounded-2xl border border-tc-border bg-tc-surface-sunken px-4 py-4"[39m
+            [36m>[39m
+              [36m<div>[39m
+                [36m<strong[39m
+                  [33mclass[39m=[32m"text-xl text-[var(--tc-text)]"[39m
+                [36m>[39m
+                  [0m1[0m
+                [36m</strong>[39m
+                [36m<br />[39m
+                [36m<span[39m
+                  [33mclass[39m=[32m"text-xs text-[var(--tc-muted)]"[39m
+                [36m>[39m
+                  [0mQuestions in this file[0m
+                [36m</span>[39m
+              [36m</div>[39m
+              [36m<span[39m
+                [33mclass[39m=[32m"rounded-xl border border-[var(--tc-border)] bg-tc-surface-sunken px-2 py-1 text-xs"[39m
+              [36m>[39m
+                [0mIn progress[0m
+              [36m</span>[39m
+            [36m</div>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"flex items-center justify-between rounded-2xl border border-tc-border bg-tc-surface-sunken px-4 py-4"[39m
+            [36m>[39m
+              [36m<div>[39m
+                [36m<strong[39m
+                  [33mclass[39m=[32m"text-xl text-[var(--tc-text)]"[39m
+                [36m>[39m
+                  [0m1[0m
+                  [0m / [0m
+                  [0m1[0m
+                [36m</strong>[39m
+                [36m<br />[39m
+                [36m<span[39m
+                  [33mclass[39m=[32m"text-xs text-[var(--tc-muted)]"[39m
+                [36m>[39m
+                  [0mDraft answers (real drafts)[0m
+                [36m</span>[39m
+              [36m</div>[39m
+              [36m<span[39m
+                [33mclass[39m=[32m"round...
+
+Ignored nodes: comments, script, style
+[36m<body>[39m
+  [36m<div>[39m
+    [36m<div[39m
+      [33mclass[39m=[32m"min-w-0 p-7"[39m
+    [36m>[39m
+      [36m<div[39m
+        [33mclass[39m=[32m"grid min-w-[1120px] gap-6"[39m
+      [36m>[39m
+        [36m<section[39m
+          [33mclass[39m=[32m"grid grid-cols-1 gap-6 lg:grid-cols-[1.35fr_0.75fr]"[39m
+        [36m>[39m
+          [36m<div[39m
+            [33mclass[39m=[32m"relative overflow-hidden rounded-3xl border border-[var(--tc-border)] p-6"[39m
+            [33mstyle[39m=[32m"background: var(--tc-panel); box-shadow: var(--tc-shadow); backdrop-filter: blur(20px);"[39m
+          [36m>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"inline-flex items-center gap-2 rounded-full border px-3 py-2 text-xs"[39m
+              [33mstyle[39m=[32m"background: var(--tc-info-surface); border-color: var(--tc-primary); color: var(--tc-soft);"[39m
+            [36m>[39m
+              [0mAnswer review · Evidence-backed drafts[0m
+            [36m</div>[39m
+            [36m<h1[39m
+              [33mclass[39m=[32m"mt-4 text-3xl font-bold leading-tight tracking-tight text-[var(--tc-text)]"[39m
+            [36m>[39m
+              [0mReview draft answers, check supporting evidence, then approve and export.[0m
+            [36m</h1>[39m
+            [36m<p[39m
+              [33mclass[39m=[32m"mt-3 max-w-[740px] text-[15px] leading-relaxed text-[var(--tc-muted)]"[39m
+            [36m>[39m
+              [0mDraft answers are generated from your indexed documents. Edit text anytime, open supporting evidence when you need detail, then use bulk actions for approval. Export when the questionnaire is ready to share.[0m
+            [36m</p>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"mt-5 flex flex-wrap items-center gap-3"[39m
+            [36m>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"contents"[39m
+                [33mdata-microcopy[39m=[32m"actions"[39m
+              [36m>[39m
+                [36m<button[39m
+                  [33mclass[39m=[32m"inline-flex items-center justify-center gap-tc-2 font-semibold transition-colors duration-[var(--tc-duration-fast)] ease-[var(--tc-ease)] disabled:cursor-not-allowed disabled:border-[var(--tc-disabled-border)] disabled:bg-[var(--tc-disabled-bg)] disabled:text-[var(--tc-disabled-fg)] disabled:hover:bg-[var(--tc-disabled-bg)] border border-transparent bg-tc-primary-solid text-tc-on-primary hover:bg-[var(--tc-primary-solid-hover)] min-h-tc-8 rounded-tc-sm px-tc-4 py-tc-3 text-tc-label "[39m
+                  [33mdata-generate-state[39m=[32m"idle"[39m
+                [36m>[39m
+                  [0mGenerate[0m
+                [36m</button>[39m
+                [36m<button[39m
+                  [33mclass[39m=[32m"inline-flex items-center justify-center gap-tc-2 font-semibold transition-[background-color,border-color,text-decoration-color,fill,stroke] duration-[var(--tc-duration-fast)] ease-[var(--tc-ease)] disabled:cursor-not-allowed disabled:border-[var(--tc-disabled-border)] disabled:bg-[var(--tc-disabled-bg)] disabled:text-[var(--tc-disabled-fg)] disabled:hover:bg-[var(--tc-disabled-bg)] border border-transparent bg-transparent text-tc-text hover:bg-[var(--tc-hover)] min-h-tc-8 rounded-tc-sm px-tc-4 py-tc-3 text-tc-label "[39m
+                  [33mdata-export-state[39m=[32m"idle"[39m
+                [36m>[39m
+                  [0mExport XLSX[0m
+                [36m</button>[39m
+                [36m<button[39m
+                  [33mclass[39m=[32m"inline-flex items-center justify-center gap-tc-2 font-semibold transition-[background-color,border-color,text-decoration-color,fill,stroke] duration-[var(--tc-duration-fast)] ease-[var(--tc-ease)] disabled:cursor-not-allowed disabled:border-[var(--tc-disabled-border)] disabled:bg-[var(--tc-disabled-bg)] disabled:text-[var(--tc-disabled-fg)] disabled:hover:bg-[var(--tc-disabled-bg)] border border-transparent bg-transparent text-tc-text hover:bg-[var(--tc-hover)] min-h-tc-8 rounded-tc-sm px-tc-4 py-tc-3 text-tc-label "[39m
+                [36m>[39m
+                  [0mExport DOCX[0m
+                [36m</button>[39m
+              [36m</div>[39m
+              [36m<span[39m
+                [33mclass[39m=[32m"text-xs text-[var(--tc-muted)]"[39m
+              [36m>[39m
+                [0mAI settings: [0m
+                [0mgpt-4o-mini[0m
+                [0m · style[0m
+                [0m [0m
+                [0mbalanced[0m
+              [36m</span>[39m
+            [36m</div>[39m
+            [36m<p[39m
+              [33mclass[39m=[32m"mt-3 max-w-[740px] text-xs leading-relaxed text-[var(--tc-muted)]"[39m
+            [36m>[39m
+              [0mRows marked “needs more evidence” stay in the table for review; XLSX/DOCX exports replace them with a clear placeholder so they are not shared as if they were finalized answers.[0m
+            [36m</p>[39m
+          [36m</div>[39m
+          [36m<div[39m
+            [33mclass[39m=[32m"flex flex-col justify-center gap-3"[39m
+          [36m>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"flex items-center justify-between rounded-2xl border border-tc-border bg-tc-surface-sunken px-4 py-4"[39m
+            [36m>[39m
+              [36m<div>[39m
+                [36m<strong[39m
+                  [33mclass[39m=[32m"text-xl text-[var(--tc-text)]"[39m
+                [36m>[39m
+                  [0m1[0m
+                [36m</strong>[39m
+                [36m<br />[39m
+                [36m<span[39m
+                  [33mclass[39m=[32m"text-xs text-[var(--tc-muted)]"[39m
+                [36m>[39m
+                  [0mQuestions in this file[0m
+                [36m</span>[39m
+              [36m</div>[39m
+              [36m<span[39m
+                [33mclass[39m=[32m"rounded-xl border border-[var(--tc-border)] bg-tc-surface-sunken px-2 py-1 text-xs"[39m
+              [36m>[39m
+                [0mIn progress[0m
+              [36m</span>[39m
+            [36m</div>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"flex items-center justify-between rounded-2xl border border-tc-border bg-tc-surface-sunken px-4 py-4"[39m
+            [36m>[39m
+              [36m<div>[39m
+                [36m<strong[39m
+                  [33mclass[39m=[32m"text-xl text-[var(--tc-text)]"[39m
+                [36m>[39m
+                  [0m1[0m
+                  [0m / [0m
+                  [0m1[0m
+                [36m</strong>[39m
+                [36m<br />[39m
+                [36m<span[39m
+                  [33mclass[39m=[32m"text-xs text-[var(--tc-muted)]"[39m
+                [36m>[39m
+                  [0mDraft answers (real drafts)[0m
+                [36m</span>[39m
+              [36m</div>[39m
+              [36m<span[39m
+                [33mclass[39m=[32m"round...
+ ❯ waitForWrapper node_modules/@testing-library/dom/dist/wait-for.js:163:27
+ ❯ node_modules/@testing-library/dom/dist/query-helpers.js:86:33
+ ❯ tests/unit/review-approved-draft.test.ts:122:36
+    120|     render(createElement(ReviewPage))
+    121|     const approvedNode = await screen.findByText(approved)
+    122|     const draftNode = await screen.findByText(draft)
+       |                                    ^
+    123|     expect(approvedNode.closest('[data-approved-answer]')).toBeTruthy()
+    124|     expect(draftNode.closest('[data-draft-revision="1"]')).toBeTruthy()
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed (1)
+   Start at  16:11:46
+   Duration  1.55s (tests 73%, environment 12%, import 8%, transform 7%)
+
+exit 1
