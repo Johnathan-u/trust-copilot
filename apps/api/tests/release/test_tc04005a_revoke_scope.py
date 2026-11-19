@@ -401,7 +401,10 @@ def test_self_service_revoke_all_still_deletes_every_session(scoped):
 
 
 def test_member_revocation_migration_is_the_single_head():
-    """The cutoff column is a real revision, parented on the previous single head."""
+    """The cutoff column is a real revision, parented on the previous single head.
+
+    A later revision may be the only head. This one stays on that chain.
+    """
     from pathlib import Path
 
     from alembic.config import Config
@@ -410,11 +413,22 @@ def test_member_revocation_migration_is_the_single_head():
     api_root = Path(__file__).resolve().parents[2]
     script = ScriptDirectory.from_config(Config(str(api_root / "alembic.ini")))
     heads = list(script.get_heads())
-    assert heads == ["tc04005a_member_revoked_at"]
-    revision = script.get_revision(heads[0])
+    assert len(heads) == 1
+    revision = script.get_revision("tc04005a_member_revoked_at")
+    assert revision is not None
     assert isinstance(revision.down_revision, str)
     assert revision.down_revision == "tc17005a_share_token"
-    assert len(heads[0]) <= 32
+    assert len(revision.revision) <= 32
+    current: str | None = heads[0]
+    seen: set[str] = set()
+    while current and current not in seen:
+        if current == "tc04005a_member_revoked_at":
+            break
+        seen.add(current)
+        down = script.get_revision(current).down_revision
+        assert isinstance(down, str)
+        current = down
+    assert current == "tc04005a_member_revoked_at"
     source = (api_root / "alembic" / "versions" / "tc04005a_member_revoked_at.py").read_text(
         encoding="utf-8"
     )

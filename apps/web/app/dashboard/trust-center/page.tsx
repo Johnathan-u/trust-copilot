@@ -27,15 +27,16 @@ import {
   listFromPayload,
   readSectionJson,
 } from '@/lib/section-load'
+import {
+  customerArticleText,
+  publishedPolicy,
+  type TrustArticleVersionFields,
+} from '@/lib/trustArticleVersion'
 
-type TrustArticle = {
+type TrustArticle = TrustArticleVersionFields & {
   id: number
   workspace_id: number | null
-  slug: string
   category: string | null
-  title: string
-  content: string | null
-  published: number
   is_policy: boolean
   created_at: string | null
   updated_at: string | null
@@ -187,7 +188,7 @@ export default function TrustCenterPage() {
       })
   }, [workspaceId, policiesAttempt])
 
-  useEffect(() => {
+  const loadAcknowledgments = () => {
     fetch('/api/trust-articles/policy-acknowledgments', {
       credentials: 'include',
     })
@@ -201,6 +202,10 @@ export default function TrustCenterPage() {
       .catch((error: unknown) => {
         if (!isAbortError(error)) setPoliciesFailure(failureOf(error))
       })
+  }
+
+  useEffect(() => {
+    loadAcknowledgments()
   }, [])
 
   const openAdd = () => {
@@ -237,6 +242,7 @@ export default function TrustCenterPage() {
     setError(null)
     try {
       if (editId) {
+        const editing = articles.find((article) => article.id === editId)
         const res = await fetch(`/api/trust-articles/${editId}`, {
           method: 'PATCH',
           credentials: 'include',
@@ -247,6 +253,8 @@ export default function TrustCenterPage() {
             content: form.content,
             category: form.category.trim() || null,
             is_policy: form.is_policy,
+            // Saving a published article approves the draft as the next version.
+            ...(editing && editing.published === 1 ? { published: 1 } : {}),
           }),
         })
         if (!res.ok) {
@@ -287,6 +295,8 @@ export default function TrustCenterPage() {
         }
       }
       load()
+      setPoliciesAttempt((value) => value + 1)
+      loadAcknowledgments()
       closeForm()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Request failed')
@@ -295,12 +305,20 @@ export default function TrustCenterPage() {
     }
   }
 
-  const acknowledgePolicy = async (articleId: number) => {
-    const res = await fetch(`/api/trust-articles/${articleId}/acknowledge`, {
+  const acknowledgePolicy = async (article: TrustArticle) => {
+    if (article.published_version_id == null) {
+      showToast('error', 'This policy has no published version')
+      return
+    }
+    const res = await fetch(`/api/trust-articles/${article.id}/acknowledge`, {
       method: 'POST',
       credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        article_version_id: article.published_version_id,
+      }),
     })
-    if (res.ok) setAcknowledged((prev) => new Set(prev).add(articleId))
+    if (res.ok) setAcknowledged((prev) => new Set(prev).add(article.id))
     else {
       const data = await res.json().catch(() => ({}))
       showToast('error', (data?.detail as string) || 'Failed to acknowledge')
@@ -404,33 +422,41 @@ export default function TrustCenterPage() {
             Policy repository
           </h2>
           <p className="mb-3 text-sm text-[var(--tc-muted)]">
-            Articles marked as policy. Acknowledge to record that you have read
-            them.
+            Articles marked as policy. Acknowledge records the published
+            version. A new published version requires acknowledgment again.
           </p>
           <div className="grid gap-3 sm:grid-cols-2">
-            {policies.map((p) => (
-              <Card
-                key={p.id}
-                className="flex items-center justify-between p-4"
-              >
-                <span className="font-medium text-[var(--tc-text)]">
-                  {p.title}
-                </span>
-                {acknowledged.has(p.id) ? (
-                  <span className="text-xs text-[var(--tc-success)]">
-                    Acknowledged
+            {policies.map((p) => {
+              const visible = customerArticleText(p)
+              const viewable = publishedPolicy(p)
+              return (
+                <Card
+                  key={p.id}
+                  className="flex items-center justify-between p-4"
+                >
+                  <span className="font-medium text-[var(--tc-text)]">
+                    {visible?.title ?? p.title}
                   </span>
-                ) : (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => acknowledgePolicy(p.id)}
-                  >
-                    Acknowledge
-                  </Button>
-                )}
-              </Card>
-            ))}
+                  {viewable && acknowledged.has(p.id) ? (
+                    <span className="text-xs text-[var(--tc-success)]">
+                      Acknowledged
+                    </span>
+                  ) : viewable ? (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => acknowledgePolicy(p)}
+                    >
+                      Acknowledge
+                    </Button>
+                  ) : (
+                    <span className="text-xs text-[var(--tc-muted)]">
+                      Not published
+                    </span>
+                  )}
+                </Card>
+              )
+            })}
           </div>
         </section>
       )}
@@ -442,7 +468,10 @@ export default function TrustCenterPage() {
           </h2>
           <div className="grid gap-4 sm:grid-cols-3">
             {SECTION_SLUGS.map(({ slug, label }) => {
-              const article = articles.find((a) => a.slug === slug)
+              const article = articles.find(
+                (item) => customerArticleText(item)?.slug === slug
+              )
+              const visible = article ? customerArticleText(article) : null
               return (
                 <Card key={slug} className="p-4">
                   <div className="flex items-start justify-between gap-2">
@@ -460,8 +489,8 @@ export default function TrustCenterPage() {
                     )}
                   </div>
                   <p className="mt-2 line-clamp-2 text-sm text-[var(--tc-muted)]">
-                    {article
-                      ? previewFromMarkdown(article.content, 120) ||
+                    {visible
+                      ? previewFromMarkdown(visible.content, 120) ||
                         'No content'
                       : `No article with slug "${slug}"`}
                   </p>

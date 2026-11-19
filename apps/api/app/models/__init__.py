@@ -10,7 +10,7 @@ from app.models.job import Job, JobKind, JobStatus
 from app.models.job_effect import JobEffect
 from app.models.questionnaire import Question, Questionnaire
 from app.models.user import User, WorkspaceMember
-from app.models.trust_article import TrustArticle
+from app.models.trust_article import TrustArticle, TrustArticleVersion
 from app.models.trust_request import TrustRequest
 from app.models.trust_request_note import TrustRequestNote
 from app.models.control import Control
@@ -157,6 +157,7 @@ __all__ = [
     "User",
     "Workspace",
     "TrustArticle",
+    "TrustArticleVersion",
     "TrustRequest",
     "TrustRequestNote",
     "Control",
