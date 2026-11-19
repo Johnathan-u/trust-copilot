@@ -1,0 +1,14 @@
+# SHA 69a5230ff8f1e197419644ee0cdf5fe326379f41
+# cwd apps/api
+# Python 3.12.3, pytest 9.1.1, PostgreSQL 16.15
+# database postgresql://postgres:postgres@127.0.0.1:5432/trustcopilot_test
+python -m pytest tests/release/test_job_idempotency.py::test_parse_crash_after_commit_does_not_duplicate_questions tests/release/test_job_idempotency.py::test_parse_crash_before_commit_applies_exactly_once tests/release/test_job_idempotency.py::test_parse_second_job_reconciles_instead_of_duplicating tests/release/test_job_idempotency.py::test_parse_stale_input_is_superseded -q --tb=line
+.....                                                                    [100%]
+=============================== warnings summary ===============================
+tests/release/test_job_idempotency.py::test_parse_stale_input_is_superseded[deleted]
+  /agent/repos/trust-copilot/apps/api/tests/release/test_job_idempotency.py:364: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    qnr.deleted_at = datetime.utcnow()
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+5 passed, 1 warning in 1.32s
+exit 0
