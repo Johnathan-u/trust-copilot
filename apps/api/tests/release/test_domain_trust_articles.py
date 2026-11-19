@@ -695,6 +695,49 @@ def test_acknowledgment_version_foreign_key_rejects_a_missing_version(
         _delete_slugs(db_session, slug)
 
 
+def test_revoke_acknowledgments_revokes_a_null_version_id(
+    client: TestClient, db_session: Session
+) -> None:
+    """A null version id is not the version being kept, so it is revoked."""
+    from datetime import datetime, timezone
+
+    from app.services.trust_article_versions import revoke_acknowledgments
+
+    _login_admin(client)
+    slug = _slug("null-version-revoke")
+    try:
+        created = client.post(
+            "/api/trust-articles/",
+            json={
+                "slug": slug,
+                "title": "Null version",
+                "content": "body",
+                "workspace_id": 1,
+                "is_policy": True,
+            },
+        )
+        assert created.status_code == 200, created.text
+        article_id = created.json()["id"]
+        version_id = created.json()["published_version_id"]
+        user = db_session.query(User).filter(User.email == "admin@trust.local").one()
+        ack = PolicyAcknowledgment(
+            user_id=user.id,
+            trust_article_id=article_id,
+            article_version_id=None,
+            workspace_id=1,
+            acknowledged_at=datetime.now(timezone.utc),
+        )
+        db_session.add(ack)
+        db_session.flush()
+        revoke_acknowledgments(db_session, article_id, keep_version_id=version_id)
+        db_session.flush()
+        db_session.refresh(ack)
+        assert ack.revoked_at is not None
+    finally:
+        db_session.rollback()
+        _delete_slugs(db_session, slug)
+
+
 def test_first_upgrade_binds_a_legacy_acknowledgment_without_revoking_it() -> None:
     """A first upgrade, with no downgrade archive, binds a legacy acknowledgment to version 1."""
     import os
