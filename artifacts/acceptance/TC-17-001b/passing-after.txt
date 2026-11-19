@@ -1,0 +1,22 @@
+Fixed _viewable_version. It returns the published snapshot and does not call
+approve_current_draft. PostgreSQL 16.15 on localhost, database trustcopilot_test.
+
+Command (apps/api):
+TC_REQUIRE_DB=1 python -m pytest tests/release/test_domain_trust_articles.py --tb=short -k "acknowledge_without_published_version or acknowledge_missing_version_row or acknowledge_current_version or admin_publish_still"
+
+============================= test session starts ==============================
+platform linux -- Python 3.12.3, pytest-9.1.1, pluggy-1.7.0
+rootdir: /agent/repos/trust-copilot/apps/api
+configfile: pyproject.toml
+plugins: anyio-4.15.1
+collected 18 items / 14 deselected / 4 selected
+
+tests/release/test_domain_trust_articles.py ....                         [100%]
+
+=============================== warnings summary ===============================
+tests/release/test_domain_trust_articles.py: 19 warnings
+  /tmp/tc-api-venv/lib/python3.12/site-packages/sqlalchemy/sql/schema.py:3627: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    return util.wrap_callable(lambda ctx: fn(), fn)  # type: ignore
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+================ 4 passed, 14 deselected, 19 warnings in 1.34s =================
