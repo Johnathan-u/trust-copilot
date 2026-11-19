@@ -1,0 +1,27 @@
+........FFFFF                                                            [100%]
+=================================== FAILURES ===================================
+E   KeyError: 'published_version'
+/agent/repos/trust-copilot/apps/api/tests/release/test_domain_trust_articles.py:310: KeyError: 'published_version'
+E   KeyError: 'published_version_id'
+/agent/repos/trust-copilot/apps/api/tests/release/test_domain_trust_articles.py:387: KeyError: 'published_version_id'
+E   AssertionError: {"detail":"Slug 'retry-create-30420db6' already exists"}
+    assert 400 == 200
+     +  where 400 = <Response [400 Bad Request]>.status_code
+/agent/repos/trust-copilot/apps/api/tests/release/test_domain_trust_articles.py:490: AssertionError: {"detail":"Slug 'retry-create-30420db6' already exists"}
+E   ModuleNotFoundError: No module named 'app.services.trust_article_versions'
+/agent/repos/trust-copilot/apps/api/tests/release/test_domain_trust_articles.py:548: ModuleNotFoundError: No module named 'app.services.trust_article_versions'
+E   TypeError: 'article_version_id' is an invalid keyword argument for PolicyAcknowledgment
+/tmp/tc-venv/lib/python3.12/site-packages/sqlalchemy/orm/decl_base.py:2193: TypeError: 'article_version_id' is an invalid keyword argument for PolicyAcknowledgment
+=============================== warnings summary ===============================
+tests/release/test_domain_trust_articles.py: 30 warnings
+  /tmp/tc-venv/lib/python3.12/site-packages/sqlalchemy/sql/schema.py:3627: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    return util.wrap_callable(lambda ctx: fn(), fn)  # type: ignore
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/release/test_domain_trust_articles.py::test_readers_see_the_published_version_not_the_draft
+FAILED tests/release/test_domain_trust_articles.py::test_new_version_and_unpublish_revoke_the_acknowledgment
+FAILED tests/release/test_domain_trust_articles.py::test_retried_create_returns_the_same_article
+FAILED tests/release/test_domain_trust_articles.py::test_publish_failure_rolls_back_and_retry_inserts_one
+FAILED tests/release/test_domain_trust_articles.py::test_acknowledgment_version_foreign_key_rejects_a_missing_version
+5 failed, 8 passed, 30 warnings in 3.74s

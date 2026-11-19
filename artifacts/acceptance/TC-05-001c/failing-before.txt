@@ -1,0 +1,144 @@
+Unfixed switch-workspace, SQLite. PostgreSQL cases skipped (no local test database).
+Command (apps/api): python -m pytest tests/release/test_switch_workspace_mfa.py --tb=line -rs
+
+============================= test session starts ==============================
+platform linux -- Python 3.12.3, pytest-9.1.1, pluggy-1.7.0
+rootdir: /agent/repos/trust-copilot/apps/api
+configfile: pyproject.toml
+plugins: anyio-4.15.1
+collected 12 items
+
+tests/release/test_switch_workspace_mfa.py FsFsFsFsFs.s                  [100%]
+
+=================================== FAILURES ===================================
+E   KeyError: 'requires_mfa_enrol'
+/agent/repos/trust-copilot/apps/api/tests/release/test_switch_workspace_mfa.py:225: KeyError: 'requires_mfa_enrol'
+E   KeyError: 'requires_mfa'
+/agent/repos/trust-copilot/apps/api/tests/release/test_switch_workspace_mfa.py:277: KeyError: 'requires_mfa'
+E   KeyError: 'mfa_token'
+/agent/repos/trust-copilot/apps/api/tests/release/test_switch_workspace_mfa.py:303: KeyError: 'mfa_token'
+E   AssertionError: assert False is True
+     +  where False = mfa_satisfied(<app.models.user_session.UserSession object at 0x7f12d14c8860>)
+     +    where <app.models.user_session.UserSession object at 0x7f12d14c8860> = session_row({'db': <sqlalchemy.orm.session.Session object at 0x7f12d160c8f0>, 'client': <starlette.testclient.TestClient object at 0x7f12d0516d20>, 'user': 1, 'source': 1, ...})
+/agent/repos/trust-copilot/apps/api/tests/release/test_switch_workspace_mfa.py:352: AssertionError: assert False is True
+E   KeyError: 'mfa_required_for_workspace'
+/agent/repos/trust-copilot/apps/api/tests/release/test_switch_workspace_mfa.py:367: KeyError: 'mfa_required_for_workspace'
+=============================== warnings summary ===============================
+tests/release/test_switch_workspace_mfa.py: 26 warnings
+  /tmp/tc-venv/lib/python3.12/site-packages/sqlalchemy/sql/schema.py:3627: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    return util.wrap_callable(lambda ctx: fn(), fn)  # type: ignore
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+SKIPPED [1] tests/release/test_switch_workspace_mfa.py:215: Postgres test database unavailable or incompatible (see 'WARNING: test DB setup failed' above; start the local test Postgres or set TC_TEST_DATABASE_URL to a local *_test database)
+SKIPPED [1] tests/release/test_switch_workspace_mfa.py:260: Postgres test database unavailable or incompatible (see 'WARNING: test DB setup failed' above; start the local test Postgres or set TC_TEST_DATABASE_URL to a local *_test database)
+SKIPPED [1] tests/release/test_switch_workspace_mfa.py:295: Postgres test database unavailable or incompatible (see 'WARNING: test DB setup failed' above; start the local test Postgres or set TC_TEST_DATABASE_URL to a local *_test database)
+SKIPPED [1] tests/release/test_switch_workspace_mfa.py:321: Postgres test database unavailable or incompatible (see 'WARNING: test DB setup failed' above; start the local test Postgres or set TC_TEST_DATABASE_URL to a local *_test database)
+SKIPPED [1] tests/release/test_switch_workspace_mfa.py:355: Postgres test database unavailable or incompatible (see 'WARNING: test DB setup failed' above; start the local test Postgres or set TC_TEST_DATABASE_URL to a local *_test database)
+SKIPPED [1] tests/release/test_switch_workspace_mfa.py:376: Postgres test database unavailable or incompatible (see 'WARNING: test DB setup failed' above; start the local test Postgres or set TC_TEST_DATABASE_URL to a local *_test database)
+============= 5 failed, 1 passed, 6 skipped, 26 warnings in 1.64s ==============
+
+
+Command (apps/web): npm run test:unit -- tests/unit/switch-workspace-mfa.test.ts
+Node 24.22.1
+
+
+> trust-copilot-web@0.1.0 test:unit
+> vitest run tests/unit/switch-workspace-mfa.test.ts
+
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - ESM syntax in a file loaded as CommonJS (vitest.config.ts:1:1). Use a `.mjs` extension or set `"type": "module"` in the closest package.json
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+
+ RUN  v5.0.5 /agent/repos/trust-copilot/apps/web
+
+ ❯ tests/unit/switch-workspace-mfa.test.ts (4 tests | 4 failed) 229ms
+   ❯ switchWorkspace MFA flag (4)
+     × refreshes mfa_required_for_workspace from the current session after a switch 68ms
+     × clears a stale requirement when the switched workspace does not require MFA 54ms
+     × adopts the enrol-only session flag after a switch 53ms
+     × does not adopt the target role when the switch requires a fresh challenge 53ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 4 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/unit/switch-workspace-mfa.test.ts > switchWorkspace MFA flag > refreshes mfa_required_for_workspace from the current session after a switch
+AssertionError: expected false to be true // Object.is equality
+
+- Expected
++ Received
+
+- true
++ false
+
+ ❯ tests/unit/switch-workspace-mfa.test.ts:84:64
+     82|     })
+     83|
+     84|     expect(rendered.result.current.mfa_required_for_workspace).toBe(tr…
+       |                                                                ^
+     85|     expect(rendered.result.current.workspace?.id).toBe(2)
+     86|     expect(rendered.result.current.workspace?.role).toBe('admin')
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/4]⎯
+
+ FAIL  tests/unit/switch-workspace-mfa.test.ts > switchWorkspace MFA flag > clears a stale requirement when the switched workspace does not require MFA
+AssertionError: expected true to be false // Object.is equality
+
+- Expected
++ Received
+
+- false
++ true
+
+ ❯ tests/unit/switch-workspace-mfa.test.ts:112:64
+    110|     })
+    111|
+    112|     expect(rendered.result.current.mfa_required_for_workspace).toBe(fa…
+       |                                                                ^
+    113|     expect(rendered.result.current.workspace?.role).toBe('editor')
+    114|   })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/4]⎯
+
+ FAIL  tests/unit/switch-workspace-mfa.test.ts > switchWorkspace MFA flag > adopts the enrol-only session flag after a switch
+AssertionError: expected false to be true // Object.is equality
+
+- Expected
++ Received
+
+- true
++ false
+
+ ❯ tests/unit/switch-workspace-mfa.test.ts:140:64
+    138|     })
+    139|
+    140|     expect(rendered.result.current.mfa_required_for_workspace).toBe(tr…
+       |                                                                ^
+    141|     expect(rendered.result.current.workspace?.role).toBe('mfa_enrol')
+    142|     expect(rendered.result.current.permissions.can_admin).toBe(false)
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/4]⎯
+
+ FAIL  tests/unit/switch-workspace-mfa.test.ts > switchWorkspace MFA flag > does not adopt the target role when the switch requires a fresh challenge
+AssertionError: expected true to be false // Object.is equality
+
+- Expected
++ Received
+
+- false
++ true
+
+ ❯ tests/unit/switch-workspace-mfa.test.ts:164:64
+    162|
+    163|     await act(async () => {
+    164|       expect(await rendered.result.current.switchWorkspace(2)).toBe(fa…
+       |                                                                ^
+    165|     })
+    166|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/4]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  4 failed (4)
+   Start at  13:24:47
+   Duration  609ms (tests 43%, environment 35%, import 12%, transform 9%, worker 1%)

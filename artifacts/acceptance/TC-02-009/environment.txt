@@ -1,0 +1,5 @@
+SHA: 69a5230ff8f1e197419644ee0cdf5fe326379f41
+Python: 3.12.3
+pytest: 9.1.1
+PostgreSQL: not used (workflow file checks only)
+Database: none

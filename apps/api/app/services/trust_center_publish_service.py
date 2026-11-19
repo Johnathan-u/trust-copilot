@@ -5,9 +5,10 @@ from datetime import datetime, timezone  # noqa: F401
 
 from sqlalchemy.orm import Session
 
+from app.models.framework_control import FrameworkControl
 from app.models.trust_article import TrustArticle
 from app.models.workspace_control import WorkspaceControl
-from app.models.framework_control import FrameworkControl
+from app.services.trust_article_versions import approve_current_draft
 
 logger = logging.getLogger(__name__)
 
@@ -56,6 +57,8 @@ def auto_publish_approved_controls(db: Session, workspace_id: int) -> dict:
             existing.title = title
             existing.content = content
             existing.published = 1
+            db.flush()
+            approve_current_draft(db, existing)
             updated += 1
         else:
             article = TrustArticle(
@@ -66,6 +69,8 @@ def auto_publish_approved_controls(db: Session, workspace_id: int) -> dict:
                 published=1,
             )
             db.add(article)
+            db.flush()
+            approve_current_draft(db, article)
             created += 1
 
     db.flush()
