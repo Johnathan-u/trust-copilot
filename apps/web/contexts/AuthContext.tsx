@@ -152,8 +152,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         } catch {
           data = null
         }
-        // A challenge does not change the cookie. Do not adopt the target role
-        // or keep the previous workspace's MFA flag as if the switch landed.
+        // A challenge does not change the cookie. Do not adopt the target role.
         if (data?.requires_mfa === true) {
           const token = data.mfa_token
           if (typeof token === 'string' && token.length > 0) {
@@ -161,13 +160,55 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           }
           return false
         }
-        await pull()
+        const switchedId =
+          typeof data?.workspace_id === 'number' ? data.workspace_id : null
+        const role = typeof data?.role === 'string' ? data.role : ''
+        if (data && switchedId != null && role) {
+          setState((s) => ({
+            ...s,
+            workspace: {
+              id: switchedId,
+              name:
+                typeof data.workspace_name === 'string'
+                  ? data.workspace_name
+                  : (s.workspace?.name ?? ''),
+              slug:
+                typeof data.workspace_slug === 'string'
+                  ? data.workspace_slug
+                  : s.workspace?.slug,
+              role,
+            },
+            permissions: {
+              can_edit: ['admin', 'editor'].includes(role),
+              can_review: ['admin', 'editor', 'reviewer'].includes(role),
+              can_admin: role === 'admin',
+              can_export: ['admin', 'editor'].includes(role),
+            },
+            ...(typeof data.mfa_required_for_workspace === 'boolean'
+              ? { mfa_required_for_workspace: data.mfa_required_for_workspace }
+              : {}),
+          }))
+        }
+        // Reload /me when it agrees with the switch. That refreshes
+        // mfa_required_for_workspace. A stale /me for the previous workspace
+        // must not put the old workspace back.
+        try {
+          const me = await fetch('/api/auth/me', { credentials: 'include' })
+          if (me.ok) {
+            const body = (await me.json()) as MeResponse
+            if (switchedId == null || body.workspace_id === switchedId) {
+              setState((s) => ({ ...parseMe(body), requestId: s.requestId }))
+            }
+          }
+        } catch {
+          // The switch response already updated the visible workspace.
+        }
         return true
       } catch {
         return false
       }
     },
-    [pull, router]
+    [router]
   )
 
   useEffect(() => {

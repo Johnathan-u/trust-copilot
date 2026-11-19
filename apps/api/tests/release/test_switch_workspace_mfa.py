@@ -149,7 +149,9 @@ def switch_state(request):
         db.query(WorkspaceMember).filter(WorkspaceMember.user_id == ids["user"]).delete(
             synchronize_session=False
         )
-        db.query(Workspace).filter(Workspace.id.in_(workspace_ids)).delete(synchronize_session=False)
+        db.query(Workspace).filter(Workspace.id.in_(workspace_ids)).delete(
+            synchronize_session=False
+        )
         db.query(User).filter(User.id == ids["user"]).delete(synchronize_session=False)
         db.commit()
         assert counts(db) == before

@@ -2388,9 +2388,7 @@ async def switch_workspace(
             user = db.query(User).filter(User.id == user_id).first()
             if user is None:
                 raise HTTPException(status_code=401, detail="User not found")
-            return _mfa_challenge_response(
-                db, user, member, details={"source": "switch-workspace"}
-            )
+            return _mfa_challenge_response(db, user, member, details={"source": "switch-workspace"})
     persistent = session.get("cookie_persistent") is True
     token = sign_session(
         user_id=user_id,
