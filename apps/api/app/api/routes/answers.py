@@ -209,9 +209,7 @@ def regenerate_answer(
             detail="Only an approved answer can be regenerated into a new draft.",
         )
     try:
-        produced = generate_explicit_draft(
-            db, question, questionnaire.workspace_id, questionnaire
-        )
+        produced = generate_explicit_draft(db, question, questionnaire.workspace_id, questionnaire)
         revision = insert_draft_revision(db, answer, produced)
         db.commit()
     except ModelCallError as exc:

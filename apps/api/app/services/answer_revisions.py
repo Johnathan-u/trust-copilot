@@ -43,10 +43,14 @@ def _citations_json(value: Any) -> str | None:
 
 
 def _raw_answer(db: Session, answer_id: int) -> dict[str, Any]:
-    row = db.execute(
-        sql_text("SELECT * FROM answers WHERE id = :id"),
-        {"id": answer_id},
-    ).mappings().one()
+    row = (
+        db.execute(
+            sql_text("SELECT * FROM answers WHERE id = :id"),
+            {"id": answer_id},
+        )
+        .mappings()
+        .one()
+    )
     return {key: row[key] for key in row.keys()}
 
 

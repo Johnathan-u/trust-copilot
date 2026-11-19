@@ -21,9 +21,7 @@ class AnswerRevision(Base):
 
     __tablename__ = "answer_revisions"
     __table_args__ = (
-        UniqueConstraint(
-            "answer_id", "revision_number", name="uq_answer_revisions_answer_number"
-        ),
+        UniqueConstraint("answer_id", "revision_number", name="uq_answer_revisions_answer_number"),
     )
 
     id = Column(Integer, primary_key=True, index=True)

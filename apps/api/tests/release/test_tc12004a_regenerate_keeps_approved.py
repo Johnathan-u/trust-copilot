@@ -63,9 +63,9 @@ def _produced(text_value: str, fingerprint: str) -> dict:
 
 def _raw_answer(db: Session, answer_id: int) -> dict:
     db.expire_all()
-    row = db.execute(
-        text("SELECT * FROM answers WHERE id = :id"), {"id": answer_id}
-    ).mappings().one()
+    row = (
+        db.execute(text("SELECT * FROM answers WHERE id = :id"), {"id": answer_id}).mappings().one()
+    )
     return dict(row)
 
 
@@ -200,9 +200,7 @@ def test_upgrade_downgrade_upgrade_restores_revisions_and_leaves_the_answer(migr
         tables = set(inspect(connection).get_table_names())
         assert "tc12004a_revision_archive" not in tables
         restored = connection.execute(
-            text(
-                "SELECT text, status, revision_number FROM answer_revisions WHERE answer_id = 7"
-            )
+            text("SELECT text, status, revision_number FROM answer_revisions WHERE answer_id = 7")
         ).one()
         assert tuple(restored) == ("Fresh draft", "draft", 1)
     assert answer_row() == before
@@ -355,9 +353,7 @@ def review_api(migrated_db):
             Workspace,
         ):
             if owned[model]:
-                db.query(model).filter(model.id.in_(owned[model])).delete(
-                    synchronize_session=False
-                )
+                db.query(model).filter(model.id.in_(owned[model])).delete(synchronize_session=False)
         db.commit()
         db.close()
 
@@ -453,9 +449,7 @@ def test_approving_the_draft_supersedes_the_previous_approved_text(review_api):
         created = http.post(f"/api/answers/{env['approved_id']}/regenerate")
         assert created.status_code == 200, created.text
         revision_id = created.json()["draft_revision"]["id"]
-        approved = http.post(
-            f"/api/answers/{env['approved_id']}/revisions/{revision_id}/approve"
-        )
+        approved = http.post(f"/api/answers/{env['approved_id']}/revisions/{revision_id}/approve")
         assert approved.status_code == 200, approved.text
         read = http.get(
             f"/api/questionnaires/{env['questionnaire_id']}?workspace_id={env['workspace_id']}"
@@ -473,9 +467,7 @@ def test_approving_the_draft_supersedes_the_previous_approved_text(review_api):
     assert by_status["applied"].text == FIRST_DRAFT
     assert "draft" not in by_status
     answer = next(
-        item["answer"]
-        for item in read.json()["questions"]
-        if item["id"] == env["question"].id
+        item["answer"] for item in read.json()["questions"] if item["id"] == env["question"].id
     )
     assert answer["text"] == FIRST_DRAFT
     assert answer["status"] == "approved"
