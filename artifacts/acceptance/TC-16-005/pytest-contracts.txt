@@ -1,0 +1,8 @@
+# SHA 69a5230ff8f1e197419644ee0cdf5fe326379f41
+# cwd apps/api
+# Python 3.12.3, pytest 9.1.1, PostgreSQL 16.15
+# database postgresql://postgres:postgres@127.0.0.1:5432/trustcopilot_test
+python -m pytest tests/test_api_contracts.py -q --tb=line
+...........                                                              [100%]
+11 passed in 1.91s
+exit 0

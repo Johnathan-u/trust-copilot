@@ -1,0 +1,80 @@
+# SHA 69a5230ff8f1e197419644ee0cdf5fe326379f41
+# cwd apps/api
+# Python 3.12.3, pytest 9.1.1, PostgreSQL 16.15
+# database postgresql://postgres:postgres@127.0.0.1:5432/trustcopilot_test
+python -m pytest tests/release/test_job_idempotency.py::test_generate_never_overwrites_approved_or_newer_answers tests/release/test_job_idempotency.py::test_upsert_guard_rechecks_answer_approved_mid_run tests/release/test_job_idempotency.py::test_upsert_keeps_approval_committed_after_reread_before_write tests/release/test_job_idempotency.py::test_sweep_keeps_approval_committed_after_guard_check tests/release/test_job_retries.py::test_write_guard_does_not_protect_llm_error_placeholders tests/release/test_provider_adapter.py::test_cache_hit_is_grounded_unverified_never_grounded tests/release/test_provider_adapter.py::test_cache_hit_and_fresh_generation_are_distinguished -q --tb=line
+.......                                                                  [100%]
+=============================== warnings summary ===============================
+tests/release/test_job_idempotency.py::test_generate_never_overwrites_approved_or_newer_answers
+  /agent/repos/trust-copilot/apps/api/tests/release/test_job_idempotency.py:585: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    old = datetime.utcnow() - timedelta(hours=2)
+
+tests/release/test_job_idempotency.py::test_generate_never_overwrites_approved_or_newer_answers
+  /agent/repos/trust-copilot/apps/api/tests/release/test_job_idempotency.py:611: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    created_at=datetime.utcnow() - timedelta(minutes=5),
+
+tests/release/test_job_idempotency.py::test_generate_never_overwrites_approved_or_newer_answers
+tests/release/test_job_idempotency.py::test_generate_never_overwrites_approved_or_newer_answers
+tests/release/test_job_idempotency.py::test_upsert_guard_rechecks_answer_approved_mid_run
+  /tmp/tc-venv/lib/python3.12/site-packages/sqlalchemy/sql/schema.py:3627: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    return util.wrap_callable(lambda ctx: fn(), fn)  # type: ignore
+
+tests/release/test_job_idempotency.py::test_generate_never_overwrites_approved_or_newer_answers
+tests/release/test_job_idempotency.py::test_generate_never_overwrites_approved_or_newer_answers
+tests/release/test_job_idempotency.py::test_upsert_guard_rechecks_answer_approved_mid_run
+tests/release/test_job_idempotency.py::test_upsert_keeps_approval_committed_after_reread_before_write
+  /agent/repos/trust-copilot/apps/api/app/services/answer_generation.py:1920: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    "updated_at": datetime.utcnow(),
+
+tests/release/test_job_idempotency.py::test_generate_never_overwrites_approved_or_newer_answers
+  /agent/repos/trust-copilot/apps/api/app/services/answer_generation.py:1798: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    now = datetime.utcnow()
+
+tests/release/test_job_idempotency.py::test_upsert_guard_rechecks_answer_approved_mid_run
+  /agent/repos/trust-copilot/apps/api/tests/release/test_job_idempotency.py:680: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    created_at=datetime.utcnow() - timedelta(hours=1),
+
+tests/release/test_job_idempotency.py::test_upsert_guard_rechecks_answer_approved_mid_run
+  /agent/repos/trust-copilot/apps/api/tests/release/test_job_idempotency.py:681: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    updated_at=datetime.utcnow() - timedelta(hours=1),
+
+tests/release/test_job_idempotency.py::test_upsert_guard_rechecks_answer_approved_mid_run
+  /agent/repos/trust-copilot/apps/api/tests/release/test_job_idempotency.py:685: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    guard = AnswerWriteGuard(datetime.utcnow() - timedelta(minutes=30))
+
+tests/release/test_job_idempotency.py::test_upsert_keeps_approval_committed_after_reread_before_write
+  /agent/repos/trust-copilot/apps/api/tests/release/test_job_idempotency.py:1452: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    old = datetime.utcnow() - timedelta(hours=1)
+
+tests/release/test_job_idempotency.py::test_upsert_keeps_approval_committed_after_reread_before_write
+  /agent/repos/trust-copilot/apps/api/tests/release/test_job_idempotency.py:1462: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    guard = AnswerWriteGuard(datetime.utcnow() - timedelta(minutes=30))
+
+tests/release/test_job_idempotency.py::test_upsert_keeps_approval_committed_after_reread_before_write
+tests/release/test_job_idempotency.py::test_sweep_keeps_approval_committed_after_guard_check
+  /agent/repos/trust-copilot/apps/api/tests/release/test_job_idempotency.py:1440: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    "updated_at": datetime.utcnow(),
+
+tests/release/test_job_idempotency.py::test_sweep_keeps_approval_committed_after_guard_check
+  /agent/repos/trust-copilot/apps/api/tests/release/test_job_idempotency.py:1491: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    old = datetime.utcnow() - timedelta(hours=1)
+
+tests/release/test_job_idempotency.py::test_sweep_keeps_approval_committed_after_guard_check
+  /agent/repos/trust-copilot/apps/api/tests/release/test_job_idempotency.py:1502: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    guard = AnswerWriteGuard(datetime.utcnow())
+
+tests/release/test_job_idempotency.py::test_sweep_keeps_approval_committed_after_guard_check
+  /agent/repos/trust-copilot/apps/api/app/services/answer_generation.py:1670: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    "updated_at": datetime.utcnow(),
+
+tests/release/test_job_retries.py::test_write_guard_does_not_protect_llm_error_placeholders
+  /agent/repos/trust-copilot/apps/api/tests/release/test_job_retries.py:940: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    cutoff = datetime.utcnow() - timedelta(hours=1)
+
+tests/release/test_job_retries.py::test_write_guard_does_not_protect_llm_error_placeholders
+  /agent/repos/trust-copilot/apps/api/tests/release/test_job_retries.py:942: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    newer = datetime.utcnow()
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+7 passed, 22 warnings in 2.29s
+exit 0

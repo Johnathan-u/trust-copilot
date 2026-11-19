@@ -1,0 +1,16 @@
+# SHA 69a5230ff8f1e197419644ee0cdf5fe326379f41
+# cwd apps/api
+# Python 3.12.3, pytest 9.1.1, PostgreSQL 16.15
+# database postgresql://postgres:postgres@127.0.0.1:5432/trustcopilot_test
+python -m pytest tests/release/test_principal_contract.py::test_workspace_switch_uses_current_active_target_membership tests/test_security_remediation.py::TestSwitchWorkspaceSessionId tests/test_multi_tenant.py::TestControlsListIsolation::test_switch_workspace_shows_correct_controls -q --tb=line
+...........                                                              [100%]
+=============================== warnings summary ===============================
+tests/release/test_principal_contract.py: 50 warnings
+tests/test_security_remediation.py: 8 warnings
+tests/test_multi_tenant.py: 3 warnings
+  /tmp/tc-venv/lib/python3.12/site-packages/sqlalchemy/sql/schema.py:3627: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    return util.wrap_callable(lambda ctx: fn(), fn)  # type: ignore
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+11 passed, 61 warnings in 2.53s
+exit 0
