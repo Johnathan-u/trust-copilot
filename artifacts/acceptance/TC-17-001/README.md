@@ -128,3 +128,7 @@ From `apps/api`, `DATABASE_URL` pointed at `trustcopilot_test`, `TRUST_COPILOT_T
 A synthetic published article, version id 19, title `Keep`, content `v1`, and an acknowledgment bound to that version and workspace 1 were inserted. `alembic downgrade tc04005a_member_revoked_at` exited 0. `trust_article_versions` was gone. `tc17001_version_archive` held `(19, Keep, v1)`. `tc17001_ack_binding_archive` held version 19 and workspace 1. `alembic upgrade head` exited 0. The version row was `(19, Keep, v1, 1)`, `published_version_id` was 19, and the acknowledgment was version 19, workspace 1, `revoked_at` null. The synthetic article was then deleted.
 
 `tests/release/test_trust_article_slug_workspace.py` also downgrades through this revision and upgrades to head. It passed in the neighbor run above.
+
+## Records revision 35
+
+CI run IDs for the accepted #307 head `07cbc176531edb9d5e58878a5574e43d4c4a4d91` are in `ci-runs.md`. Push run 44455944772 and pull_request run 44455950570. Squash-merged as `7fea456dde7a8ed3148e11045d5488a77004aff4`. Records revision 35 marks the parent DONE. The `IS DISTINCT FROM` fix is not in that squash.

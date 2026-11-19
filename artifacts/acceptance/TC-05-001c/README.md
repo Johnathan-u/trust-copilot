@@ -1,6 +1,6 @@
 # TC-05-001c evidence
 
-Local runs only. CI run ids are not recorded here.
+Local runs only. CI run ids for the merged head are in [ci-runs.md](ci-runs.md). Records revision 35 closes the child.
 
 Unfixed code (`failing-before.txt`):
 
