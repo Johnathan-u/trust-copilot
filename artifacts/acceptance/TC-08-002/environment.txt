@@ -1,0 +1,6 @@
+SHA: 69a5230ff8f1e197419644ee0cdf5fe326379f41
+Python: 3.12.3
+pytest: 9.1.1
+PostgreSQL: 16.15 (Ubuntu 16.15-0ubuntu0.24.04.1)
+pgvector: 0.6.0
+Database: trustcopilot_test on 127.0.0.1:5432
