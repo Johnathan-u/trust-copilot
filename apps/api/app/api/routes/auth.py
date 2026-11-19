@@ -155,6 +155,67 @@ def _store_mfa_login_token(db: Session, user: User, member: WorkspaceMember) -> 
     return raw
 
 
+def _enabled_mfa_factor(factor: UserMfa | None) -> bool:
+    """True when this factor can complete a login challenge.
+
+    A disabled setup, an administrator re-enrolment, and an undecryptable
+    reset marker are not an enabled factor.
+    """
+    if factor is None or not factor.enabled:
+        return False
+    stored = factor.totp_secret_encrypted
+    if mfa_reenrol_required(stored) or mfa_reenrol_pending(stored):
+        return False
+    return True
+
+
+def _session_mfa_satisfied(db: Session, user_id: int, session_id: str | None) -> bool:
+    """True only when this stored session was created after a completed challenge.
+
+    A missing row or a false flag is not satisfied. Sessions from before the
+    column existed are false and must challenge again.
+    """
+    if type(user_id) is not int or not isinstance(session_id, str) or not session_id.strip():
+        return False
+    try:
+        row = (
+            db.query(UserSession)
+            .filter(UserSession.session_id == session_id, UserSession.user_id == user_id)
+            .populate_existing()
+            .first()
+        )
+    except SQLAlchemyError as exc:
+        raise HTTPException(status_code=503, detail="Session policy unavailable") from exc
+    return bool(row and row.mfa_satisfied)
+
+
+def _mfa_required_for_workspace_flag(workspace: Workspace | None, factor: UserMfa | None) -> bool:
+    """Same flag GET /api/auth/me reports for a normal session."""
+    required = bool(workspace and workspace.mfa_required)
+    enrolled = bool(factor and factor.enabled)
+    return required and not enrolled
+
+
+def _mfa_challenge_response(
+    db: Session,
+    user: User,
+    member: WorkspaceMember,
+    *,
+    details: dict | None = None,
+) -> dict:
+    """The password-login challenge: no session cookie, five-minute token."""
+    raw = _store_mfa_login_token(db, user, member)
+    persist_audit(
+        db,
+        "auth.mfa_required",
+        user_id=user.id,
+        email=user.email,
+        workspace_id=member.workspace_id,
+        details=details,
+    )
+    return {"requires_mfa": True, "mfa_token": raw}
+
+
 def _frontend_login_url(query: dict[str, str] | None = None) -> str:
     base = get_settings().frontend_url.rstrip("/")
     if not query:
@@ -1003,15 +1064,7 @@ def _login_impl(req: LoginRequest, request: Request, response: Response, db: Ses
         )
     reenrol_pending = bool(mfa_row and mfa_reenrol_pending(mfa_row.totp_secret_encrypted))
     if mfa_row and mfa_row.enabled and not reenrol_pending:
-        mfa_token_raw = _store_mfa_login_token(db, user, member)
-        persist_audit(
-            db,
-            "auth.mfa_required",
-            user_id=user.id,
-            email=user.email,
-            workspace_id=member.workspace_id,
-        )
-        return {"requires_mfa": True, "mfa_token": mfa_token_raw}
+        return _mfa_challenge_response(db, user, member)
 
     policy_enrol = (
         not reenrol_pending
@@ -2282,6 +2335,60 @@ async def switch_workspace(
     existing_session_id = session.get("session_id")
     if not existing_session_id:
         raise HTTPException(status_code=400, detail="Cannot switch workspace for legacy session")
+    try:
+        factor = db.query(UserMfa).filter(UserMfa.user_id == user_id).populate_existing().first()
+    except SQLAlchemyError as exc:
+        raise HTTPException(status_code=503, detail="Session policy unavailable") from exc
+    # Same rule as login: a required workspace with no enabled factor yields only
+    # the five-minute, non-persistent enrol session. An enabled factor whose
+    # session never completed a challenge gets the login challenge and no role.
+    if workspace_requires_unmet_mfa(db, user_id, member.workspace_id, factor):
+        now = int(time.time())
+        policy_age = _session_max_age_seconds(db, member.workspace_id)
+        expires_at = min(expires_at, now + min(300, policy_age))
+        if expires_at <= now:
+            raise HTTPException(status_code=401, detail="Session expired")
+        token = sign_session(
+            user_id=user_id,
+            email=email,
+            workspace_id=member.workspace_id,
+            role="mfa_enrol",
+            session_id=existing_session_id,
+            expires_at=expires_at,
+            mfa_enrol_only=True,
+            cookie_persistent=False,
+        )
+        response.set_cookie(
+            key=SESSION_COOKIE,
+            value=token,
+            **_session_cookie_kwargs(expires_at - now, persistent=False),
+        )
+        persist_audit(
+            db,
+            "auth.workspace_switch",
+            user_id=user_id,
+            email=email,
+            workspace_id=member.workspace_id,
+            details={
+                "workspace_name": ws.name if ws else "Default",
+                "role": "mfa_enrol",
+                "requires_mfa_enrol": True,
+            },
+        )
+        return {
+            "workspace_id": member.workspace_id,
+            "workspace_name": ws.name if ws else "Default",
+            "workspace_slug": getattr(ws, "slug", "") if ws else "",
+            "role": "mfa_enrol",
+            "requires_mfa_enrol": True,
+            "mfa_required_for_workspace": True,
+        }
+    if bool(ws and ws.mfa_required) and _enabled_mfa_factor(factor):
+        if not _session_mfa_satisfied(db, user_id, existing_session_id):
+            user = db.query(User).filter(User.id == user_id).first()
+            if user is None:
+                raise HTTPException(status_code=401, detail="User not found")
+            return _mfa_challenge_response(db, user, member, details={"source": "switch-workspace"})
     persistent = session.get("cookie_persistent") is True
     token = sign_session(
         user_id=user_id,
@@ -2311,6 +2418,7 @@ async def switch_workspace(
         "workspace_name": ws.name if ws else "Default",
         "workspace_slug": getattr(ws, "slug", "") if ws else "",
         "role": member.role,
+        "mfa_required_for_workspace": _mfa_required_for_workspace_flag(ws, factor),
     }
 
 
@@ -2617,6 +2725,7 @@ async def mfa_confirm(
                 signing_key_id=_session_key_id(),
                 user_agent=request.headers.get("user-agent"),
                 ip_address=get_client_ip(request),
+                mfa_satisfied=True,
             )
         )
     recovery_codes_raw = []
@@ -2746,6 +2855,7 @@ def mfa_verify_login(
             signing_key_id=_session_key_id(),
             user_agent=request.headers.get("user-agent"),
             ip_address=get_client_ip(request),
+            mfa_satisfied=True,
         )
     )
     db.commit()

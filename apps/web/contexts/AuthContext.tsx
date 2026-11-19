@@ -7,6 +7,7 @@ import React, {
   useEffect,
   useState,
 } from 'react'
+import { useRouter } from 'next/navigation'
 import type { AuthState, MeResponse } from '@/lib/auth-types'
 import { presentHttpFailure } from '@/lib/api-error'
 
@@ -66,6 +67,7 @@ function parseMe(data: MeResponse): AuthState {
 }
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
+  const router = useRouter()
   const [state, setState] = useState<AuthState>(initialState)
 
   const pull = useCallback(() => {
@@ -144,28 +146,69 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           body: JSON.stringify({ workspace_id: workspaceId }),
         })
         if (!res.ok) return false
-        const data = await res.json()
-        setState((s) => ({
-          ...s,
-          workspace: {
-            id: data.workspace_id,
-            name: data.workspace_name,
-            slug: data.workspace_slug,
-            role: data.role,
-          },
-          permissions: {
-            can_edit: ['admin', 'editor'].includes(data.role),
-            can_review: ['admin', 'editor', 'reviewer'].includes(data.role),
-            can_admin: data.role === 'admin',
-            can_export: ['admin', 'editor'].includes(data.role),
-          },
-        }))
+        let data: Record<string, unknown> | null = null
+        try {
+          data = (await res.json()) as Record<string, unknown>
+        } catch {
+          data = null
+        }
+        // A challenge does not change the cookie. Do not adopt the target role.
+        if (data?.requires_mfa === true) {
+          const token = data.mfa_token
+          if (typeof token === 'string' && token.length > 0) {
+            router.push(`/login?mfa_token=${encodeURIComponent(token)}`)
+          }
+          return false
+        }
+        const switchedId =
+          typeof data?.workspace_id === 'number' ? data.workspace_id : null
+        const role = typeof data?.role === 'string' ? data.role : ''
+        if (data && switchedId != null && role) {
+          setState((s) => ({
+            ...s,
+            workspace: {
+              id: switchedId,
+              name:
+                typeof data.workspace_name === 'string'
+                  ? data.workspace_name
+                  : (s.workspace?.name ?? ''),
+              slug:
+                typeof data.workspace_slug === 'string'
+                  ? data.workspace_slug
+                  : s.workspace?.slug,
+              role,
+            },
+            permissions: {
+              can_edit: ['admin', 'editor'].includes(role),
+              can_review: ['admin', 'editor', 'reviewer'].includes(role),
+              can_admin: role === 'admin',
+              can_export: ['admin', 'editor'].includes(role),
+            },
+            ...(typeof data.mfa_required_for_workspace === 'boolean'
+              ? { mfa_required_for_workspace: data.mfa_required_for_workspace }
+              : {}),
+          }))
+        }
+        // Reload /me when it agrees with the switch. That refreshes
+        // mfa_required_for_workspace. A stale /me for the previous workspace
+        // must not put the old workspace back.
+        try {
+          const me = await fetch('/api/auth/me', { credentials: 'include' })
+          if (me.ok) {
+            const body = (await me.json()) as MeResponse
+            if (switchedId == null || body.workspace_id === switchedId) {
+              setState((s) => ({ ...parseMe(body), requestId: s.requestId }))
+            }
+          }
+        } catch {
+          // The switch response already updated the visible workspace.
+        }
         return true
       } catch {
         return false
       }
     },
-    []
+    [router]
   )
 
   useEffect(() => {
