@@ -14,6 +14,8 @@ draft. An edit that does not send `published: 1` changes the draft only.
 ## Acknowledgments
 
 `policy_acknowledgments` stores `user_id`, `workspace_id`, and `article_version_id`.
+The acknowledge call must send `article_version_id`, and that id must be the
+published version. A different id is 409.
 A row counts only while `revoked_at` is null, the article is published, and
 `article_version_id` is the article's `published_version_id`.
 
@@ -33,8 +35,9 @@ key still rejects a duplicate slug with 400.
 Revision `tc17001_article_versions` (parent `tc04005a_member_revoked_at`).
 
 Upgrade copies each published, workspace-scoped article into version 1 and
-binds existing acknowledgments to that version. An acknowledgment with no
-published version is marked revoked.
+binds existing acknowledgments of those articles to that version. That bind
+runs on a first upgrade, when no downgrade archive exists. Those rows stay
+unrevoked. An acknowledgment with no published version is marked revoked.
 
 Downgrade copies versions, publication pointers, and acknowledgment bindings
 into `tc17001_version_archive`, `tc17001_article_pub_archive`,

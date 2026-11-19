@@ -42,6 +42,12 @@ class TrustArticleCreate(BaseModel):
     is_policy: bool = False
 
 
+class PolicyAcknowledge(BaseModel):
+    """The version the reader is acknowledging. Omitted is not a version."""
+
+    article_version_id: int | None = None
+
+
 class TrustArticleUpdate(BaseModel):
     slug: str | None = None
     title: str | None = None
@@ -58,6 +64,8 @@ class TrustArticleUpdate(BaseModel):
 # the schema-validation status.
 _WORKSPACE_DETAIL = "workspace_id must match the current workspace"
 _NO_PUBLISHED_POLICY = "Article has no published policy version"
+_VERSION_REQUIRED = "article_version_id is required"
+_STALE_VERSION = "article_version_id is not the published version"
 
 
 def _iso(value: datetime | None) -> str | None:
@@ -464,10 +472,15 @@ def _viewable_version(db: Session, article: TrustArticle) -> TrustArticleVersion
 @router.post("/{article_id}/acknowledge")
 def acknowledge_policy(
     article_id: int,
+    body: PolicyAcknowledge | None = None,
     session: dict = Depends(require_valid_session),
     db: Session = Depends(get_db),
 ):
-    """Record that this user acknowledged the published policy version."""
+    """Record that this user acknowledged the published version they were shown.
+
+    ``article_version_id`` must be that published version. A different id is 409.
+    A missing id is 422. Another workspace is 404, same as a missing article.
+    """
     article = db.query(TrustArticle).filter(TrustArticle.id == article_id).first()
     if not article:
         raise HTTPException(status_code=404, detail="Trust article not found")
@@ -479,9 +492,13 @@ def acknowledge_policy(
     workspace_id = _session_workspace(session)
     if workspace_id is None:
         raise HTTPException(status_code=404, detail="Trust article not found")
+    if body is None or body.article_version_id is None:
+        raise HTTPException(status_code=422, detail=_VERSION_REQUIRED)
     version = _viewable_version(db, article)
     if version is None:
         raise HTTPException(status_code=400, detail=_NO_PUBLISHED_POLICY)
+    if body.article_version_id != version.id:
+        raise HTTPException(status_code=409, detail=_STALE_VERSION)
     if not version.is_policy:
         raise HTTPException(status_code=400, detail="Article is not marked as a policy")
     existing = (

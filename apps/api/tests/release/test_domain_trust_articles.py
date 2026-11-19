@@ -278,6 +278,13 @@ def _idempotency_header(name: str) -> dict[str, str]:
     return {"Idempotency-Key": name}
 
 
+def _acknowledge(client: TestClient, article_id: int, version_id: int):
+    return client.post(
+        f"/api/trust-articles/{article_id}/acknowledge",
+        json={"article_version_id": version_id},
+    )
+
+
 def _delete_idempotency(db: Session, *keys: str) -> None:
     for key in keys:
         db.execute(
@@ -386,14 +393,14 @@ def test_new_version_and_unpublish_revoke_the_acknowledgment(
         article_id = created.json()["id"]
         first_version = created.json()["published_version_id"]
 
-        first = client.post(f"/api/trust-articles/{article_id}/acknowledge")
+        first = _acknowledge(client, article_id, first_version)
         assert first.status_code == 200, first.text
         assert first.json()["ok"] is True
         assert first.json()["article_version_id"] == first_version
         assert first.json()["workspace_id"] == 1
         first_at = first.json()["acknowledged_at"]
 
-        again = client.post(f"/api/trust-articles/{article_id}/acknowledge")
+        again = _acknowledge(client, article_id, first_version)
         assert again.status_code == 200, again.text
         assert again.json()["acknowledged_at"] == first_at
 
@@ -420,7 +427,10 @@ def test_new_version_and_unpublish_revoke_the_acknowledgment(
         after_edit = client.get("/api/trust-articles/policy-acknowledgments")
         assert article_id not in after_edit.json()["acknowledged_article_ids"]
 
-        second = client.post(f"/api/trust-articles/{article_id}/acknowledge")
+        stale = _acknowledge(client, article_id, first_version)
+        assert stale.status_code == 409, stale.text
+        assert stale.json()["detail"] == "article_version_id is not the published version"
+        second = _acknowledge(client, article_id, second_version)
         assert second.status_code == 200, second.text
         assert second.json()["article_version_id"] == second_version
         assert second.json()["acknowledged_at"] != first_at
@@ -453,7 +463,7 @@ def test_new_version_and_unpublish_revoke_the_acknowledgment(
         _login_admin(client)
         after_unpublish = client.get("/api/trust-articles/policy-acknowledgments")
         assert article_id not in after_unpublish.json()["acknowledged_article_ids"]
-        refused = client.post(f"/api/trust-articles/{article_id}/acknowledge")
+        refused = _acknowledge(client, article_id, second_version)
         assert refused.status_code == 400, refused.text
 
         restored = client.patch(f"/api/trust-articles/{article_id}", json={"published": 1})
@@ -461,7 +471,7 @@ def test_new_version_and_unpublish_revoke_the_acknowledgment(
         assert restored.json()["published_version_id"] == second_version
         still = client.get("/api/trust-articles/policy-acknowledgments")
         assert article_id not in still.json()["acknowledged_article_ids"]
-        third = client.post(f"/api/trust-articles/{article_id}/acknowledge")
+        third = _acknowledge(client, article_id, second_version)
         assert third.status_code == 200, third.text
         assert third.json()["article_version_id"] == second_version
         assert third.json()["acknowledged_at"] != second.json()["acknowledged_at"]
@@ -630,3 +640,104 @@ def test_acknowledgment_version_foreign_key_rejects_a_missing_version(
     finally:
         db_session.rollback()
         _delete_slugs(db_session, slug)
+
+
+def test_first_upgrade_binds_a_legacy_acknowledgment_without_revoking_it() -> None:
+    """A first upgrade, with no downgrade archive, binds a legacy acknowledgment to version 1."""
+    import os
+    import subprocess
+    import sys
+    from pathlib import Path
+
+    from sqlalchemy import create_engine
+
+    from app.core.database import engine as app_engine
+
+    api_dir = Path(__file__).resolve().parents[2]
+    env = {
+        **os.environ,
+        "DATABASE_URL": os.environ["DATABASE_URL"],
+        "TRUST_COPILOT_TESTING": "1",
+    }
+    archives = (
+        "tc17001_version_archive",
+        "tc17001_article_pub_archive",
+        "tc17001_ack_binding_archive",
+        "tc17001_ack_row_archive",
+    )
+    slug = _slug("legacy-ack")
+    article_id: int | None = None
+
+    def alembic(*args: str) -> None:
+        app_engine.dispose()
+        result = subprocess.run(
+            [sys.executable, "-m", "alembic", *args],
+            cwd=api_dir,
+            env=env,
+            capture_output=True,
+            text=True,
+        )
+        assert result.returncode == 0, result.stderr[-2000:]
+
+    try:
+        alembic("downgrade", "tc04005a_member_revoked_at")
+        raw = create_engine(env["DATABASE_URL"])
+        with raw.begin() as conn:
+            for name in archives:
+                conn.execute(text(f"DROP TABLE IF EXISTS {name}"))
+            user_id = conn.execute(
+                text("SELECT id FROM users WHERE email = 'admin@trust.local'")
+            ).scalar()
+            assert user_id
+            article_id = conn.execute(
+                text(
+                    """
+                    INSERT INTO trust_articles (
+                        workspace_id, slug, title, content, published, is_policy
+                    )
+                    VALUES (1, :slug, 'Legacy policy', 'legacy body', 1, true)
+                    RETURNING id
+                    """
+                ),
+                {"slug": slug},
+            ).scalar()
+            ack_id = conn.execute(
+                text(
+                    """
+                    INSERT INTO policy_acknowledgments (user_id, trust_article_id, acknowledged_at)
+                    VALUES (:user_id, :article_id, now())
+                    RETURNING id
+                    """
+                ),
+                {"user_id": user_id, "article_id": article_id},
+            ).scalar()
+        raw.dispose()
+        alembic("upgrade", "head")
+        raw = create_engine(env["DATABASE_URL"])
+        with raw.connect() as conn:
+            row = conn.execute(
+                text(
+                    """
+                    SELECT p.article_version_id, p.workspace_id, p.revoked_at,
+                           v.version_number, t.published_version_id
+                    FROM policy_acknowledgments p
+                    JOIN trust_articles t ON t.id = p.trust_article_id
+                    JOIN trust_article_versions v ON v.id = p.article_version_id
+                    WHERE p.id = :id
+                    """
+                ),
+                {"id": ack_id},
+            ).one()
+        raw.dispose()
+        assert row.version_number == 1
+        assert row.revoked_at is None
+        assert row.workspace_id == 1
+        assert row.article_version_id == row.published_version_id
+    finally:
+        alembic("upgrade", "head")
+        raw = create_engine(env["DATABASE_URL"])
+        with raw.begin() as conn:
+            if article_id is not None:
+                conn.execute(text("DELETE FROM trust_articles WHERE id = :id"), {"id": article_id})
+            conn.execute(text("DELETE FROM trust_articles WHERE slug = :slug"), {"slug": slug})
+        raw.dispose()

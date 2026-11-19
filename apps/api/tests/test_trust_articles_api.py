@@ -225,13 +225,20 @@ def test_acknowledge_policy_requires_auth(client: TestClient, admin_user: User) 
     )
     assert create.status_code in (200, 201)
     aid = create.json()["id"]
+    version_id = create.json()["published_version_id"]
 
     client.post("/api/auth/logout")
-    r = client.post(f"/api/trust-articles/{aid}/acknowledge")
+    r = client.post(
+        f"/api/trust-articles/{aid}/acknowledge",
+        json={"article_version_id": version_id},
+    )
     assert r.status_code == 401
 
     client.post("/api/auth/login", json={"email": "admin-tc@trust.local", "password": "a"})
-    r2 = client.post(f"/api/trust-articles/{aid}/acknowledge")
+    r2 = client.post(
+        f"/api/trust-articles/{aid}/acknowledge",
+        json={"article_version_id": version_id},
+    )
     assert r2.status_code == 200
     assert r2.json().get("ok") is True
     assert "acknowledged_at" in r2.json()
@@ -253,8 +260,12 @@ def test_acknowledge_policy_rejects_non_policy(client: TestClient, admin_user: U
     )
     assert create.status_code in (200, 201)
     aid = create.json()["id"]
+    version_id = create.json()["published_version_id"]
 
-    r = client.post(f"/api/trust-articles/{aid}/acknowledge")
+    r = client.post(
+        f"/api/trust-articles/{aid}/acknowledge",
+        json={"article_version_id": version_id},
+    )
     assert r.status_code == 400
     assert "not marked as a policy" in (r.json().get("detail") or "").lower()
 

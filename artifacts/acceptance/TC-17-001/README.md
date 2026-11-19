@@ -107,7 +107,15 @@ Pytest did not report a skipped test on the release command. Log: `remaining-pas
 
 Before this change the release file was 5 failed, 8 passed. After it, 13 passed.
 
-The route, migration, release test, and dashboard change are `f42014b3bbec3430a7d340f15acdeded4ae68804`. The commit that records this line does not change them.
+The route, migration, release test, and dashboard change through the versioned-publish work are `f42014b3bbec3430a7d340f15acdeded4ae68804`. That is not the head after the #307 review. The review fixes (first-upgrade bind, acknowledge the shown version, and the legacy-acknowledgment test) are the later commit named in the review section below.
+
+## Review of #307
+
+Claude requested changes on #307. The first upgrade was skipping the bind of existing acknowledgments, so every legacy row was revoked. That update now runs on every upgrade, before the revoke of rows that still have no version. `test_first_upgrade_binds_a_legacy_acknowledgment_without_revoking_it` downgrades to `tc04005a_member_revoked_at`, drops the `tc17001_*` archives, inserts a legacy acknowledgment, upgrades, and checks version 1 with `revoked_at` null.
+
+Acknowledge now requires `article_version_id`. A stale id is 409. The current published id is 200. The dashboard sends the published version it is showing.
+
+The code SHA for those fixes is filled in after the commit that contains them.
 
 `npm run test:unit` in `apps/web` on that tree, Node 24.22.1: 60 files, 551 passed. `npm run typecheck` exited 0.
 

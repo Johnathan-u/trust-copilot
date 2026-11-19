@@ -11,8 +11,10 @@ article_version_id, workspace_id, and revoked_at. The old unique index on
 while the previous acknowledgment stays on file.
 
 Existing published articles that belong to a workspace are copied into version 1.
-Acknowledgments of those articles are bound to that version. An acknowledgment
-with nothing viewable to bind is marked revoked.
+On a first upgrade, acknowledgments of those articles are bound to that version
+and are not revoked. An acknowledgment with no published version to bind is
+marked revoked. That bind runs on every upgrade, not only when a downgrade
+archive is present.
 
 A database trigger rejects UPDATE of a version row. DELETE still cascades from
 the article.
@@ -281,18 +283,18 @@ def upgrade() -> None:
             WHERE p.id = a.id
             """)
         )
-        op.execute(
-            sa.text("""
-            UPDATE policy_acknowledgments p
-            SET article_version_id = t.published_version_id,
-                workspace_id = t.workspace_id
-            FROM trust_articles t
-            WHERE p.trust_article_id = t.id
-              AND p.article_version_id IS NULL
-              AND t.published = 1
-              AND t.published_version_id IS NOT NULL
-            """)
-        )
+    op.execute(
+        sa.text("""
+        UPDATE policy_acknowledgments p
+        SET article_version_id = t.published_version_id,
+            workspace_id = t.workspace_id
+        FROM trust_articles t
+        WHERE p.trust_article_id = t.id
+          AND p.article_version_id IS NULL
+          AND t.published = 1
+          AND t.published_version_id IS NOT NULL
+        """)
+    )
     op.execute(
         sa.text("""
         UPDATE policy_acknowledgments

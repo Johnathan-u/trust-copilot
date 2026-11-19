@@ -305,12 +305,20 @@ export default function TrustCenterPage() {
     }
   }
 
-  const acknowledgePolicy = async (articleId: number) => {
-    const res = await fetch(`/api/trust-articles/${articleId}/acknowledge`, {
+  const acknowledgePolicy = async (article: TrustArticle) => {
+    if (article.published_version_id == null) {
+      showToast('error', 'This policy has no published version')
+      return
+    }
+    const res = await fetch(`/api/trust-articles/${article.id}/acknowledge`, {
       method: 'POST',
       credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        article_version_id: article.published_version_id,
+      }),
     })
-    if (res.ok) setAcknowledged((prev) => new Set(prev).add(articleId))
+    if (res.ok) setAcknowledged((prev) => new Set(prev).add(article.id))
     else {
       const data = await res.json().catch(() => ({}))
       showToast('error', (data?.detail as string) || 'Failed to acknowledge')
@@ -437,7 +445,7 @@ export default function TrustCenterPage() {
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={() => acknowledgePolicy(p.id)}
+                      onClick={() => acknowledgePolicy(p)}
                     >
                       Acknowledge
                     </Button>
