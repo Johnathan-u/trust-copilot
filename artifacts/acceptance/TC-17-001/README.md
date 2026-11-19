@@ -141,7 +141,7 @@ Same interpreter, after the fixes. PostgreSQL 16.16, pgvector 0.8.7, database `t
 
 Before the fixes those three tests failed. After them, the release file was 15 passed. Log: `review-passing-after.txt`.
 
-The head SHA and the #307 run IDs are recorded after `build` and `web-release-e2e` are green on that commit.
+The `IS DISTINCT FROM` commit is `bc2f2ed01b07b707a993e001203f8fa69d8d575e`. `build` and `web-release-e2e` are green on push for `c42d9d8fa78b504b1370e846abe3e7de2e3444d3` (run `44523552958`, build `135558096191`, web-release-e2e `135558095662`). That head does not change the route, migration, or tests relative to `bc2f2ed0`. #307 was already merged, so there is no pull_request run. The commit that records this line does not change the route, migration, or tests. Run IDs are in `ci-runs.md`.
 
 `npm run test:unit` on the earlier dashboard change, Node 24.22.1: 60 files, 551 passed. `npm run typecheck` exited 0. This review fix does not edit the dashboard.
 

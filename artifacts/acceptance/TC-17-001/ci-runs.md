@@ -21,3 +21,14 @@ Green head `559bd9d7f3c921a0400929d411770bfb4292d28c`. That commit records the b
 | push | 44453392420 | web-release-e2e `135322525648` | success |
 | pull_request | [44453400342](https://github.com/Johnathan-u/trust-copilot/actions/runs/44453400342) | build `135322551015` | success |
 | pull_request | 44453400342 | web-release-e2e `135322551503` | success |
+
+## IS DISTINCT FROM, after #307 merged
+
+#307 was squash-merged as `7fea456dde7a8ed3148e11045d5488a77004aff4` from `07cbc176531edb9d5e58878a5574e43d4c4a4d91`. That squash has the first-upgrade bind and the 409 acknowledge check. It does not have `IS DISTINCT FROM`.
+
+Behavior commit `bc2f2ed01b07b707a993e001203f8fa69d8d575e` makes `revoke_acknowledgments` use `IS DISTINCT FROM` and adds the tests. CI head `c42d9d8fa78b504b1370e846abe3e7de2e3444d3` is that commit plus the earlier CI note. It does not change the route, migration, or tests relative to `bc2f2ed0`. `build` and `web-release-e2e` are green on `push`. No `pull_request` run was created, because #307 was already merged. The commit that adds this section does not change the route, migration, or tests.
+
+| Event | Run | Job | Conclusion |
+|---|---|---|---|
+| push | [44523552958](https://github.com/Johnathan-u/trust-copilot/actions/runs/44523552958) | build `135558096191` | success |
+| push | 44523552958 | web-release-e2e `135558095662` | success |
