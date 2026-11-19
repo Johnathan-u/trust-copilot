@@ -117,6 +117,8 @@ Acknowledge requires `article_version_id`. A stale id is 409 (`trust_articles.py
 
 `revoke_acknowledgments` uses `IS DISTINCT FROM` (`trust_article_versions.py:51-53`). A null version id is revoked when another version is kept (`test_domain_trust_articles.py:645`).
 
+The earlier behavior commit is `383467b54170b143eccd738d61956548d1b87880`. CI for that tree is green on `559bd9d7f3c921a0400929d411770bfb4292d28c`. Those run IDs stay in `ci-runs.md`.
+
 ### Review red command
 
 The three tests above, with the bind back inside the archive `if`, with no 409 check, and with `!=` in `revoke_acknowledgments`.
