@@ -1,0 +1,22 @@
+Review green run, after the fixes.
+Working directory: apps/api
+Interpreter: /tmp/tc-venv/bin/python
+Python 3.12.3, pytest 9.1.1, SQLAlchemy 2.0.55
+PostgreSQL 16.16, pgvector 0.8.7, database trustcopilot_test on 127.0.0.1:5432
+No live provider. The suite's network guard was on.
+
+python -m pytest tests/release/test_domain_trust_articles.py::test_new_version_and_unpublish_revoke_the_acknowledgment tests/release/test_domain_trust_articles.py::test_revoke_acknowledgments_revokes_a_null_version_id tests/release/test_domain_trust_articles.py::test_first_upgrade_binds_a_legacy_acknowledgment_without_revoking_it -q --tb=short
+
+Exit 0. 3 passed, 22 warnings, 3.41s.
+
+python -m pytest tests/release/test_domain_trust_articles.py -q --tb=line
+
+Exit 0. 15 passed, 69 warnings, 4.00s. No skip.
+
+python -m pytest tests/release/test_domain_trust_articles.py tests/test_trust_articles_api.py tests/test_trust_center_publish.py tests/release/test_trust_article_slug_workspace.py tests/test_multi_tenant.py tests/test_wave3_p23_p29_api.py::test_p29_editor_cannot_delete_trust_article -q --tb=line
+
+Exit 0. 55 passed, 183 warnings, 8.46s. That is the 15 release tests plus the 40 neighbor tests.
+
+ruff check app/services/trust_article_versions.py app/api/routes/trust_articles.py alembic/versions/tc17001_article_versions.py tests/release/test_domain_trust_articles.py
+
+Exit 0.

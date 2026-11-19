@@ -37,14 +37,20 @@ def _version_key(version: TrustArticleVersion) -> tuple:
 def revoke_acknowledgments(
     db: Session, article_id: int, *, keep_version_id: int | None = None
 ) -> None:
-    """Mark current acknowledgments revoked. The kept version stays in force."""
+    """Mark current acknowledgments revoked. The kept version stays in force.
+
+    The comparison is ``IS DISTINCT FROM``, so a null version id is revoked
+    when another version is kept.
+    """
     now = datetime.now(timezone.utc)
     query = db.query(PolicyAcknowledgment).filter(
         PolicyAcknowledgment.trust_article_id == article_id,
         PolicyAcknowledgment.revoked_at.is_(None),
     )
     if keep_version_id is not None:
-        query = query.filter(PolicyAcknowledgment.article_version_id != keep_version_id)
+        query = query.filter(
+            PolicyAcknowledgment.article_version_id.is_distinct_from(keep_version_id)
+        )
     for row in query.all():
         row.revoked_at = now
 

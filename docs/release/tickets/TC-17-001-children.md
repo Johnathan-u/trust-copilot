@@ -46,9 +46,9 @@ Create still defaults to `published: 1`, and the dashboard sends `published: 1` 
 
 ## TC-17-001h — Revoke comparison
 
-Open. P3.
+Fixed in this change. Not deferred.
 
-`revoke_acknowledgments` should compare the kept version with `IS DISTINCT FROM` so a null version id is not treated as equal.
+`revoke_acknowledgments` compares the kept version with `IS DISTINCT FROM`, so a null version id is revoked. `tests/release/test_domain_trust_articles.py` `test_revoke_acknowledgments_revokes_a_null_version_id` covers it. The parent is not accepted.
 
 ## TC-17-001i — Members can read drafts
 

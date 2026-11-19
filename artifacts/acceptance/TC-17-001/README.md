@@ -107,17 +107,41 @@ Pytest did not report a skipped test on the release command. Log: `remaining-pas
 
 Before this change the release file was 5 failed, 8 passed. After it, 13 passed.
 
-The route, migration, release test, and dashboard change through the versioned-publish work are `f42014b3bbec3430a7d340f15acdeded4ae68804`. That is not the head after the #307 review. The review fixes (first-upgrade bind, acknowledge the shown version, and the legacy-acknowledgment test) are the later commit named in the review section below.
+The route, migration, release test, and dashboard change through the versioned-publish work are `f42014b3bbec3430a7d340f15acdeded4ae68804`. That is not the head after the #307 review. The review fixes are in the section below.
 
 ## Review of #307
 
-Claude requested changes on #307. The first upgrade was skipping the bind of existing acknowledgments, so every legacy row was revoked. That update now runs on every upgrade, before the revoke of rows that still have no version. `test_first_upgrade_binds_a_legacy_acknowledgment_without_revoking_it` downgrades to `tc04005a_member_revoked_at`, drops the `tc17001_*` archives, inserts a legacy acknowledgment, upgrades, and checks version 1 with `revoked_at` null.
+Claude requested changes on #307 at `41f2ce90`. The first upgrade was skipping the bind of existing acknowledgments, so every legacy row was revoked. That update now runs on every upgrade (`tc17001_article_versions.py:286-305`), before the revoke of rows that still have no version. `test_first_upgrade_binds_a_legacy_acknowledgment_without_revoking_it` (`tests/release/test_domain_trust_articles.py:688`) downgrades to `tc04005a_member_revoked_at`, drops the `tc17001_*` archives, inserts a legacy acknowledgment, upgrades, and checks version 1 with `revoked_at` null. That test is the rollback and first-upgrade evidence.
 
-Acknowledge now requires `article_version_id`. A stale id is 409. The current published id is 200. The dashboard sends the published version it is showing.
+Acknowledge requires `article_version_id`. A stale id is 409 (`trust_articles.py:500-501`, `test_domain_trust_articles.py:431-435`). The current published id is 200. The dashboard sends the published version it is showing (`page.tsx:308-319`).
 
-The code SHA for those fixes is `383467b54170b143eccd738d61956548d1b87880`. The commit that records this line does not change the route, migration, or tests.
+`revoke_acknowledgments` uses `IS DISTINCT FROM` (`trust_article_versions.py:51-53`). A null version id is revoked when another version is kept (`test_domain_trust_articles.py:645`).
 
-`npm run test:unit` in `apps/web` on that tree, Node 24.22.1: 60 files, 551 passed. `npm run typecheck` exited 0.
+### Review red command
+
+The three tests above, with the bind back inside the archive `if`, with no 409 check, and with `!=` in `revoke_acknowledgments`.
+
+| Command | Exit | Total |
+|---|---|---|
+| the three review tests | 1 | 3 failed, 18 warnings, 4.05s |
+
+A stale id returned 200. A null version id stayed unrevoked. The first upgrade left the legacy row unbound and set `revoked_at`. Log: `review-failing-before.txt`.
+
+### Review green command
+
+Same interpreter, after the fixes. PostgreSQL 16.16, pgvector 0.8.7, database `trustcopilot_test`.
+
+| Command | Exit | Total |
+|---|---|---|
+| the three review tests | 0 | 3 passed, 22 warnings, 3.41s |
+| `python -m pytest tests/release/test_domain_trust_articles.py -q --tb=line` | 0 | 15 passed, 69 warnings, 4.00s |
+| release file plus the neighbor files | 0 | 55 passed, 183 warnings, 8.46s |
+
+Before the fixes those three tests failed. After them, the release file was 15 passed. Log: `review-passing-after.txt`.
+
+The head SHA and the #307 run IDs are recorded after `build` and `web-release-e2e` are green on that commit.
+
+`npm run test:unit` on the earlier dashboard change, Node 24.22.1: 60 files, 551 passed. `npm run typecheck` exited 0. This review fix does not edit the dashboard.
 
 `ruff check` on the touched Python files exited 0.
 
