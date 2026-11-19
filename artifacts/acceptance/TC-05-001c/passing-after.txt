@@ -1,0 +1,49 @@
+Fixed switch-workspace, SQLite. PostgreSQL cases skipped (no local test database).
+Command (apps/api): python -m pytest tests/release/test_switch_workspace_mfa.py tests/release/test_tc05001c_mfa_satisfied_migration.py --tb=line -rs
+Python 3.12.3, pytest 9.1.1
+
+============================= test session starts ==============================
+platform linux -- Python 3.12.3, pytest-9.1.1, pluggy-1.7.0
+rootdir: /agent/repos/trust-copilot/apps/api
+configfile: pyproject.toml
+plugins: anyio-4.15.1
+collected 14 items
+
+tests/release/test_switch_workspace_mfa.py .s.s.s.s.s.s                  [ 85%]
+tests/release/test_tc05001c_mfa_satisfied_migration.py ..                [100%]
+
+=============================== warnings summary ===============================
+tests/release/test_switch_workspace_mfa.py: 36 warnings
+  /tmp/tc-venv/lib/python3.12/site-packages/sqlalchemy/sql/schema.py:3627: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    return util.wrap_callable(lambda ctx: fn(), fn)  # type: ignore
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+SKIPPED [1] tests/release/test_switch_workspace_mfa.py:228: Postgres test database unavailable or incompatible (see 'WARNING: test DB setup failed' above; start the local test Postgres or set TC_TEST_DATABASE_URL to a local *_test database)
+SKIPPED [1] tests/release/test_switch_workspace_mfa.py:273: Postgres test database unavailable or incompatible (see 'WARNING: test DB setup failed' above; start the local test Postgres or set TC_TEST_DATABASE_URL to a local *_test database)
+SKIPPED [1] tests/release/test_switch_workspace_mfa.py:308: Postgres test database unavailable or incompatible (see 'WARNING: test DB setup failed' above; start the local test Postgres or set TC_TEST_DATABASE_URL to a local *_test database)
+SKIPPED [1] tests/release/test_switch_workspace_mfa.py:334: Postgres test database unavailable or incompatible (see 'WARNING: test DB setup failed' above; start the local test Postgres or set TC_TEST_DATABASE_URL to a local *_test database)
+SKIPPED [1] tests/release/test_switch_workspace_mfa.py:368: Postgres test database unavailable or incompatible (see 'WARNING: test DB setup failed' above; start the local test Postgres or set TC_TEST_DATABASE_URL to a local *_test database)
+SKIPPED [1] tests/release/test_switch_workspace_mfa.py:389: Postgres test database unavailable or incompatible (see 'WARNING: test DB setup failed' above; start the local test Postgres or set TC_TEST_DATABASE_URL to a local *_test database)
+================== 8 passed, 6 skipped, 36 warnings in 1.81s ===================
+
+
+Command (apps/web): npm run test:unit -- tests/unit/switch-workspace-mfa.test.ts
+Node 24.22.1
+
+
+> trust-copilot-web@0.1.0 test:unit
+> vitest run tests/unit/switch-workspace-mfa.test.ts
+
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - ESM syntax in a file loaded as CommonJS (vitest.config.ts:1:1). Use a `.mjs` extension or set `"type": "module"` in the closest package.json
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+
+ RUN  v5.0.5 /agent/repos/trust-copilot/apps/web
+
+
+ Test Files  1 passed (1)
+      Tests  4 passed (4)
+   Start at  13:28:50
+   Duration  534ms (tests 49%, environment 35%, import 13%, transform 3%, worker 1%)
+

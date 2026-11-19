@@ -7,6 +7,7 @@ import React, {
   useEffect,
   useState,
 } from 'react'
+import { useRouter } from 'next/navigation'
 import type { AuthState, MeResponse } from '@/lib/auth-types'
 import { presentHttpFailure } from '@/lib/api-error'
 
@@ -66,6 +67,7 @@ function parseMe(data: MeResponse): AuthState {
 }
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
+  const router = useRouter()
   const [state, setState] = useState<AuthState>(initialState)
 
   const pull = useCallback(() => {
@@ -144,28 +146,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           body: JSON.stringify({ workspace_id: workspaceId }),
         })
         if (!res.ok) return false
-        const data = await res.json()
-        setState((s) => ({
-          ...s,
-          workspace: {
-            id: data.workspace_id,
-            name: data.workspace_name,
-            slug: data.workspace_slug,
-            role: data.role,
-          },
-          permissions: {
-            can_edit: ['admin', 'editor'].includes(data.role),
-            can_review: ['admin', 'editor', 'reviewer'].includes(data.role),
-            can_admin: data.role === 'admin',
-            can_export: ['admin', 'editor'].includes(data.role),
-          },
-        }))
+        let data: Record<string, unknown> | null = null
+        try {
+          data = (await res.json()) as Record<string, unknown>
+        } catch {
+          data = null
+        }
+        // A challenge does not change the cookie. Do not adopt the target role
+        // or keep the previous workspace's MFA flag as if the switch landed.
+        if (data?.requires_mfa === true) {
+          const token = data.mfa_token
+          if (typeof token === 'string' && token.length > 0) {
+            router.push(`/login?mfa_token=${encodeURIComponent(token)}`)
+          }
+          return false
+        }
+        await pull()
         return true
       } catch {
         return false
       }
     },
-    []
+    [pull, router]
   )
 
   useEffect(() => {
