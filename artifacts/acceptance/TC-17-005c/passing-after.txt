@@ -1,0 +1,23 @@
+# TC-17-005c passing-after
+# From apps/api, TC_REQUIRE_DB=1, database trustcopilot_test:
+#   python -m pytest tests/release/test_domain_shareable_spaces.py -q --tb=line
+# Python 3.12.3, pytest 9.1.1, SQLAlchemy 2.0.55, Alembic 1.20.1,
+# PostgreSQL 16.15, database trustcopilot_test.
+# Result: 6 passed, exit 0, no skip.
+# The retry returns the first space. A new Python process reads that row
+# from PostgreSQL and does not insert another.
+
+......                                                                   [100%]
+6 passed, 87 warnings in 3.44s
+
+# Related share suites on the same tree, same environment:
+#   python -m pytest tests/test_shareable_spaces.py tests/test_shareable_space_token_gate.py \
+#     tests/release/test_tc17005b_space_scoping.py tests/release/test_domain_shareable_spaces.py \
+#     tests/release/test_shareable_space_token_migration.py -q --tb=line
+# Result: 60 passed, exit 0.
+
+# Web, from apps/web, Node 24.22.1:
+#   npx vitest run tests/unit/share-page.test.ts tests/unit/shareable-spaces-page.test.ts lib/shareable-space-link.test.ts
+# Result: 3 files, 12 passed, exit 0.
+#   npm run lint
+# Result: exit 0.

@@ -1,0 +1,36 @@
+# TC-17-005c failing-before
+# Against master 2661223227c67ce9f45bfb5dae2a4fb22ba1f31d, before this fix.
+# From apps/api, TC_REQUIRE_DB=1, database trustcopilot_test:
+#   python -m pytest tests/release/test_domain_shareable_spaces.py -q --tb=line
+# Python 3.12.3, pytest 9.1.1, SQLAlchemy 2.0.55, Alembic 1.20.1,
+# PostgreSQL 16.15, database trustcopilot_test.
+# Result: 2 failed, 4 passed, exit 1.
+# A second create with the same Idempotency-Key inserted another row
+# (space ids 12 then 11, and 14 then 13). The asset, permission, download,
+# and published-version cases already passed on master after TC-17-005b.
+
+....FF                                                                   [100%]
+=================================== FAILURES ===================================
+E   assert 12 == 11
+/agent/repos/trust-copilot/apps/api/tests/release/test_domain_shareable_spaces.py:560: assert 12 == 11
+E   assert 14 == 13
+/agent/repos/trust-copilot/apps/api/tests/release/test_domain_shareable_spaces.py:648: assert 14 == 13
+=============================== warnings summary ===============================
+tests/release/test_domain_shareable_spaces.py: 91 warnings
+  /tmp/tc-venv/lib/python3.12/site-packages/sqlalchemy/sql/schema.py:3627: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    return util.wrap_callable(lambda ctx: fn(), fn)  # type: ignore
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/release/test_domain_shareable_spaces.py::test_retried_create_returns_the_original_space
+FAILED tests/release/test_domain_shareable_spaces.py::test_partial_failure_writes_nothing_and_the_key_can_be_retried
+2 failed, 4 passed, 91 warnings in 1.92s
+
+# Web, before apps/web/app/share/page.tsx existed.
+# From apps/web: npx vitest run tests/unit/share-page.test.ts
+# Result: 1 failed suite, exit 1. The page module could not be resolved.
+
+ FAIL  tests/unit/share-page.test.ts [ tests/unit/share-page.test.ts ]
+Error: Failed to resolve import "@/app/share/page" from "tests/unit/share-page.test.ts". Does the file exist?
+ Test Files  1 failed (1)
+      Tests  no tests

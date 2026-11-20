@@ -18,9 +18,9 @@ it('treats an active unexpired space as live', () => {
 
 it('builds the buyer link without storing the token', () => {
   expect(buyerAccessLink('https://app.example', 'a+b/c')).toBe(
-    'https://app.example/api/shareable-spaces/access?token=a%2Bb%2Fc'
+    'https://app.example/share?token=a%2Bb%2Fc'
   )
   expect(buyerAccessLink('https://app.example/', 'plain')).toBe(
-    'https://app.example/api/shareable-spaces/access?token=plain'
+    'https://app.example/share?token=plain'
   )
 })

@@ -76,8 +76,9 @@ straight into the message you send the buyer. Do not write the response body
 to a log, a CI transcript, or a ticket.
 
 The buyer link is the application origin the buyer already uses, plus the
-path `/api/shareable-spaces/access`, with the query name `token` set to the
-new raw value from that response.
+path `/share`, with the query name `token` set to the new raw value from that
+response. That page reads `GET /api/shareable-spaces/access` and shows the
+lists that response returns.
 
 ## Tell the buyer
 

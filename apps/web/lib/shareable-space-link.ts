@@ -16,5 +16,5 @@ export function spaceLiveness(
 export function buyerAccessLink(origin: string, token: string): string {
   const base = origin.replace(/\/$/, '')
   const params = new URLSearchParams({ token })
-  return `${base}/api/shareable-spaces/access?${params.toString()}`
+  return `${base}/share?${params.toString()}`
 }
