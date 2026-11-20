@@ -31,6 +31,10 @@ from app.models import (
     Workspace,
     WorkspaceMember,
 )
+from app.models.answer import Answer
+from app.models.document import Document
+from app.models.questionnaire import Question, Questionnaire
+from app.models.trust_article import TrustArticle, TrustArticleVersion
 
 MODELS = (
     NdaAccessRequest,
@@ -82,7 +86,17 @@ def store(request):
         with engine.begin() as connection:
             connection.exec_driver_sql("PRAGMA foreign_keys=ON")
             assert connection.exec_driver_sql("PRAGMA foreign_keys").scalar() == 1
-        Base.metadata.create_all(engine, tables=[model.__table__ for model in MODELS])
+        asset_models = (
+            TrustArticle,
+            TrustArticleVersion,
+            Document,
+            Questionnaire,
+            Question,
+            Answer,
+        )
+        Base.metadata.create_all(
+            engine, tables=[model.__table__ for model in (*MODELS, *asset_models)]
+        )
         db = Session(engine)
     before = snapshot(db)
     owned = {model: [] for model in MODELS}
@@ -442,8 +456,9 @@ def test_public_capability_semantics_remain_unchanged(store, kind, state):
         else:
             assert result["space"]["workspace_id"] == store["ws"][1]
             assert result["space"]["access_token"] is None
-            assert result["article_ids"] == [101] and result["answer_ids"] == [201]
-            assert result["document_ids"] == [301]
+            # 101, 201, and 301 are not rows in this workspace, so the token view omits them.
+            assert result["article_ids"] == [] and result["answer_ids"] == []
+            assert result["document_ids"] == []
             assert record["token"] not in json.dumps(result)
     store["db"].rollback()
     after = snapshot(store["db"])

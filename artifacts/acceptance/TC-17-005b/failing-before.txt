@@ -1,0 +1,58 @@
+# TC-17-005b failing-before
+# apps/api on master 05ca009fbca03a0993997a429e5a697cf3879065, before this fix.
+# From apps/api, TC_REQUIRE_DB=1, local database trustcopilot_test:
+#   python -m pytest tests/release/test_tc17005b_space_scoping.py -q --tb=line
+# Python 3.12.3, pytest 9.1.1, SQLAlchemy 2.0.55, Alembic 1.20.1,
+# PostgreSQL 16.15, database trustcopilot_test.
+# Result: 6 failed, 3 passed.
+# Create stored a foreign article id (count 1). Update had no asset check
+# (missing route, detail "Not Found"). Token access returned a foreign id and
+# a missing id. A listed download and a listed article read were 404. An
+# expired token's download was the same missing-route 404.
+# Line numbers are from this run. Three cross-table id cases were removed
+# afterward because primary keys are not unique across tables. The assert
+# lines below that case list shifted by three. The failures below are the
+# foreign-id, missing-id, download, and read gaps, which stayed in the file.
+
+F.F.FFFF.                                                                [100%]
+=================================== FAILURES ===================================
+E   AssertionError: assert 1 == 0
+     +  where 1 = _count({'client': <starlette.testclient.TestClient object at 0x7f13d0caaf90>, 'db': <sqlalchemy.orm.session.Session object at 0x7f13ce5baba0>, 'prefix': 'tc17005b-6de451a7', 'article_id': 19, ...}, 'tc17005b-6de451a7-reject-0')
+/agent/repos/trust-copilot/apps/api/tests/release/test_tc17005b_space_scoping.py:281: AssertionError: assert 1 == 0
+E   AssertionError: assert 'Not Found' == 'Document not found'
+
+      - Document not found
+      + Not Found
+/agent/repos/trust-copilot/apps/api/tests/release/test_tc17005b_space_scoping.py:348: AssertionError: assert 'Not Found' == 'Document not found'
+E   assert [27, 28, 2147483646] == [27]
+
+      Left contains 2 more items, first extra item: 28
+      Use -v to get more diff
+/agent/repos/trust-copilot/apps/api/tests/release/test_tc17005b_space_scoping.py:416: assert [27, 28, 2147483646] == [27]
+E   assert 404 == 200
+     +  where 404 = <Response [404 Not Found]>.status_code
+/agent/repos/trust-copilot/apps/api/tests/release/test_tc17005b_space_scoping.py:442: assert 404 == 200
+E   AssertionError: assert 'Not Found' == 'Not found'
+
+      - Not found
+      ?     ^
+      + Not Found
+      ?     ^
+/agent/repos/trust-copilot/apps/api/tests/release/test_tc17005b_space_scoping.py:479: AssertionError: assert 'Not Found' == 'Not found'
+E   assert 404 == 200
+     +  where 404 = <Response [404 Not Found]>.status_code
+/agent/repos/trust-copilot/apps/api/tests/release/test_tc17005b_space_scoping.py:497: assert 404 == 200
+=============================== warnings summary ===============================
+tests/release/test_tc17005b_space_scoping.py: 105 warnings
+  /tmp/tc-api-venv/lib/python3.12/site-packages/sqlalchemy/sql/schema.py:3627: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    return util.wrap_callable(lambda ctx: fn(), fn)  # type: ignore
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/release/test_tc17005b_space_scoping.py::test_create_rejects_ids_outside_the_workspace
+FAILED tests/release/test_tc17005b_space_scoping.py::test_update_rejects_foreign_ids_and_keeps_the_saved_lists
+FAILED tests/release/test_tc17005b_space_scoping.py::test_token_access_omits_ids_from_outside_the_workspace
+FAILED tests/release/test_tc17005b_space_scoping.py::test_token_download_serves_only_the_listed_document
+FAILED tests/release/test_tc17005b_space_scoping.py::test_expired_and_inactive_tokens_cannot_download
+FAILED tests/release/test_tc17005b_space_scoping.py::test_token_reads_serve_only_listed_articles_and_answers
+6 failed, 3 passed, 105 warnings in 1.99s

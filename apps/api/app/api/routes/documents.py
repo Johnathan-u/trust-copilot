@@ -316,6 +316,34 @@ def _preview_headers(filename: str | None) -> tuple[str, str]:
     return media, f'{disposition}; filename="{safe}"'
 
 
+def stream_stored_document(document: Document, storage: StorageClient) -> StreamingResponse:
+    """Stream one stored file the caller has already authorized.
+
+    The storage key is not part of the response. Stored content types are not
+    reflected; the media type comes from the filename extension.
+    """
+    if not document.storage_key:
+        raise HTTPException(status_code=404, detail="Document not found")
+    validate_storage_key(document.storage_key)
+    try:
+        stream = storage.download_stream(storage.bucket_raw, document.storage_key)
+    except HTTPException:
+        raise
+    except Exception:
+        logger.warning("document content unavailable document_id=%s", document.id)
+        raise HTTPException(status_code=404, detail="Document file not found")
+    media_type, disposition = _preview_headers(document.filename)
+    return StreamingResponse(
+        stream,
+        media_type=media_type,
+        headers={
+            "Content-Disposition": disposition,
+            "X-Content-Type-Options": "nosniff",
+            "Cache-Control": "private, no-store",
+        },
+    )
+
+
 @router.get("/")
 @router.get("")
 def list_documents(
@@ -472,6 +500,7 @@ def document_content(
 
     The media type comes from the filename extension. Stored content types are
     not reflected. The storage key is not part of the URL or the error text.
+    A share token is not accepted on this route.
     """
     if session.get("workspace_id") != workspace_id:
         raise HTTPException(status_code=403, detail="Access denied")
@@ -482,24 +511,7 @@ def document_content(
     )
     if not doc or not doc.storage_key:
         raise HTTPException(status_code=404, detail="Document not found")
-    validate_storage_key(doc.storage_key)
-    try:
-        stream = storage.download_stream(storage.bucket_raw, doc.storage_key)
-    except HTTPException:
-        raise
-    except Exception:
-        logger.warning("document content unavailable document_id=%s", document_id)
-        raise HTTPException(status_code=404, detail="Document file not found")
-    media_type, disposition = _preview_headers(doc.filename)
-    return StreamingResponse(
-        stream,
-        media_type=media_type,
-        headers={
-            "Content-Disposition": disposition,
-            "X-Content-Type-Options": "nosniff",
-            "Cache-Control": "private, no-store",
-        },
-    )
+    return stream_stored_document(doc, storage)
 
 
 @router.post("/bulk-delete")

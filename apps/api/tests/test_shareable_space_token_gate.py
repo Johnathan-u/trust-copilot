@@ -14,11 +14,15 @@ from datetime import datetime, timedelta, timezone
 
 import pytest
 from app.core.password import hash_password
+from app.models.answer import Answer
 from app.models.api_key import ApiKey
 from app.models.audit_event import AuditEvent
 from app.models.custom_role import CustomRole
 from app.models.deal import Deal
+from app.models.document import Document
+from app.models.questionnaire import Question, Questionnaire
 from app.models.shareable_space import ShareableSpace
+from app.models.trust_article import TrustArticle, TrustArticleVersion
 from app.models.user import User, WorkspaceMember
 from app.models.user_session import UserSession
 from app.services import shareable_space_service as ss
@@ -128,15 +132,61 @@ def gate(client, db_session):
         users[name] = email
     db_session.commit()
 
+    article = TrustArticle(
+        workspace_id=1,
+        slug=f"gate-article-{suffix}",
+        title=f"Gate article {suffix}",
+        content="synthetic",
+        published=1,
+    )
+    document = Document(
+        workspace_id=1,
+        storage_key=f"synthetic/gate-{suffix}.pdf",
+        filename=f"gate-{suffix}.pdf",
+        status="uploaded",
+    )
+    questionnaire = Questionnaire(workspace_id=1, filename=f"gate-{suffix}.xlsx", status="parsed")
+    db_session.add_all([article, document, questionnaire])
+    db_session.flush()
+    version = TrustArticleVersion(
+        trust_article_id=article.id,
+        workspace_id=1,
+        version_number=1,
+        slug=article.slug,
+        title=article.title,
+        content=article.content or "",
+        is_policy=False,
+    )
+    db_session.add(version)
+    db_session.flush()
+    article.published = 1
+    article.published_version_id = version.id
+    question = Question(questionnaire_id=questionnaire.id, text=f"Gate {suffix}")
+    db_session.add(question)
+    db_session.flush()
+    answer = Answer(question_id=question.id, text="synthetic", status="approved")
+    db_session.add(answer)
+    db_session.commit()
+    article_ids = [article.id]
+    answer_ids = [answer.id]
+    document_ids = [document.id]
+    asset_ids = {
+        "articles": article_ids,
+        "answers": answer_ids,
+        "documents": document_ids,
+        "questions": [question.id],
+        "questionnaires": [questionnaire.id],
+    }
+
     _login(client, "admin@trust.local", "a")
     created = client.post(
         "/api/shareable-spaces",
         json={
             "name": f"Token gate {suffix}",
             "buyer_company": "Synthetic Buyer",
-            "article_ids": [11],
-            "answer_ids": [22],
-            "document_ids": [33],
+            "article_ids": article_ids,
+            "answer_ids": answer_ids,
+            "document_ids": document_ids,
         },
     )
     assert created.status_code == 200, created.text
@@ -154,6 +204,9 @@ def gate(client, db_session):
         "space_ids": space_ids,
         "raw": raw,
         "digest": _digest(raw),
+        "article_ids": article_ids,
+        "answer_ids": answer_ids,
+        "document_ids": document_ids,
         "users": users,
         "roles": roles,
         "key_ids": key_ids,
@@ -190,6 +243,29 @@ def gate(client, db_session):
             db_session.query(CustomRole).filter(CustomRole.id.in_(role_ids)).delete(
                 synchronize_session=False
             )
+        if asset_ids["answers"]:
+            db_session.query(Answer).filter(Answer.id.in_(asset_ids["answers"])).delete(
+                synchronize_session=False
+            )
+        if asset_ids["questions"]:
+            db_session.query(Question).filter(Question.id.in_(asset_ids["questions"])).delete(
+                synchronize_session=False
+            )
+        if asset_ids["questionnaires"]:
+            db_session.query(Questionnaire).filter(
+                Questionnaire.id.in_(asset_ids["questionnaires"])
+            ).delete(synchronize_session=False)
+        if asset_ids["documents"]:
+            db_session.query(Document).filter(Document.id.in_(asset_ids["documents"])).delete(
+                synchronize_session=False
+            )
+        if asset_ids["articles"]:
+            db_session.query(TrustArticleVersion).filter(
+                TrustArticleVersion.trust_article_id.in_(asset_ids["articles"])
+            ).delete(synchronize_session=False)
+            db_session.query(TrustArticle).filter(
+                TrustArticle.id.in_(asset_ids["articles"])
+            ).delete(synchronize_session=False)
         db_session.commit()
 
 
@@ -329,9 +405,9 @@ def test_public_access_returns_ids_without_echoing_the_token(gate):
     assert opened.status_code == 200, opened.text
     body = opened.json()
     assert body["valid"] is True
-    assert body["article_ids"] == [11]
-    assert body["answer_ids"] == [22]
-    assert body["document_ids"] == [33]
+    assert body["article_ids"] == gate["article_ids"]
+    assert body["answer_ids"] == gate["answer_ids"]
+    assert body["document_ids"] == gate["document_ids"]
     assert body["space"]["id"] == gate["space_id"]
     assert body["space"]["is_active"] is True
     assert body["space"]["access_token"] is None
@@ -587,9 +663,9 @@ def test_rotation_replaces_token_and_preserves_the_space(gate):
         assert opened.status_code == 200, opened.text
         assert opened.json()["valid"] is True
         assert opened.json()["space"]["id"] == gate["space_id"]
-        assert opened.json()["article_ids"] == [11]
-        assert opened.json()["answer_ids"] == [22]
-        assert opened.json()["document_ids"] == [33]
+        assert opened.json()["article_ids"] == gate["article_ids"]
+        assert opened.json()["answer_ids"] == gate["answer_ids"]
+        assert opened.json()["document_ids"] == gate["document_ids"]
         assert opened.json()["space"]["access_token"] is None
         assert raw not in opened.text
         _login(client, "admin@trust.local", "a")

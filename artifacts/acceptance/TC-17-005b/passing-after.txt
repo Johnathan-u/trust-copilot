@@ -1,0 +1,39 @@
+# TC-17-005b passing-after
+# After the published-version and approved-answer gate, rebased on master
+# b443e08d. The failing-before log is unchanged.
+# From apps/api, TC_REQUIRE_DB=1, local database trustcopilot_test:
+#   python -m pytest tests/release/test_tc17005b_space_scoping.py \
+#     tests/test_shareable_spaces.py tests/test_shareable_space_token_gate.py \
+#     tests/test_deal_room_token_gate.py \
+#     tests/release/test_shareable_space_token_migration.py \
+#     tests/release/test_authorization_nda_shares.py \
+#     tests/release/test_tc_15_016a_documents_list.py -q --tb=line
+# Python 3.12.3, pytest 9.1.1, SQLAlchemy 2.0.55, Alembic 1.20.1,
+# PostgreSQL 16.15, database trustcopilot_test.
+# Result: 220 passed.
+# alembic heads: tc04007b_rate_buckets. This change adds no revision.
+
+........................................................................ [ 32%]
+........................................................................ [ 65%]
+........................................................................ [ 98%]
+....                                                                     [100%]
+=============================== warnings summary ===============================
+tests/release/test_tc17005b_space_scoping.py: 164 warnings
+tests/test_shareable_spaces.py: 19 warnings
+tests/test_shareable_space_token_gate.py: 687 warnings
+tests/test_deal_room_token_gate.py: 169 warnings
+tests/release/test_authorization_nda_shares.py: 842 warnings
+tests/release/test_tc_15_016a_documents_list.py: 7 warnings
+  /tmp/tc-api-venv/lib/python3.12/site-packages/sqlalchemy/sql/schema.py:3627: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    return util.wrap_callable(lambda ctx: fn(), fn)  # type: ignore
+
+tests/release/test_shareable_space_token_migration.py::test_revision_is_the_single_head
+tests/release/test_shareable_space_token_migration.py::test_revision_is_the_single_head
+tests/release/test_shareable_space_token_migration.py::test_revision_is_the_single_head
+tests/release/test_shareable_space_token_migration.py::test_upgrade_hashes_plaintext_and_downgrade_cannot_restore_it
+tests/release/test_shareable_space_token_migration.py::test_upgrade_hashes_plaintext_and_downgrade_cannot_restore_it
+  /tmp/tc-api-venv/lib/python3.12/site-packages/alembic/config.py:604: DeprecationWarning: No path_separator found in configuration; falling back to legacy splitting on spaces, commas, and colons for prepend_sys_path.  Consider adding path_separator=os to Alembic config.
+    util.warn_deprecated(
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+220 passed, 1893 warnings in 24.75s
