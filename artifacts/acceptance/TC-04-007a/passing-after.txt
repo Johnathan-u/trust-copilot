@@ -1,0 +1,20 @@
+Fixed forgot-password, PostgreSQL. Recorded attempt is before the user lookup.
+Command (apps/api): TC_REQUIRE_DB=1 python -m pytest tests/release/test_forgot_password_enumeration.py --tb=short -rs
+Python 3.12.3, pytest 9.1.1
+
+============================= test session starts ==============================
+platform linux -- Python 3.12.3, pytest-9.1.1, pluggy-1.7.0
+rootdir: /agent/repos/trust-copilot/apps/api
+configfile: pyproject.toml
+plugins: anyio-4.15.1
+collected 1 item
+
+tests/release/test_forgot_password_enumeration.py .                      [100%]
+
+=============================== warnings summary ===============================
+tests/release/test_forgot_password_enumeration.py: 20 warnings
+  /tmp/tc-venv/lib/python3.12/site-packages/sqlalchemy/sql/schema.py:3627: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    return util.wrap_callable(lambda ctx: fn(), fn)  # type: ignore
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+======================== 1 passed, 20 warnings in 1.06s ========================

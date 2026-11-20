@@ -1,0 +1,26 @@
+TC-04-007a local environment
+
+Base: 2647b2e2ad5ef575ee354a3c9c92a8bd16680dbc
+Branch: fix/TC-04-007a-forgot-password-enumeration
+Working directory for pytest: apps/api
+Interpreter: /tmp/tc-venv/bin/python
+Python 3.12.3
+pytest 9.1.1
+ruff 0.5.6
+
+PostgreSQL 16.15 (Ubuntu 16.15-0ubuntu0.24.04.1)
+pgvector 0.6.0
+Database: trustcopilot_test at 127.0.0.1:5432
+TC_REQUIRE_DB=1
+REDIS_URL unset. The in-memory limiter is the one these runs hit. This ticket does not change that backend.
+
+Commands:
+
+TC_REQUIRE_DB=1 python -m pytest tests/release/test_forgot_password_enumeration.py --tb=short -rs
+Unfixed handler: exit 1, 1 failed.
+Fixed handler: exit 0, 1 passed.
+
+TC_REQUIRE_DB=1 python -m pytest tests/release/test_forgot_password_enumeration.py tests/release/test_identity_tokens.py tests/release/test_password_reset.py tests/release/test_registration.py tests/test_auth.py tests/test_auth_flows.py tests/test_auth_sessions_api.py tests/test_auth_workspace.py tests/test_login_email_regression.py tests/test_invite_flow_p14.py tests/test_members_invites.py tests/test_security_remediation.py -q --tb=line -rs
+Fixed handler: exit 0, 179 passed, 513 warnings.
+
+No provider calls. The forgot-password mail path used a local outbox that accepts every message.

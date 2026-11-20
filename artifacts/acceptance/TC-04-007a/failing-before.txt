@@ -1,0 +1,28 @@
+Unfixed forgot-password, PostgreSQL. Base 2647b2e2ad5ef575ee354a3c9c92a8bd16680dbc.
+Command (apps/api): TC_REQUIRE_DB=1 python -m pytest tests/release/test_forgot_password_enumeration.py --tb=short -rs
+Python 3.12.3, pytest 9.1.1
+
+============================= test session starts ==============================
+platform linux -- Python 3.12.3, pytest-9.1.1, pluggy-1.7.0
+rootdir: /agent/repos/trust-copilot/apps/api
+configfile: pyproject.toml
+plugins: anyio-4.15.1
+collected 1 item
+
+tests/release/test_forgot_password_enumeration.py F                      [100%]
+
+=================================== FAILURES ===================================
+________ test_forgot_password_rate_limit_matches_for_known_and_unknown _________
+tests/release/test_forgot_password_enumeration.py:97: in test_forgot_password_rate_limit_matches_for_known_and_unknown
+    assert known == unknown == expected
+E   AssertionError: assert [(200, {'mess...link.'}), ...] == [(200, {'mess...link.'}), ...]
+E
+E     At index 10 diff: (429, {'detail': 'Too many requests. Try again later.'}) != (200, {'message': 'If that email is registered, you will receive a reset link.'})
+E     Use -v to get more diff
+=============================== warnings summary ===============================
+tests/release/test_forgot_password_enumeration.py: 20 warnings
+  /tmp/tc-venv/lib/python3.12/site-packages/sqlalchemy/sql/schema.py:3627: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    return util.wrap_callable(lambda ctx: fn(), fn)  # type: ignore
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+======================== 1 failed, 20 warnings in 1.09s ========================
