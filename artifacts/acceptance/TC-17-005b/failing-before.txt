@@ -20,12 +20,12 @@ E   AssertionError: assert 1 == 0
      +  where 1 = _count({'client': <starlette.testclient.TestClient object at 0x7f13d0caaf90>, 'db': <sqlalchemy.orm.session.Session object at 0x7f13ce5baba0>, 'prefix': 'tc17005b-6de451a7', 'article_id': 19, ...}, 'tc17005b-6de451a7-reject-0')
 /agent/repos/trust-copilot/apps/api/tests/release/test_tc17005b_space_scoping.py:281: AssertionError: assert 1 == 0
 E   AssertionError: assert 'Not Found' == 'Document not found'
-      
+
       - Document not found
       + Not Found
 /agent/repos/trust-copilot/apps/api/tests/release/test_tc17005b_space_scoping.py:348: AssertionError: assert 'Not Found' == 'Document not found'
 E   assert [27, 28, 2147483646] == [27]
-      
+
       Left contains 2 more items, first extra item: 28
       Use -v to get more diff
 /agent/repos/trust-copilot/apps/api/tests/release/test_tc17005b_space_scoping.py:416: assert [27, 28, 2147483646] == [27]
@@ -33,7 +33,7 @@ E   assert 404 == 200
      +  where 404 = <Response [404 Not Found]>.status_code
 /agent/repos/trust-copilot/apps/api/tests/release/test_tc17005b_space_scoping.py:442: assert 404 == 200
 E   AssertionError: assert 'Not Found' == 'Not found'
-      
+
       - Not found
       ?     ^
       + Not Found

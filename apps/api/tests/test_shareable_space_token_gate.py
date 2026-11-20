@@ -145,9 +145,7 @@ def gate(client, db_session):
         filename=f"gate-{suffix}.pdf",
         status="uploaded",
     )
-    questionnaire = Questionnaire(
-        workspace_id=1, filename=f"gate-{suffix}.xlsx", status="parsed"
-    )
+    questionnaire = Questionnaire(workspace_id=1, filename=f"gate-{suffix}.xlsx", status="parsed")
     db_session.add_all([article, document, questionnaire])
     db_session.flush()
     question = Question(questionnaire_id=questionnaire.id, text=f"Gate {suffix}")
@@ -249,9 +247,9 @@ def gate(client, db_session):
                 synchronize_session=False
             )
         if asset_ids["articles"]:
-            db_session.query(TrustArticle).filter(TrustArticle.id.in_(asset_ids["articles"])).delete(
-                synchronize_session=False
-            )
+            db_session.query(TrustArticle).filter(
+                TrustArticle.id.in_(asset_ids["articles"])
+            ).delete(synchronize_session=False)
         db_session.commit()
 
 

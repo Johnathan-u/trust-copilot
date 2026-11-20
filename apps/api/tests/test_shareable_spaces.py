@@ -24,9 +24,7 @@ def editor_client(client):
 class TestShareableSpaceService:
     def test_create_space(self, db_session):
         ws = db_session.query(Workspace).first()
-        result = ss.create_space(
-            db_session, ws.id, "Acme Deal Room", 1, buyer_company="Acme Corp"
-        )
+        result = ss.create_space(db_session, ws.id, "Acme Deal Room", 1, buyer_company="Acme Corp")
         db_session.commit()
         assert result["name"] == "Acme Deal Room"
         assert result["access_token"] is not None
