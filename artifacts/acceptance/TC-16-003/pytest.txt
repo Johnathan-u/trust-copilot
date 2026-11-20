@@ -1,0 +1,19 @@
+# SHA 2647b2e2ad5ef575ee354a3c9c92a8bd16680dbc
+# cwd apps/api
+# Python 3.12.3, pytest 9.1.1, PostgreSQL 16.15
+# database postgresql://postgres:postgres@127.0.0.1:5432/trustcopilot_test
+python -m pytest tests/test_phase_a_user_admin.py::TestAuditLogViewer tests/release/test_feature_flags.py::test_flag_change_writes_audit_with_actor_old_and_new tests/release/test_feature_flags.py::test_non_admin_cannot_change_a_flag_and_writes_no_audit -q --tb=line
+.....                                                                    [100%]
+=============================== warnings summary ===============================
+tests/test_phase_a_user_admin.py::TestAuditLogViewer::test_audit_events_endpoint
+tests/test_phase_a_user_admin.py::TestAuditLogViewer::test_audit_events_filter_by_action
+tests/release/test_feature_flags.py::test_flag_change_writes_audit_with_actor_old_and_new
+tests/release/test_feature_flags.py::test_flag_change_writes_audit_with_actor_old_and_new
+tests/release/test_feature_flags.py::test_flag_change_writes_audit_with_actor_old_and_new
+tests/release/test_feature_flags.py::test_non_admin_cannot_change_a_flag_and_writes_no_audit
+  /tmp/tc-venv/lib/python3.12/site-packages/sqlalchemy/sql/schema.py:3627: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    return util.wrap_callable(lambda ctx: fn(), fn)  # type: ignore
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+5 passed, 6 warnings in 2.64s
+exit 0
