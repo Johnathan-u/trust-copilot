@@ -524,14 +524,20 @@ def test_store_error_still_creates_in_development(
     assert _admin_memberships(db_session, user) == 1
 
 
-def test_in_memory_limiter_without_redis_url_is_unchanged(monkeypatch) -> None:
+def test_database_limiter_without_redis_url_is_shared(monkeypatch, _ensure_test_data) -> None:
     import app.core.rate_limit as rl
 
+    if not _ensure_test_data:
+        pytest.skip("Postgres test DB unavailable")
     monkeypatch.delenv("REDIS_URL", raising=False)
     monkeypatch.setattr(rl, "_backend", None)
     backend = rl._get_backend()
-    assert isinstance(backend, rl._InMemoryBackend)
+    rl._backend = backend
+    assert isinstance(backend, rl._DatabaseBackend)
+    other = rl._DatabaseBackend()
     key = "example-synthetic-test-workspace-create"
+    rl._store.clear()
     assert backend.check(key, 1, 3600.0) is False
     backend.record(key, 1, 3600.0)
-    assert backend.check(key, 1, 3600.0) is True
+    assert other.check(key, 1, 3600.0) is True
+    rl._store.clear()

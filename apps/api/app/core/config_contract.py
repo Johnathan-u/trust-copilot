@@ -363,8 +363,8 @@ CONTRACT: tuple[ConfigVar, ...] = (
         "URL",
         "optional",
         True,
-        "unset (in-memory rate limiting)",
-        "Shared rate-limit store.",
+        "unset (database rate limiting)",
+        "Optional Redis rate-limit store. Unset uses rate_limit_buckets, shared across processes.",
     ),
     ConfigVar(
         "RATE_LIMIT_RPM_PER_IP",

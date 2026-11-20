@@ -655,24 +655,27 @@ def _exchange_microsoft_token(
 class TestRateLimitBackendSelection:
     """Rate-limit backend selection behavior and production warnings."""
 
-    def test_in_memory_backend_in_dev(self):
-        """Without REDIS_URL, in-memory backend is selected."""
-        from app.core.rate_limit import _get_backend, _InMemoryBackend
+    def test_database_backend_without_redis(self):
+        """Without REDIS_URL, the shared database backend is selected."""
+        from app.core.rate_limit import _DatabaseBackend, _get_backend
 
         with patch.dict(os.environ, {"REDIS_URL": "", "APP_ENV": "development"}, clear=False):
             backend = _get_backend()
-            assert isinstance(backend, _InMemoryBackend)
+            assert isinstance(backend, _DatabaseBackend)
 
-    def test_production_without_redis_logs_warning(self):
-        """In production without REDIS_URL, a warning is logged."""
-        from app.core.rate_limit import _get_backend, _InMemoryBackend, _rl_logger
+    def test_production_without_redis_uses_the_database_store(self):
+        """In production without REDIS_URL, the database store is selected and logged."""
+        from app.core.rate_limit import _DatabaseBackend, _get_backend, _rl_logger
 
         with patch.dict(os.environ, {"REDIS_URL": "", "APP_ENV": "production"}, clear=False):
-            with patch.object(_rl_logger, "warning") as mock_warn:
+            with patch.object(_rl_logger, "info") as mock_info:
                 backend = _get_backend()
-                assert isinstance(backend, _InMemoryBackend)
-                mock_warn.assert_called_once()
-                assert "production" in mock_warn.call_args[0][0].lower()
+                assert isinstance(backend, _DatabaseBackend)
+                logged = " ".join(
+                    str(call.args[0]) for call in mock_info.call_args_list if call.args
+                )
+                assert "shared across processes in production" in logged
+                assert "in-memory" not in logged.lower()
 
     def test_redis_backend_selected_when_configured(self):
         """With REDIS_URL set, Redis backend is attempted."""

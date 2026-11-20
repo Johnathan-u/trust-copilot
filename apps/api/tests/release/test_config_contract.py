@@ -1053,8 +1053,10 @@ def test_rate_limit_production_warning_follows_settings_only_production(
     monkeypatch.delenv("REDIS_URL", raising=False)
     _settings_only_production(monkeypatch, tmp_path, "settings")
     with caplog.at_level(logging.INFO, logger=rate_limit._rl_logger.name):
-        rate_limit._get_backend()
-    assert "in-memory backend in production" in caplog.text
+        backend = rate_limit._get_backend()
+    assert isinstance(backend, rate_limit._DatabaseBackend)
+    assert "shared across processes in production" in caplog.text
+    assert "in-memory backend in production" not in caplog.text
 
 
 # ---------------------------------------------------------------- .env.example credentials vs production

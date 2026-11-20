@@ -1,0 +1,34 @@
+TC-04-007b local environment
+
+Base: 15c6da1032a17fa68d88517efa9ffd9c26788d45
+Branch: fix/TC-04-007b-shared-limiter
+Working directory for pytest: apps/api
+Interpreter: /tmp/tc-venv/bin/python
+Python 3.12.3
+pytest 9.1.1
+ruff 0.5.6
+
+PostgreSQL 16.15 (Ubuntu 16.15-0ubuntu0.24.04.1)
+pgvector 0.6.0
+Database: trustcopilot_test at 127.0.0.1:5432
+TC_REQUIRE_DB=1 on the auth files. The release directory run did not set that variable, so a missing web toolchain stays a skip or an assertion inside the test rather than a converted skip.
+
+REDIS_URL unset. The database table rate_limit_buckets is the shared store these runs hit.
+
+Commands:
+
+TC_REQUIRE_DB=1 python -m pytest tests/release/test_auth_rate_limits.py --tb=short -rs
+Unfixed handler: exit 1, 7 failed. Log: failing-before.txt.
+Fixed handler: exit 0, 8 passed. Log: passing-after.txt.
+The eighth test is the migration downgrade. It was added with the revision, so it is not in the before log.
+
+TC_REQUIRE_DB=1 python -m pytest tests/release/test_forgot_password_enumeration.py tests/release/test_identity_tokens.py tests/release/test_password_reset.py tests/release/test_registration.py tests/test_auth.py tests/test_auth_flows.py tests/test_auth_sessions_api.py tests/test_auth_workspace.py tests/test_login_email_regression.py tests/test_invite_flow_p14.py tests/test_members_invites.py tests/test_security_remediation.py tests/release/test_auth_rate_limits.py tests/release/test_workspace_creation_policy.py -q --tb=line -rs
+Fixed handler: exit 0, 217 passed. Log: auth-suite.txt.
+
+python -m pytest tests/release -q --tb=line -rs
+First pass, before the answer-revision head pin was edited: exit 1, 5399 passed, 13 failed, 19 skipped.
+Twelve failures are Node 22.23.4 and a missing apps/web/node_modules. One was the old head pin.
+After that pin was updated: python -m pytest tests/release/test_tc12004a_regenerate_keeps_approved.py::test_answer_revision_migration_stays_on_the_single_head tests/release/test_auth_rate_limits.py::test_rate_limit_bucket_migration_downgrade_and_upgrade -q
+exit 0, 2 passed.
+
+No provider calls. Invite mail was patched to accept. Forgot-password mail was not required for the unknown-address header check.

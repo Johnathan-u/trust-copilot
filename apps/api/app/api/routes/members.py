@@ -17,6 +17,13 @@ from app.core.config import get_settings
 from app.core.database import get_db
 from app.core.invite_codes import generate_invite_code_pair, hash_invite_code
 from app.core.mfa import encrypt_totp_secret, generate_totp_secret, mfa_reenrol_required
+from app.core.rate_limit import (
+    DEFAULT_MAX_ATTEMPTS,
+    DEFAULT_WINDOW_SECONDS,
+    is_rate_limited,
+    record_attempt,
+    retry_after_seconds,
+)
 from app.core.roles import BUILTIN_PERMISSIONS, BUILTIN_ROLES
 from app.models import (
     ApiKey,
@@ -185,6 +192,26 @@ async def create_invite(
     if pending:
         raise HTTPException(status_code=400, detail="Invite already sent to this email")
     _require_assignment_grants(db, session, role)
+    limit_keys = [f"invite_create:workspace:{workspace_id}"]
+    actor_id = session.get("user_id")
+    if actor_id:
+        limit_keys.append(f"invite_create:user:{actor_id}")
+    blocked = [
+        key
+        for key in limit_keys
+        if is_rate_limited(
+            key, max_attempts=DEFAULT_MAX_ATTEMPTS, window_sec=DEFAULT_WINDOW_SECONDS
+        )
+    ]
+    if blocked:
+        wait = max(retry_after_seconds(key, DEFAULT_WINDOW_SECONDS) for key in blocked)
+        raise HTTPException(
+            status_code=429,
+            detail="Too many invites. Try again later.",
+            headers={"Retry-After": str(wait)},
+        )
+    for key in limit_keys:
+        record_attempt(key, max_attempts=DEFAULT_MAX_ATTEMPTS, window_sec=DEFAULT_WINDOW_SECONDS)
     token_raw = secrets.token_urlsafe(32)
     token_hash_val = _token_hash(token_raw)
     code_display, _code_norm = generate_invite_code_pair()
