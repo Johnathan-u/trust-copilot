@@ -30,6 +30,7 @@ from app.models import (
     MfaRecoveryCode,
     Subscription,
     TrustArticle,
+    TrustArticleVersion,
     User,
     UserMfa,
     UserSession,
@@ -50,6 +51,7 @@ MODELS = (
     CustomRole,
     Subscription,
     TrustArticle,
+    TrustArticleVersion,
 )
 PERMISSIONS = {
     "admin": (True, True, True, True),
@@ -133,7 +135,23 @@ def authority(request, monkeypatch):
     )
     db.commit()
     private_id = db.query(TrustArticle.id).filter_by(slug=f"private-{suffix}").scalar()
-    public_id = db.query(TrustArticle.id).filter_by(slug=f"public-{suffix}").scalar()
+    public_row = db.query(TrustArticle).filter_by(slug=f"public-{suffix}").one()
+    # A public read requires a published version. This row is that public article.
+    public_version = TrustArticleVersion(
+        trust_article_id=public_row.id,
+        workspace_id=public_row.workspace_id,
+        version_number=1,
+        slug=public_row.slug,
+        title=public_row.title,
+        content=public_row.content or "",
+        category=public_row.category,
+        is_policy=bool(public_row.is_policy),
+    )
+    db.add(public_version)
+    db.flush()
+    public_row.published_version_id = public_version.id
+    db.commit()
+    public_id = public_row.id
     app = FastAPI()
     for router in (
         auth.router,
@@ -203,6 +221,9 @@ def authority(request, monkeypatch):
         db.query(AuditEvent).filter(
             or_(AuditEvent.user_id.in_(user_ids), AuditEvent.workspace_id.in_(owned_ws))
         ).delete(synchronize_session=False)
+        db.query(TrustArticleVersion).filter(TrustArticleVersion.workspace_id.in_(owned_ws)).delete(
+            synchronize_session=False
+        )
         for model in (TrustArticle, Subscription, ApiKey, CustomRole):
             db.query(model).filter(model.workspace_id.in_(owned_ws)).delete(
                 synchronize_session=False

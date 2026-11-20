@@ -228,7 +228,9 @@ def list_trust_articles(
 
     Authenticated callers see the current workspace. Anonymous callers must
     pass published_only and a workspace id. published_only returns the
-    approved version, which is what the public trust centre shows.
+    approved version, which is what the public trust centre shows. A row
+    with published 1 and no version row is omitted. Its live columns are
+    not returned.
     """
     if session and session.get("workspace_id") is not None:
         effective_ws = session.get("workspace_id")
@@ -253,6 +255,13 @@ def list_trust_articles(
         q = q.filter(TrustArticle.is_policy.is_(True))
     articles = q.all()
     versions = _versions_for(db, articles)
+    if published_only:
+        # Public list. A published flag without a version row is not served.
+        articles = [
+            article
+            for article in articles
+            if versions.get(article.published_version_id) is not None
+        ]
     # published_only is the public trust centre. It returns the approved version.
     return [
         _to_dict(article, versions.get(article.published_version_id), reader=published_only)
@@ -296,9 +305,11 @@ def get_trust_article(
     """Get one trust article.
 
     A signed-in caller sees only their workspace. With no workspace_id, that
-    caller sees the draft. A public read (no session, or a named workspace,
-    which is what the trust centre sends) sees the published version.
-    An anonymous caller never sees an article whose workspace is null.
+    caller sees the draft, including a published row that has no version.
+    A public read (no session, or a named workspace, which is what the trust
+    centre sends) sees the published version. When published is 1 and that
+    version row is missing, the read is 404 and the live columns are not
+    returned. An anonymous caller never sees an article whose workspace is null.
     """
     article = db.query(TrustArticle).filter(TrustArticle.id == article_id).first()
     if not article or article.workspace_id is None:
@@ -313,7 +324,11 @@ def get_trust_article(
         if workspace_id is not None and article.workspace_id != workspace_id:
             raise HTTPException(status_code=404, detail="Trust article not found")
         reader = True
-    return _to_dict(article, _load_version(db, article), reader=reader)
+    version = _load_version(db, article)
+    # A public read requires a version. Do not fall back to the live draft.
+    if reader and article.published == 1 and version is None:
+        raise HTTPException(status_code=404, detail="Trust article not found")
+    return _to_dict(article, version, reader=reader)
 
 
 @router.post("/")

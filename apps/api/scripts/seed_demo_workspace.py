@@ -38,6 +38,7 @@ from app.models import (  # noqa: E402
 )
 from app.services.file_service import make_key  # noqa: E402
 from app.services.storage import StorageClient  # noqa: E402
+from app.services.trust_article_versions import approve_current_draft  # noqa: E402
 from app.services.xlsx_questionnaire_parser import parse_xlsx_questionnaire  # noqa: E402
 
 try:
@@ -322,6 +323,9 @@ def seed_demo_workspace(db: Session, storage: StorageClient) -> Workspace:
                 category=ta.get("category"),
             )
             db.add(art)
+        db.flush()
+        # Public reads require a version. Publish the seeded text.
+        approve_current_draft(db, art)
     db.commit()
     print("Created or updated trust articles")
 
