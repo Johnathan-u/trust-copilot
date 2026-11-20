@@ -30,7 +30,12 @@ from fastapi import FastAPI  # noqa: E402
 from fastapi.middleware.cors import CORSMiddleware  # noqa: E402
 
 from app.core.config import get_settings  # noqa: E402
-from app.core.logging_config import configure_logging, request_id_ctx, workspace_id_ctx  # noqa: E402
+from app.core.logging_config import (  # noqa: E402
+    configure_logging,
+    request_id_ctx,
+    scrub_sentry_event,
+    workspace_id_ctx,
+)
 from app.core.api_errors import enqueue_conflict_handler, model_call_error_handler  # noqa: E402
 from app.core.idempotency import IdempotencyClaimLost  # noqa: E402
 from app.services.job_effects import EnqueueConflictError  # noqa: E402
@@ -136,7 +141,11 @@ from app.services.storage import StorageClient  # noqa: E402
 
 
 def _init_sentry() -> None:
-    """Initialize Sentry when SENTRY_DSN is set. Scrubs cookies and Authorization from events."""
+    """Initialize Sentry when SENTRY_DSN is set.
+
+    Events drop cookies, the Authorization header, and the request body. Filename
+    fields and reset-link tokens are masked. ``request_id`` and ``job_id`` stay.
+    """
     s = get_settings()
     if not s.sentry_dsn:
         return
@@ -144,16 +153,9 @@ def _init_sentry() -> None:
     from sentry_sdk.integrations.fastapi import FastApiIntegration
 
     def before_send(event: dict, hint: dict) -> dict | None:
-        # Do not send request cookies or Authorization header
-        if "request" in event:
-            event["request"].pop("cookies", None)
-            headers = event["request"].get("headers") or {}
-            if isinstance(headers, dict):
-                headers = {k: v for k, v in headers.items() if k.lower() != "authorization"}
-            else:
-                headers = [(k, v) for k, v in headers if k.lower() != "authorization"]
-            event["request"]["headers"] = headers
-        return event
+        if not isinstance(event, dict):
+            return event
+        return scrub_sentry_event(event)
 
     sentry_sdk.init(
         dsn=s.sentry_dsn,

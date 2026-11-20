@@ -10,6 +10,7 @@ from fastapi import HTTPException, UploadFile
 logger = logging.getLogger(__name__)
 
 from app.core.config import get_settings  # noqa: E402
+from app.core.logging_config import request_id_ctx  # noqa: E402
 from app.services.storage import StorageClient  # noqa: E402
 
 PRESIGNED_EXPORT_EXPIRY = 900  # 15 min
@@ -53,6 +54,93 @@ def make_key(workspace_id: int, prefix: str, filename: str) -> str:
     return f"{prefix}/{workspace_id}/{uuid.uuid4().hex}{ext}"
 
 
+_LOG_EXT = re.compile(r"\.[a-z0-9]{1,8}")
+_SAFE_REQUEST_ID = re.compile(r"[A-Za-z0-9._-]{1,80}")
+
+
+def _log_extension(filename: str | None) -> str:
+    """Suffix safe to log. A long or odd suffix is not the file's name."""
+    if not isinstance(filename, str):
+        return "none"
+    suffix = Path(filename).suffix.lower()
+    if _LOG_EXT.fullmatch(suffix):
+        return suffix
+    if suffix:
+        return "other"
+    return "none"
+
+
+def _http_request_id() -> str:
+    """Request id from the logging context, or '-' when it is missing or unsafe to echo."""
+    rid = request_id_ctx.get()
+    if isinstance(rid, str) and _SAFE_REQUEST_ID.fullmatch(rid):
+        return rid
+    return "-"
+
+
+def _log_upload_rejected(
+    *,
+    workspace_id: int,
+    filename: str | None,
+    size_bytes: int,
+    reason: str,
+    trust_request_id: int | None = None,
+    max_bytes: int | None = None,
+) -> None:
+    """Log a rejected upload without the user-supplied filename.
+
+    ``filename`` is used only to choose ``ext``. The warning carries the workspace,
+    the byte size, a short suffix, and the reason. A trust-request rejection also
+    carries that request's id. The HTTP request id is included when the request
+    context has one. There is no job yet, so this does not invent a ``job_id``.
+    """
+    ext = _log_extension(filename)
+    http_request_id = _http_request_id()
+    if trust_request_id is None:
+        if reason == "size_exceeded":
+            logger.warning(
+                "upload_rejected workspace_id=%s size_bytes=%s ext=%s "
+                "reason=size_exceeded max_bytes=%s http_request_id=%s",
+                workspace_id,
+                size_bytes,
+                ext,
+                max_bytes,
+                http_request_id,
+            )
+            return
+        logger.warning(
+            "upload_rejected workspace_id=%s size_bytes=%s ext=%s "
+            "reason=extension_not_allowed allowed=%s http_request_id=%s",
+            workspace_id,
+            size_bytes,
+            ext,
+            sorted(ALLOWED_RAW_EXTENSIONS),
+            http_request_id,
+        )
+        return
+    if reason == "size_exceeded":
+        logger.warning(
+            "upload_rejected trust_request workspace_id=%s request_id=%s "
+            "size_bytes=%s ext=%s reason=size_exceeded max_bytes=%s http_request_id=%s",
+            workspace_id,
+            trust_request_id,
+            size_bytes,
+            ext,
+            max_bytes,
+            http_request_id,
+        )
+        return
+    logger.warning(
+        "upload_rejected trust_request workspace_id=%s request_id=%s "
+        "size_bytes=%s ext=%s reason=extension_not_allowed http_request_id=%s",
+        workspace_id,
+        trust_request_id,
+        size_bytes,
+        ext,
+        http_request_id,
+    )
+
+
 class FileService:
     """Business-friendly file operations."""
 
@@ -64,11 +152,12 @@ class FileService:
         content = file.file.read()
         max_bytes = get_settings().max_upload_bytes
         if len(content) > max_bytes:
-            logger.warning(
-                "upload_rejected workspace_id=%s filename=%s reason=size_exceeded max_bytes=%s",
-                workspace_id,
-                getattr(file, "filename", ""),
-                max_bytes,
+            _log_upload_rejected(
+                workspace_id=workspace_id,
+                filename=getattr(file, "filename", None),
+                size_bytes=len(content),
+                reason="size_exceeded",
+                max_bytes=max_bytes,
             )
             raise HTTPException(
                 status_code=413, detail=f"File exceeds max size ({max_bytes // (1024*1024)}MB)"
@@ -76,12 +165,11 @@ class FileService:
         safe_name = sanitize_filename(file.filename)
         ext = Path(safe_name).suffix.lower()
         if not ext or ext not in ALLOWED_RAW_EXTENSIONS:
-            logger.warning(
-                "upload_rejected workspace_id=%s filename=%s ext=%s reason=extension_not_allowed allowed=%s",
-                workspace_id,
-                safe_name,
-                ext,
-                sorted(ALLOWED_RAW_EXTENSIONS),
+            _log_upload_rejected(
+                workspace_id=workspace_id,
+                filename=file.filename,
+                size_bytes=len(content),
+                reason="extension_not_allowed",
             )
             raise HTTPException(
                 status_code=400,
@@ -103,11 +191,13 @@ class FileService:
         content = file.file.read()
         max_bytes = get_settings().max_upload_bytes
         if len(content) > max_bytes:
-            logger.warning(
-                "upload_rejected trust_request workspace_id=%s request_id=%s filename=%s reason=size_exceeded",
-                workspace_id,
-                request_id,
-                getattr(file, "filename", ""),
+            _log_upload_rejected(
+                workspace_id=workspace_id,
+                filename=getattr(file, "filename", None),
+                size_bytes=len(content),
+                reason="size_exceeded",
+                trust_request_id=request_id,
+                max_bytes=max_bytes,
             )
             raise HTTPException(
                 status_code=413, detail=f"File exceeds max size ({max_bytes // (1024*1024)}MB)"
@@ -115,11 +205,12 @@ class FileService:
         safe_name = sanitize_filename(file.filename)
         ext = Path(safe_name).suffix.lower()
         if not ext or ext not in ALLOWED_RAW_EXTENSIONS:
-            logger.warning(
-                "upload_rejected trust_request workspace_id=%s filename=%s ext=%s reason=extension_not_allowed",
-                workspace_id,
-                safe_name,
-                ext,
+            _log_upload_rejected(
+                workspace_id=workspace_id,
+                filename=file.filename,
+                size_bytes=len(content),
+                reason="extension_not_allowed",
+                trust_request_id=request_id,
             )
             raise HTTPException(
                 status_code=400,

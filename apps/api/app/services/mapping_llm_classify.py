@@ -96,7 +96,10 @@ def parse_classification_response(content: str | None) -> dict[str, Any] | None:
     try:
         obj = json.loads(text)
     except json.JSONDecodeError:
-        logger.warning("mapping_llm_classify: JSON parse failed: %s", text[:200])
+        logger.warning(
+            "mapping_llm_classify: JSON parse failed bytes=%s",
+            len(text.encode("utf-8", errors="replace")),
+        )
         return None
     if not isinstance(obj, dict):
         return None
@@ -186,7 +189,11 @@ def classify_question_with_llm(
                 continue
             return None, raw
         except Exception as exc:
-            logger.warning("mapping_llm_classify: LLM call failed attempt %d: %s", attempt, exc)
+            logger.warning(
+                "mapping_llm_classify: LLM call failed attempt %d: %s",
+                attempt,
+                type(exc).__name__,
+            )
             if attempt < _MAX_RETRIES:
                 time.sleep(_RETRY_DELAY)
                 continue
@@ -383,7 +390,7 @@ def bulk_classify_and_persist(
                     _, parsed, raw, quality = future.result()
                     classify_results[qid] = (parsed, raw, quality)
                 except Exception as exc:
-                    logger.warning("bulk_classify: question %d failed: %s", qid, exc)
+                    logger.warning("bulk_classify: question %d failed: %s", qid, type(exc).__name__)
                     classify_results[qid] = (None, None, "heuristic_fallback")
                 done = stats["cached"] + len(classify_results)
                 if on_progress and done % 5 == 0:

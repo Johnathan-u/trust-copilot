@@ -1,0 +1,24 @@
+F                                                                        [100%]
+=================================== FAILURES ===================================
+___________________ test_upload_logs_omit_the_user_filename ____________________
+tests/test_tc07011a_upload_log_redaction.py:86: in test_upload_logs_omit_the_user_filename
+    assert CANARY not in rendered
+E   assert 'TC07011A-CA...e-do-not-log' not in 'upload_reje...orrelation"}'
+E     
+E     'TC07011A-CANARY-filename-do-not-log' is contained here:
+E       lename=../TC07011A-CANARY-filename-do-not-log.pdf reason=size_exceeded max_bytes=8
+E       (42, '../TC07011A-CANARY-filename-do-not-log.pdf', 8)
+E       {"ts": "2026-11-20 14:08:16,414", "level": "WARNING", "logger": "app.services.file_service", "msg": "upload_rejected workspace_id=42 filename=../TC07011A-CANARY-filename-do-not-log.pdf reason=size_exceeded max_bytes=8", "request_id": "req-tc07011a-correlation"}
+E       upload_rejected workspace_id=42 filename=TC07011A-CANARY-filename-do-not-log.exe ext=.exe reason=extension_not_allow...
+E     
+E     ...Full output truncated (15 lines hidden), use '-vv' to show
+------------------------------ Captured log call -------------------------------
+WARNING  app.services.file_service:file_service.py:67 upload_rejected workspace_id=42 filename=../TC07011A-CANARY-filename-do-not-log.pdf reason=size_exceeded max_bytes=8
+WARNING  app.services.file_service:file_service.py:79 upload_rejected workspace_id=42 filename=TC07011A-CANARY-filename-do-not-log.exe ext=.exe reason=extension_not_allowed allowed=['.doc', '.docx', '.pdf', '.txt', '.xls', '.xlsx']
+WARNING  app.services.file_service:file_service.py:79 upload_rejected workspace_id=42 filename=TC07011A-CANARY-filename-do-not-log ext= reason=extension_not_allowed allowed=['.doc', '.docx', '.pdf', '.txt', '.xls', '.xlsx']
+WARNING  app.services.file_service:file_service.py:79 upload_rejected workspace_id=42 filename=notes.TC07011A-CANARY-filename-do-not-log ext=.tc07011a-canary-filename-do-not-log reason=extension_not_allowed allowed=['.doc', '.docx', '.pdf', '.txt', '.xls', '.xlsx']
+WARNING  app.services.file_service:file_service.py:106 upload_rejected trust_request workspace_id=42 request_id=9001 filename=TC07011A-CANARY-filename-do-not-log.pdf reason=size_exceeded
+WARNING  app.services.file_service:file_service.py:118 upload_rejected trust_request workspace_id=42 filename=TC07011A-CANARY-filename-do-not-log.exe ext=.exe reason=extension_not_allowed
+=========================== short test summary info ============================
+FAILED tests/test_tc07011a_upload_log_redaction.py::test_upload_logs_omit_the_user_filename
+1 failed in 0.20s
