@@ -2,13 +2,13 @@
 
 Registered from the review of #307 ([comment 6998922136](https://github.com/Johnathan-u/trust-copilot/pull/307#issuecomment-6998922136)). These follow-ups are not blockers. They do not change the parent verdict, and they are not counted toward DONE. None of them is accepted.
 
-The sentence in the implementation commit said the tracker was not edited there. Records revision 35 registers TC-17-001a, TC-17-001b, TC-17-001c, TC-17-001d, TC-17-001e, TC-17-001f, TC-17-001h and TC-17-001i. TC-17-001g is the owner question. It is parked and is not a follow-up. Each registered child has its own file in this directory. Records revision 36 closes TC-17-001b (#313) and TC-17-001h (#312). Those closes are not counted toward DONE.
+The sentence in the implementation commit said the tracker was not edited there. Records revision 35 registers TC-17-001a, TC-17-001b, TC-17-001c, TC-17-001d, TC-17-001e, TC-17-001f, TC-17-001h and TC-17-001i. TC-17-001g was the owner question and was not registered then. Each registered child has its own file in this directory. Records revision 36 closes TC-17-001b (#313) and TC-17-001h (#312). Records revision 37 closes TC-17-001a (#321) and registers TC-17-001g, the publish-on-save child for review item 7, after the owner ruling on #85 comment 7045436640. The docs do not define a TC-17-001j ticket, so that id is not registered. Those closes are not counted toward DONE.
 
 ## TC-17-001a — Public reads require a published version
 
-Open. P1. Registered. See [TC-17-001a.md](TC-17-001a.md).
+Closed by #321 (`0279867f9af52d568a2ed834532967459306d521`). P1. Registered. See [TC-17-001a.md](TC-17-001a.md).
 
-A public read still returns the live columns when `published` is 1 and `published_version_id` is null (`apps/api/app/api/routes/trust_articles.py`). The seed scripts can insert those rows. Either require a version on the public read, or have the seeds publish through `approve_current_draft`.
+A public read requires a published version. When `published` is 1 and there is no version, the live draft columns are not returned. Seeds publish a published article through `approve_current_draft`.
 
 ## TC-17-001b — Acknowledging must not publish
 
@@ -40,11 +40,11 @@ Open. P2. Registered. See [TC-17-001f.md](TC-17-001f.md).
 
 The runbook should say that after a downgrade the previous code serves the draft text, and that the newest revoked acknowledgment counts again under that code.
 
-## TC-17-001g — Owner ruling on publish-by-default
+## TC-17-001g — A save creates a draft
 
-Parked for the owner. Not registered as work. There is no `TC-17-001g` follow-up. Not an engineering change until the owner rules.
+Open. P1. Registered in records revision 37. See [TC-17-001g.md](TC-17-001g.md).
 
-Create still defaults to `published: 1`, and the dashboard sends `published: 1` on every save of a published article. There is no draft-only save, and every such edit revokes acknowledgments.
+Review item 7 on #307 comment 6998922136. The owner ruled it on #85 comment 7045436640 (ruling 8). A save creates a draft. Publishing is an explicit `require_can_admin` action. New articles default to `published=0`. Create still defaults to `published: 1`, and the dashboard sends `published: 1` on every save of a published article, until this child lands. The docs do not define TC-17-001j. This child is that publish-on-save work, registered once.
 
 ## TC-17-001h — Revoke comparison
 

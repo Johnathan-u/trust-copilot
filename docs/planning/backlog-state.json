@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
   "scope_version": 1,
-  "revision": 36,
-  "as_of_utc": "2026-11-20T13:31:15Z",
-  "source_sha": "32cc730e508b78af9c5039c1ee4a88bb29e970e6",
+  "revision": 37,
+  "as_of_utc": "2026-11-20T17:38:20Z",
+  "source_sha": "0279867f9af52d568a2ed834532967459306d521",
   "baseline_status": "PENDING",
   "scope": {
     "canonical_sha256": "2ec27987ea9b4e3e89f88d409fc817aea22550cae2f2c10f6bd6e3c23190ff5a",
@@ -1562,9 +1562,9 @@
       "evidence_state": "VERIFIED_ACCEPTED",
       "owner": null,
       "blockers": [],
-      "next_action": "Accepted. Reopen only on regression.",
-      "updated_at": "2026-11-01T14:23:59Z",
-      "source_sha": "90146e0cfe2220beb3e43f98f6073262f7c0abfb",
+      "next_action": "Accepted. Reopen only on regression. Child TC-02-003a (P1) is registered and open: upgrade to the latest patched Next.js 16.x and record npm audit output before and after. The lock is next 16.4.3. Ruling: #85 comment 7045436640 (ruling 7). Epic E02 owns toolchain and frontend dependency upgrades, and this parent owns that upgrade. The child does not change this acceptance and is not counted toward DONE.",
+      "updated_at": "2026-11-20T17:38:20Z",
+      "source_sha": "0279867f9af52d568a2ed834532967459306d521",
       "acceptance": {
         "state": "ACCEPTED",
         "assessed_by": "claude-reviewer",
@@ -1666,7 +1666,7 @@
             "tested_sha": "951c81e3f338c93a88e988d9b1ac5d9cbdffaa88"
           }
         ],
-        "note": "Accepted on exact-SHA master CI (build + web-release-e2e green) and review of code, tests and evidence; implemented via PR #9."
+        "note": "Accepted on exact-SHA master CI (build + web-release-e2e green) and review of code, tests and evidence; implemented via PR #9. Records revision 37 registers child TC-02-003a (P1): upgrade to the latest patched Next.js 16.x and record npm audit output before and after. The lock on this snapshot is next 16.4.3. Ruling 7 on #85 comment 7045436640. The child does not change this acceptance and is not counted toward DONE. Recorded by Grok (worker). Grok is not the independent reviewer."
       },
       "pr_links": [
         {
@@ -1688,7 +1688,9 @@
       ],
       "evidence_links": [
         "https://github.com/Johnathan-u/trust-copilot/blob/b2bd1e0df5cdeb03b8d0cd240f5a161835ea621d/docs/release/tickets/TC-02-003.md",
-        "https://github.com/Johnathan-u/trust-copilot/tree/b2bd1e0df5cdeb03b8d0cd240f5a161835ea621d/artifacts/acceptance/TC-02-003"
+        "https://github.com/Johnathan-u/trust-copilot/tree/b2bd1e0df5cdeb03b8d0cd240f5a161835ea621d/artifacts/acceptance/TC-02-003",
+        "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-7045436640",
+        "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-7046162703"
       ],
       "audit": {
         "original_epic": "E02",
@@ -4799,9 +4801,9 @@
       "evidence_state": "VERIFIED_ACCEPTED",
       "owner": null,
       "blockers": [],
-      "next_action": "Accepted. Reopen only on regression or when change control adds scope. Child TC-04-005a is closed by #278 (head ab403a6dcd107215d9aa21a7982cc9e83f45b50a, merge 538a81815da61164065a17328f03448fdcea5489). Ruling: pull/278 comment 6966126776. CI-id follow-up #279 merged as d69109e720df3a697ff4af9eb1b222ae1553a628. The child is not an original parent and is not counted toward DONE. API keys are workspace credentials and are not revoked on member suspension, removal or demotion. That is the current policy Claude accepted on #271 comment 6962020496, noted for the owner to revisit.",
-      "updated_at": "2026-11-18T09:55:51Z",
-      "source_sha": "af478a601a5df6ac49410711c77a14b014c70bf4",
+      "next_action": "Accepted. Reopen only on regression or when change control adds scope. Child TC-04-005a is closed by #278 (head ab403a6dcd107215d9aa21a7982cc9e83f45b50a, merge 538a81815da61164065a17328f03448fdcea5489). Ruling: pull/278 comment 6966126776. CI-id follow-up #279 merged as d69109e720df3a697ff4af9eb1b222ae1553a628. The child is not an original parent and is not counted toward DONE. The policy Claude accepted on #271 comment 6962020496, that API keys are workspace credentials and are not revoked on member suspension, removal or demotion, was noted for the owner to revisit. The owner reversed it on #85 comment 7045436640 (ruling 6). Child TC-04-005b (P1) is registered and open: when a member is suspended, removed, or demoted below the key-creating role, the keys they created are disabled, and an admin can reassign or re-enable them, audited. The child does not change this acceptance and is not counted toward DONE.",
+      "updated_at": "2026-11-20T17:38:20Z",
+      "source_sha": "0279867f9af52d568a2ed834532967459306d521",
       "acceptance": {
         "state": "ACCEPTED",
         "assessed_by": "claude-review-agent",
@@ -5007,7 +5009,7 @@
             "tested_sha": "d397e8e8259037a510efa678a3c320708c8e55db"
           }
         ],
-        "note": "DONE and VERIFIED_ACCEPTED. Claude is the independent reviewer. He accepted TC-04-005 on #271 comment 6962587389, pinned to d397e8e8259037a510efa678a3c320708c8e55db, squash-merged as 480b4ae19d14fc46b3638b341dad8d90f2fcec2f. CI for that head: push run 44184737539 and pull_request run 44184748040. Follow-up #272 (head 3c0e12a5ca7f643275dc4a8ff6060458ec394bb7, merge 37ac10b80e55e6901a5b70c930207c734b5b4b17) records those run IDs. AC1, AC2, DoD1, DoD2, DoD3 and DoD4 meet on d397e8e8259037a510efa678a3c320708c8e55db; DoD5 is this acceptance. API keys are workspace credentials and are not revoked on member suspension, removal or demotion. Claude accepted that current policy on #271 comment 6962020496 and noted it for the owner to revisit. Child TC-04-005a is closed by #278 (head ab403a6dcd107215d9aa21a7982cc9e83f45b50a, merge 538a81815da61164065a17328f03448fdcea5489). Ruling: pull/278 comment 6966126776. CI-id follow-up #279 merged as d69109e720df3a697ff4af9eb1b222ae1553a628. The child is not counted toward DONE. This note does not change the parent's acceptance. Recorded by Grok (worker). Grok wrote the test and is not the independent reviewer."
+        "note": "DONE and VERIFIED_ACCEPTED. Claude is the independent reviewer. He accepted TC-04-005 on #271 comment 6962587389, pinned to d397e8e8259037a510efa678a3c320708c8e55db, squash-merged as 480b4ae19d14fc46b3638b341dad8d90f2fcec2f. CI for that head: push run 44184737539 and pull_request run 44184748040. Follow-up #272 (head 3c0e12a5ca7f643275dc4a8ff6060458ec394bb7, merge 37ac10b80e55e6901a5b70c930207c734b5b4b17) records those run IDs. AC1, AC2, DoD1, DoD2, DoD3 and DoD4 meet on d397e8e8259037a510efa678a3c320708c8e55db; DoD5 is this acceptance. API keys are workspace credentials and are not revoked on member suspension, removal or demotion. Claude accepted that current policy on #271 comment 6962020496 and noted it for the owner to revisit. Child TC-04-005a is closed by #278 (head ab403a6dcd107215d9aa21a7982cc9e83f45b50a, merge 538a81815da61164065a17328f03448fdcea5489). Ruling: pull/278 comment 6966126776. CI-id follow-up #279 merged as d69109e720df3a697ff4af9eb1b222ae1553a628. The child is not counted toward DONE. This note does not change the parent's acceptance. Recorded by Grok (worker). Grok wrote the test and is not the independent reviewer. Records revision 37 registers child TC-04-005b (P1). Ruling 6 on #85 comment 7045436640 reverses the policy that API keys stay active when the creating member is suspended, removed, or demoted below the key-creating role. The keys they created are disabled. An admin can reassign or re-enable them, and that action is audited. The child is open. It does not change this acceptance and is not counted toward DONE. Recorded by Grok (worker). Grok is not the independent reviewer."
       },
       "pr_links": [
         {
@@ -5118,7 +5120,9 @@
         "https://github.com/Johnathan-u/trust-copilot/pull/279",
         "https://github.com/Johnathan-u/trust-copilot/commit/88c07bc17c8c65133ac7bd2b0e9450a3b94595c1",
         "https://github.com/Johnathan-u/trust-copilot/commit/d69109e720df3a697ff4af9eb1b222ae1553a628",
-        "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-6974255416"
+        "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-6974255416",
+        "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-7045436640",
+        "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-7046162703"
       ],
       "audit": {
         "original_epic": "E04",
@@ -5423,9 +5427,9 @@
       "evidence_state": "IMPLEMENTATION_GAPS_IDENTIFIED",
       "owner": null,
       "blockers": [],
-      "next_action": "Gaps from docs/release/verification/TC-04-007.md (PARTIAL, checked at 2647b2e2ad5ef575ee354a3c9c92a8bd16680dbc; PR #315 merge 64f0297c6517b9fcdd287da0b1d455df2e029aa6, head e23d3a0a68edc960ccc9475ae90593be17b5d455; Claude's review tick #85 comment 7039897301): Login, resend, forgot-password, reset-password, and invite verification return 429. The default limiter is per-process memory. Child TC-04-007a (P0 security) is registered first in this revision and closed by #316 (head f06dda55321a6e2952e0ae3c64012dc5b931599e, merge 7df09a860b8d25ec197848c78776e6b4952bc031). That close is not parent acceptance. Child TC-04-007b (P0) is registered and open: share the limiter across processes, send Retry-After, limit invite creation, and add tests/release/test_auth_rate_limits.py. Not accepted.",
-      "updated_at": "2026-11-20T13:31:15Z",
-      "source_sha": "32cc730e508b78af9c5039c1ee4a88bb29e970e6",
+      "next_action": "Gaps from docs/release/verification/TC-04-007.md (PARTIAL, checked at 2647b2e2ad5ef575ee354a3c9c92a8bd16680dbc; PR #315 merge 64f0297c6517b9fcdd287da0b1d455df2e029aa6, head e23d3a0a68edc960ccc9475ae90593be17b5d455; Claude's review tick #85 comment 7039897301). Child TC-04-007a (P0 security) is closed by #316 (head f06dda55321a6e2952e0ae3c64012dc5b931599e, merge 7df09a860b8d25ec197848c78776e6b4952bc031). That close is not parent acceptance. Child TC-04-007b (P0) is closed by #319 (head 160d7c254656dcda91df39135c23c2d11f696885, merge 265a268c750287f2cf347f95cb4c695c9645ae5d). That close is not parent acceptance. Child TC-04-007c (P2) is registered and open: prune rate-limit buckets and record the fail-open note. Ruling: #85 comment 7044441373. Not accepted.",
+      "updated_at": "2026-11-20T17:38:20Z",
+      "source_sha": "0279867f9af52d568a2ed834532967459306d521",
       "acceptance": {
         "state": "PENDING",
         "assessed_by": null,
@@ -5484,7 +5488,7 @@
             "tested_sha": null
           }
         ],
-        "note": "Full original-parent acceptance is pending baseline validation; merged work and artifact presence alone confer no acceptance. R10 closure (#85 comment 6896794377), recorded by Grok (worker). Closed unmerged #161 used the id TC-04-007a (https://github.com/Johnathan-u/trust-copilot/pull/161#issuecomment-6915229698) and is not this merge. Claude's review tick on #85 comment 7039897301 moves the PARTIAL report docs/release/verification/TC-04-007.md in PR #315 (merge 64f0297c6517b9fcdd287da0b1d455df2e029aa6, head e23d3a0a68edc960ccc9475ae90593be17b5d455) to IMPLEMENTATION_GAPS_IDENTIFIED. The report was checked at 2647b2e2ad5ef575ee354a3c9c92a8bd16680dbc. Login, resend, forgot-password, reset-password, and invite verification return 429. The default limiter is per-process memory. Child TC-04-007a (P0 security) is registered first in this revision and closed by #316 (head f06dda55321a6e2952e0ae3c64012dc5b931599e, merge 7df09a860b8d25ec197848c78776e6b4952bc031). That close is not parent acceptance. Child TC-04-007b (P0) is registered and open: share the limiter across processes, send Retry-After, limit invite creation, and add tests/release/test_auth_rate_limits.py. The children are not counted toward DONE. Status is IMPLEMENTATION_GAPS_IDENTIFIED. This record does not accept the ticket. Recorded by Grok (worker) from Claude's review. Grok is not the independent reviewer."
+        "note": "Full original-parent acceptance is pending baseline validation; merged work and artifact presence alone confer no acceptance. R10 closure (#85 comment 6896794377), recorded by Grok (worker). Closed unmerged #161 used the id TC-04-007a (https://github.com/Johnathan-u/trust-copilot/pull/161#issuecomment-6915229698) and is not this merge. Claude's review tick on #85 comment 7039897301 moves the PARTIAL report docs/release/verification/TC-04-007.md in PR #315 (merge 64f0297c6517b9fcdd287da0b1d455df2e029aa6, head e23d3a0a68edc960ccc9475ae90593be17b5d455) to IMPLEMENTATION_GAPS_IDENTIFIED. The report was checked at 2647b2e2ad5ef575ee354a3c9c92a8bd16680dbc. Login, resend, forgot-password, reset-password, and invite verification return 429. The default limiter is per-process memory. Child TC-04-007a (P0 security) is registered first in this revision and closed by #316 (head f06dda55321a6e2952e0ae3c64012dc5b931599e, merge 7df09a860b8d25ec197848c78776e6b4952bc031). That close is not parent acceptance. Child TC-04-007b (P0) is registered and open: share the limiter across processes, send Retry-After, limit invite creation, and add tests/release/test_auth_rate_limits.py. The children are not counted toward DONE. Status is IMPLEMENTATION_GAPS_IDENTIFIED. This record does not accept the ticket. Recorded by Grok (worker) from Claude's review. Grok is not the independent reviewer. Records revision 37 closes child TC-04-007b (P0) by #319 (head 160d7c254656dcda91df39135c23c2d11f696885, merge 265a268c750287f2cf347f95cb4c695c9645ae5d). That close is not parent acceptance. Child TC-04-007c (P2) is registered and open: prune rate-limit buckets and record the fail-open note. Ruling: #85 comment 7044441373. The children are not counted toward DONE. Status stays IMPLEMENTATION_GAPS_IDENTIFIED. This record does not accept the ticket. Recorded by Grok (worker). Grok is not the independent reviewer."
       },
       "pr_links": [
         {
@@ -5518,6 +5522,22 @@
           "scope_ids": [
             "TC-04-007a"
           ]
+        },
+        {
+          "number": 319,
+          "title": "TC-04-007b: shared auth rate limiter, Retry-After and invite limit",
+          "url": "https://github.com/Johnathan-u/trust-copilot/pull/319",
+          "state": "merged",
+          "draft": false,
+          "head_sha": "160d7c254656dcda91df39135c23c2d11f696885",
+          "merge_commit_sha": "265a268c750287f2cf347f95cb4c695c9645ae5d",
+          "merged_at": "2026-11-20T16:12:38Z",
+          "mapping_basis": [
+            "child closure"
+          ],
+          "scope_ids": [
+            "TC-04-007b"
+          ]
         }
       ],
       "evidence_links": [
@@ -5529,7 +5549,13 @@
         "https://github.com/Johnathan-u/trust-copilot/pull/316",
         "https://github.com/Johnathan-u/trust-copilot/commit/f06dda55321a6e2952e0ae3c64012dc5b931599e",
         "https://github.com/Johnathan-u/trust-copilot/commit/7df09a860b8d25ec197848c78776e6b4952bc031",
-        "https://github.com/Johnathan-u/trust-copilot/blob/7df09a860b8d25ec197848c78776e6b4952bc031/docs/release/tickets/TC-04-007a.md"
+        "https://github.com/Johnathan-u/trust-copilot/blob/7df09a860b8d25ec197848c78776e6b4952bc031/docs/release/tickets/TC-04-007a.md",
+        "https://github.com/Johnathan-u/trust-copilot/pull/319",
+        "https://github.com/Johnathan-u/trust-copilot/commit/160d7c254656dcda91df39135c23c2d11f696885",
+        "https://github.com/Johnathan-u/trust-copilot/commit/265a268c750287f2cf347f95cb4c695c9645ae5d",
+        "https://github.com/Johnathan-u/trust-copilot/blob/265a268c750287f2cf347f95cb4c695c9645ae5d/docs/release/tickets/TC-04-007b.md",
+        "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-7044441373",
+        "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-7046162703"
       ],
       "audit": {
         "original_epic": "E04",
@@ -9360,9 +9386,9 @@
       "evidence_state": "IMPLEMENTATION_GAPS_IDENTIFIED",
       "owner": null,
       "blockers": [],
-      "next_action": "Gaps from docs/release/verification/TC-07-011.md (PARTIAL, checked at 2647b2e2ad5ef575ee354a3c9c92a8bd16680dbc; PR #315 merge 64f0297c6517b9fcdd287da0b1d455df2e029aa6, head e23d3a0a68edc960ccc9475ae90593be17b5d455; Claude's review tick #85 comment 7039897301): Upload warnings still include filenames, classification logs model text, and Sentry drops only cookies and Authorization. Child TC-07-011a (P0) and child TC-07-011b (P0) are registered and open. Not accepted.",
-      "updated_at": "2026-11-20T13:31:15Z",
-      "source_sha": "32cc730e508b78af9c5039c1ee4a88bb29e970e6",
+      "next_action": "Gaps from docs/release/verification/TC-07-011.md (PARTIAL, checked at 2647b2e2ad5ef575ee354a3c9c92a8bd16680dbc; PR #315 merge 64f0297c6517b9fcdd287da0b1d455df2e029aa6, head e23d3a0a68edc960ccc9475ae90593be17b5d455; Claude's review tick #85 comment 7039897301). The gap text describes that tree. Child TC-07-011a (P0) is closed by #318 (head 80fccbac10cade631a8e4889ddedc2344af40428, merge 15c6da1032a17fa68d88517efa9ffd9c26788d45). Child TC-07-011b (P0) is closed by #320 (head 3536e3aeb08cda9a80d2001e79be0b1fec0527b1, merge 924158a08165a8dd659b8281a6b8004c948454f2). Both registered children are closed. Those closes are not parent acceptance. Original criteria stay NOT_VERIFIED. Status stays IMPLEMENTATION_GAPS_IDENTIFIED. Not accepted.",
+      "updated_at": "2026-11-20T17:38:20Z",
+      "source_sha": "0279867f9af52d568a2ed834532967459306d521",
       "acceptance": {
         "state": "PENDING",
         "assessed_by": null,
@@ -9421,7 +9447,7 @@
             "tested_sha": null
           }
         ],
-        "note": "Full original-parent acceptance is pending baseline validation; merged work and artifact presence alone confer no acceptance. Claude's review tick on #85 comment 7039897301 moves the PARTIAL report docs/release/verification/TC-07-011.md in PR #315 (merge 64f0297c6517b9fcdd287da0b1d455df2e029aa6, head e23d3a0a68edc960ccc9475ae90593be17b5d455) to IMPLEMENTATION_GAPS_IDENTIFIED. The report was checked at 2647b2e2ad5ef575ee354a3c9c92a8bd16680dbc. Upload warnings still include filenames, classification logs model text, and Sentry drops only cookies and Authorization. Child TC-07-011a (P0) and child TC-07-011b (P0) are registered and open. The children are not counted toward DONE. Status is IMPLEMENTATION_GAPS_IDENTIFIED. This record does not accept the ticket. Recorded by Grok (worker) from Claude's review. Grok is not the independent reviewer."
+        "note": "Full original-parent acceptance is pending baseline validation; merged work and artifact presence alone confer no acceptance. Claude's review tick on #85 comment 7039897301 moves the PARTIAL report docs/release/verification/TC-07-011.md in PR #315 (merge 64f0297c6517b9fcdd287da0b1d455df2e029aa6, head e23d3a0a68edc960ccc9475ae90593be17b5d455) to IMPLEMENTATION_GAPS_IDENTIFIED. The report was checked at 2647b2e2ad5ef575ee354a3c9c92a8bd16680dbc. Upload warnings still include filenames, classification logs model text, and Sentry drops only cookies and Authorization. Child TC-07-011a (P0) and child TC-07-011b (P0) are registered and open. The children are not counted toward DONE. Status is IMPLEMENTATION_GAPS_IDENTIFIED. This record does not accept the ticket. Recorded by Grok (worker) from Claude's review. Grok is not the independent reviewer. Records revision 37 closes child TC-07-011a (P0) by #318 (head 80fccbac10cade631a8e4889ddedc2344af40428, merge 15c6da1032a17fa68d88517efa9ffd9c26788d45) and child TC-07-011b (P0) by #320 (head 3536e3aeb08cda9a80d2001e79be0b1fec0527b1, merge 924158a08165a8dd659b8281a6b8004c948454f2). Both registered children are closed. Those closes are not parent acceptance. Original criteria stay NOT_VERIFIED. Status stays IMPLEMENTATION_GAPS_IDENTIFIED. This record does not accept the ticket. Recorded by Grok (worker). Grok is not the independent reviewer."
       },
       "pr_links": [
         {
@@ -9439,6 +9465,38 @@
           "scope_ids": [
             "TC-07-011"
           ]
+        },
+        {
+          "number": 318,
+          "title": "TC-07-011a: redact filenames from upload logs",
+          "url": "https://github.com/Johnathan-u/trust-copilot/pull/318",
+          "state": "merged",
+          "draft": false,
+          "head_sha": "80fccbac10cade631a8e4889ddedc2344af40428",
+          "merge_commit_sha": "15c6da1032a17fa68d88517efa9ffd9c26788d45",
+          "merged_at": "2026-11-20T14:51:22Z",
+          "mapping_basis": [
+            "child closure"
+          ],
+          "scope_ids": [
+            "TC-07-011a"
+          ]
+        },
+        {
+          "number": 320,
+          "title": "TC-07-011b: add the named log-redaction test",
+          "url": "https://github.com/Johnathan-u/trust-copilot/pull/320",
+          "state": "merged",
+          "draft": false,
+          "head_sha": "3536e3aeb08cda9a80d2001e79be0b1fec0527b1",
+          "merge_commit_sha": "924158a08165a8dd659b8281a6b8004c948454f2",
+          "merged_at": "2026-11-20T16:49:46Z",
+          "mapping_basis": [
+            "child closure"
+          ],
+          "scope_ids": [
+            "TC-07-011b"
+          ]
         }
       ],
       "evidence_links": [
@@ -9446,7 +9504,16 @@
         "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-7039897301",
         "https://github.com/Johnathan-u/trust-copilot/commit/e23d3a0a68edc960ccc9475ae90593be17b5d455",
         "https://github.com/Johnathan-u/trust-copilot/commit/64f0297c6517b9fcdd287da0b1d455df2e029aa6",
-        "https://github.com/Johnathan-u/trust-copilot/blob/64f0297c6517b9fcdd287da0b1d455df2e029aa6/docs/release/verification/TC-07-011.md"
+        "https://github.com/Johnathan-u/trust-copilot/blob/64f0297c6517b9fcdd287da0b1d455df2e029aa6/docs/release/verification/TC-07-011.md",
+        "https://github.com/Johnathan-u/trust-copilot/pull/318",
+        "https://github.com/Johnathan-u/trust-copilot/commit/80fccbac10cade631a8e4889ddedc2344af40428",
+        "https://github.com/Johnathan-u/trust-copilot/commit/15c6da1032a17fa68d88517efa9ffd9c26788d45",
+        "https://github.com/Johnathan-u/trust-copilot/blob/15c6da1032a17fa68d88517efa9ffd9c26788d45/docs/release/tickets/TC-07-011a.md",
+        "https://github.com/Johnathan-u/trust-copilot/pull/320",
+        "https://github.com/Johnathan-u/trust-copilot/commit/3536e3aeb08cda9a80d2001e79be0b1fec0527b1",
+        "https://github.com/Johnathan-u/trust-copilot/commit/924158a08165a8dd659b8281a6b8004c948454f2",
+        "https://github.com/Johnathan-u/trust-copilot/blob/924158a08165a8dd659b8281a6b8004c948454f2/docs/release/tickets/TC-07-011b.md",
+        "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-7046162703"
       ],
       "audit": {
         "original_epic": "E07",
@@ -37933,9 +38000,9 @@
       "evidence_state": "VERIFIED_ACCEPTED",
       "owner": null,
       "blockers": [],
-      "next_action": "Accepted. A published trust article is an immutable version. Readers see that snapshot. An acknowledgment binds to the version the reader saw, and a new version or an unpublish revokes the previous acknowledgment. A retried create returns the same article. Migration tc17001_article_versions is the head. Child TC-17-001b (P1 security) is closed by #313 (head 042b701810e430866a7f52958b466497c96beb57, merge 030550e86bf3393f480cc0802fcfde68233457ed). Child TC-17-001h (P1) is closed by #312 (head 2836f9974bcd91d33f7d50b83bed7e54441b616d, merge 32cc730e508b78af9c5039c1ee4a88bb29e970e6). Open children TC-17-001a, TC-17-001c, TC-17-001d, TC-17-001e, TC-17-001f and TC-17-001i do not change this acceptance. Those closes are not counted toward DONE. The publish-on-save default is an owner question and is not registered work. Reopen only on regression or when change control adds scope.",
-      "updated_at": "2026-11-20T13:31:15Z",
-      "source_sha": "32cc730e508b78af9c5039c1ee4a88bb29e970e6",
+      "next_action": "Accepted. A published trust article is an immutable version. Readers see that snapshot. An acknowledgment binds to the version the reader saw, and a new version or an unpublish revokes the previous acknowledgment. A retried create returns the same article. Migration tc17001_article_versions is the head. Child TC-17-001b (P1 security) is closed by #313 (head 042b701810e430866a7f52958b466497c96beb57, merge 030550e86bf3393f480cc0802fcfde68233457ed). Child TC-17-001h (P1) is closed by #312 (head 2836f9974bcd91d33f7d50b83bed7e54441b616d, merge 32cc730e508b78af9c5039c1ee4a88bb29e970e6). Child TC-17-001a (P1) is closed by #321 (head a64ebf3d3f2ec80722d3f48dc510da3704cbd2a2, merge 0279867f9af52d568a2ed834532967459306d521). Open children TC-17-001c, TC-17-001d, TC-17-001e, TC-17-001f, TC-17-001g and TC-17-001i do not change this acceptance. Those closes are not counted toward DONE. Child TC-17-001g (P1) is registered and open: a save creates a draft, publishing is an explicit require_can_admin action, and new articles default to published=0. That is review item 7, ruled on #85 comment 7045436640. The docs do not define TC-17-001j, so that id is not registered. Reopen only on regression or when change control adds scope.",
+      "updated_at": "2026-11-20T17:38:20Z",
+      "source_sha": "0279867f9af52d568a2ed834532967459306d521",
       "acceptance": {
         "state": "ACCEPTED",
         "assessed_by": "claude-review-agent",
@@ -38143,7 +38210,7 @@
             "tested_sha": "07cbc176531edb9d5e58878a5574e43d4c4a4d91"
           }
         ],
-        "note": "DONE and VERIFIED_ACCEPTED. Claude is the independent reviewer. He accepted TC-17-001 on #307 comment 7008980985 at 2026-11-19T12:22:50Z, once recorded. Tested, assessed and reviewed SHA 07cbc176531edb9d5e58878a5574e43d4c4a4d91 is the #307 head he pinned. Behavior meets on 383467b54170b143eccd738d61956548d1b87880, which 559bd9d7f3c921a0400929d411770bfb4292d28c records, and 07cbc176 records that tree without changing the route, migration, or tests. Squash-merged as 7fea456dde7a8ed3148e11045d5488a77004aff4. CI for 07cbc176: push run 44455944772 (build 135330849141, web-release-e2e 135330848742) and pull_request run 44455950570 (build 135330868430, web-release-e2e 135330868166). build and web-release-e2e succeeded on both events. AC1, AC2, AC3, DoD1, DoD2, DoD3 and DoD4 meet on that SHA. DoD5 is this acceptance. Migration tc17001_article_versions changes persisted state. Run IDs are in artifacts/acceptance/TC-17-001/ci-runs.md. Non-blocking children stay off the DONE count. TC-17-001b (P1 security) is closed by #313 (head 042b701810e430866a7f52958b466497c96beb57, merge 030550e86bf3393f480cc0802fcfde68233457ed). TC-17-001h (P1) is closed by #312 (head 2836f9974bcd91d33f7d50b83bed7e54441b616d, merge 32cc730e508b78af9c5039c1ee4a88bb29e970e6). TC-17-001a (P1), TC-17-001c (P2), TC-17-001d (P2), TC-17-001e (P1), TC-17-001f (P2) and TC-17-001i (P2) stay open. Those closes are not parent acceptance and are not counted toward DONE. The product question about publish-on-save and the default published=1 (review item 7) is parked for the owner and is not registered work. Recorded by Grok (worker). Grok wrote the change and is not the independent reviewer."
+        "note": "DONE and VERIFIED_ACCEPTED. Claude is the independent reviewer. He accepted TC-17-001 on #307 comment 7008980985 at 2026-11-19T12:22:50Z, once recorded. Tested, assessed and reviewed SHA 07cbc176531edb9d5e58878a5574e43d4c4a4d91 is the #307 head he pinned. Behavior meets on 383467b54170b143eccd738d61956548d1b87880, which 559bd9d7f3c921a0400929d411770bfb4292d28c records, and 07cbc176 records that tree without changing the route, migration, or tests. Squash-merged as 7fea456dde7a8ed3148e11045d5488a77004aff4. CI for 07cbc176: push run 44455944772 (build 135330849141, web-release-e2e 135330848742) and pull_request run 44455950570 (build 135330868430, web-release-e2e 135330868166). build and web-release-e2e succeeded on both events. AC1, AC2, AC3, DoD1, DoD2, DoD3 and DoD4 meet on that SHA. DoD5 is this acceptance. Migration tc17001_article_versions changes persisted state. Run IDs are in artifacts/acceptance/TC-17-001/ci-runs.md. Non-blocking children stay off the DONE count. TC-17-001b (P1 security) is closed by #313 (head 042b701810e430866a7f52958b466497c96beb57, merge 030550e86bf3393f480cc0802fcfde68233457ed). TC-17-001h (P1) is closed by #312 (head 2836f9974bcd91d33f7d50b83bed7e54441b616d, merge 32cc730e508b78af9c5039c1ee4a88bb29e970e6). TC-17-001a (P1), TC-17-001c (P2), TC-17-001d (P2), TC-17-001e (P1), TC-17-001f (P2) and TC-17-001i (P2) stay open. Those closes are not parent acceptance and are not counted toward DONE. The product question about publish-on-save and the default published=1 (review item 7) is parked for the owner and is not registered work. Recorded by Grok (worker). Grok wrote the change and is not the independent reviewer. Records revision 37 closes child TC-17-001a (P1) by #321 (head a64ebf3d3f2ec80722d3f48dc510da3704cbd2a2, merge 0279867f9af52d568a2ed834532967459306d521). That close does not change this acceptance and is not counted toward DONE. Child TC-17-001g (P1) is registered and open: a save creates a draft, publishing is an explicit require_can_admin action, and new articles default to published=0. That is review item 7 from #307 comment 6998922136, ruled on #85 comment 7045436640. The docs do not define TC-17-001j, so that id is not registered. Open children do not change this acceptance. This note does not change the parent's acceptance. Recorded by Grok (worker). Grok is not the independent reviewer."
       },
       "pr_links": [
         {
@@ -38225,6 +38292,22 @@
           "scope_ids": [
             "TC-17-001h"
           ]
+        },
+        {
+          "number": 321,
+          "title": "TC-17-001a: public reads require a published version",
+          "url": "https://github.com/Johnathan-u/trust-copilot/pull/321",
+          "state": "merged",
+          "draft": false,
+          "head_sha": "a64ebf3d3f2ec80722d3f48dc510da3704cbd2a2",
+          "merge_commit_sha": "0279867f9af52d568a2ed834532967459306d521",
+          "merged_at": "2026-11-20T17:29:17Z",
+          "mapping_basis": [
+            "child closure"
+          ],
+          "scope_ids": [
+            "TC-17-001a"
+          ]
         }
       ],
       "evidence_links": [
@@ -38262,7 +38345,13 @@
         "https://github.com/Johnathan-u/trust-copilot/commit/2836f9974bcd91d33f7d50b83bed7e54441b616d",
         "https://github.com/Johnathan-u/trust-copilot/commit/32cc730e508b78af9c5039c1ee4a88bb29e970e6",
         "https://github.com/Johnathan-u/trust-copilot/blob/32cc730e508b78af9c5039c1ee4a88bb29e970e6/docs/release/tickets/TC-17-001h.md",
-        "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-7039897301"
+        "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-7039897301",
+        "https://github.com/Johnathan-u/trust-copilot/pull/321",
+        "https://github.com/Johnathan-u/trust-copilot/commit/a64ebf3d3f2ec80722d3f48dc510da3704cbd2a2",
+        "https://github.com/Johnathan-u/trust-copilot/commit/0279867f9af52d568a2ed834532967459306d521",
+        "https://github.com/Johnathan-u/trust-copilot/blob/0279867f9af52d568a2ed834532967459306d521/docs/release/tickets/TC-17-001a.md",
+        "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-7045436640",
+        "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-7046162703"
       ],
       "audit": {
         "original_epic": "E17",
@@ -55214,10 +55303,10 @@
     },
     {
       "id": "TC-17-001a",
-      "title": "P1: Public reads require a published version, or seeds publish through approve_current_draft",
+      "title": "P1: Public reads require a published version, or seeds publish through approve_current_draft (closed, #321)",
       "parent_id": "TC-17-001",
       "story_points": null,
-      "source_url": "https://github.com/Johnathan-u/trust-copilot/pull/307#issuecomment-6998922136",
+      "source_url": "https://github.com/Johnathan-u/trust-copilot/pull/321",
       "source_path": "docs/release/tickets/TC-17-001a.md"
     },
     {
@@ -55350,26 +55439,26 @@
     },
     {
       "id": "TC-04-007b",
-      "title": "P0: Share the auth limiter across processes, send Retry-After, limit invite creation, and add tests/release/test_auth_rate_limits.py",
+      "title": "P0: Share the auth limiter across processes, send Retry-After, limit invite creation, and add tests/release/test_auth_rate_limits.py (closed, #319)",
       "parent_id": "TC-04-007",
       "story_points": null,
-      "source_url": "https://github.com/Johnathan-u/trust-copilot/pull/315",
+      "source_url": "https://github.com/Johnathan-u/trust-copilot/pull/319",
       "source_path": "docs/release/tickets/TC-04-007b.md"
     },
     {
       "id": "TC-07-011a",
-      "title": "P0: Keep filenames, reset links, and source text out of application logs and Sentry",
+      "title": "P0: Keep filenames, reset links, and source text out of application logs and Sentry (closed, #318)",
       "parent_id": "TC-07-011",
       "story_points": null,
-      "source_url": "https://github.com/Johnathan-u/trust-copilot/pull/315",
+      "source_url": "https://github.com/Johnathan-u/trust-copilot/pull/318",
       "source_path": "docs/release/tickets/TC-07-011a.md"
     },
     {
       "id": "TC-07-011b",
-      "title": "P0: Add tests/release/test_log_redaction.py and docs/release/tickets/TC-07-011.md",
+      "title": "P0: Add tests/release/test_log_redaction.py and docs/release/tickets/TC-07-011.md (closed, #320)",
       "parent_id": "TC-07-011",
       "story_points": null,
-      "source_url": "https://github.com/Johnathan-u/trust-copilot/pull/315",
+      "source_url": "https://github.com/Johnathan-u/trust-copilot/pull/320",
       "source_path": "docs/release/tickets/TC-07-011b.md"
     },
     {
@@ -55403,6 +55492,38 @@
       "story_points": null,
       "source_url": "https://github.com/Johnathan-u/trust-copilot/pull/315",
       "source_path": "docs/release/tickets/TC-16-003b.md"
+    },
+    {
+      "id": "TC-04-007c",
+      "title": "P2: Prune expired rate-limit buckets and record the fail-open note",
+      "parent_id": "TC-04-007",
+      "story_points": null,
+      "source_url": "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-7044441373",
+      "source_path": "docs/release/tickets/TC-04-007c.md"
+    },
+    {
+      "id": "TC-17-001g",
+      "title": "P1: A save creates a draft, publishing is an explicit require_can_admin action, and new articles default to published=0",
+      "parent_id": "TC-17-001",
+      "story_points": null,
+      "source_url": "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-7045436640",
+      "source_path": "docs/release/tickets/TC-17-001g.md"
+    },
+    {
+      "id": "TC-04-005b",
+      "title": "P1: Disable API keys created by a member who is suspended, removed, or demoted below the key-creating role; an admin can reassign or re-enable them, audited",
+      "parent_id": "TC-04-005",
+      "story_points": null,
+      "source_url": "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-7045436640",
+      "source_path": "docs/release/tickets/TC-04-005b.md"
+    },
+    {
+      "id": "TC-02-003a",
+      "title": "P1: Upgrade to the latest patched Next.js 16.x and record npm audit output before and after",
+      "parent_id": "TC-02-003",
+      "story_points": null,
+      "source_url": "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-7045436640",
+      "source_path": "docs/release/tickets/TC-02-003a.md"
     }
   ],
   "history": [
@@ -100045,6 +100166,2106 @@
             "source_url": {
               "before": "https://github.com/Johnathan-u/trust-copilot/pull/307#issuecomment-6998922136",
               "after": "https://github.com/Johnathan-u/trust-copilot/pull/312"
+            }
+          }
+        }
+      }
+    },
+    {
+      "revision": 37,
+      "at": "2026-11-20T17:38:20Z",
+      "actor": "grok",
+      "reason": "Close TC-07-011a (#318, merge 15c6da1032a17fa68d88517efa9ffd9c26788d45), TC-07-011b (#320, merge 924158a08165a8dd659b8281a6b8004c948454f2), TC-04-007b (#319, merge 265a268c750287f2cf347f95cb4c695c9645ae5d) and TC-17-001a (#321, merge 0279867f9af52d568a2ed834532967459306d521). Register TC-04-007c (P2), TC-04-005b (P1), TC-02-003a (P1, latest patched Next.js 16.x) and TC-17-001g (P1, publish-on-save, review item 7). The docs do not define TC-17-001j, so that id is not registered. Child closures are not counted toward DONE. Parents stay at their current states. DONE stays 57 of 384. Nothing is accepted.",
+      "source_sha": "0279867f9af52d568a2ed834532967459306d521",
+      "before": {
+        "scope_version": 1,
+        "accepted_points": null,
+        "completion_percentage": null,
+        "assessed_tickets": 58,
+        "total_tickets": 384,
+        "total_points": 1864,
+        "state_counts": {
+          "BASELINE_RECONCILIATION": 263,
+          "BLOCKED": 3,
+          "DONE": 57,
+          "EVIDENCE_RECONCILIATION": 12,
+          "IMPLEMENTATION_GAPS_IDENTIFIED": 49
+        },
+        "accepted_claim_points": 255,
+        "accepted_tickets": 57,
+        "baseline_status": "PENDING"
+      },
+      "after": {
+        "scope_version": 1,
+        "accepted_points": null,
+        "completion_percentage": null,
+        "assessed_tickets": 58,
+        "total_tickets": 384,
+        "total_points": 1864,
+        "state_counts": {
+          "BASELINE_RECONCILIATION": 263,
+          "BLOCKED": 3,
+          "DONE": 57,
+          "EVIDENCE_RECONCILIATION": 12,
+          "IMPLEMENTATION_GAPS_IDENTIFIED": 49
+        },
+        "accepted_claim_points": 255,
+        "accepted_tickets": 57,
+        "baseline_status": "PENDING"
+      },
+      "changes": {
+        "tickets": {
+          "TC-07-011": {
+            "next_action": {
+              "before": "Gaps from docs/release/verification/TC-07-011.md (PARTIAL, checked at 2647b2e2ad5ef575ee354a3c9c92a8bd16680dbc; PR #315 merge 64f0297c6517b9fcdd287da0b1d455df2e029aa6, head e23d3a0a68edc960ccc9475ae90593be17b5d455; Claude's review tick #85 comment 7039897301): Upload warnings still include filenames, classification logs model text, and Sentry drops only cookies and Authorization. Child TC-07-011a (P0) and child TC-07-011b (P0) are registered and open. Not accepted.",
+              "after": "Gaps from docs/release/verification/TC-07-011.md (PARTIAL, checked at 2647b2e2ad5ef575ee354a3c9c92a8bd16680dbc; PR #315 merge 64f0297c6517b9fcdd287da0b1d455df2e029aa6, head e23d3a0a68edc960ccc9475ae90593be17b5d455; Claude's review tick #85 comment 7039897301). The gap text describes that tree. Child TC-07-011a (P0) is closed by #318 (head 80fccbac10cade631a8e4889ddedc2344af40428, merge 15c6da1032a17fa68d88517efa9ffd9c26788d45). Child TC-07-011b (P0) is closed by #320 (head 3536e3aeb08cda9a80d2001e79be0b1fec0527b1, merge 924158a08165a8dd659b8281a6b8004c948454f2). Both registered children are closed. Those closes are not parent acceptance. Original criteria stay NOT_VERIFIED. Status stays IMPLEMENTATION_GAPS_IDENTIFIED. Not accepted."
+            },
+            "updated_at": {
+              "before": "2026-11-20T13:31:15Z",
+              "after": "2026-11-20T17:38:20Z"
+            },
+            "source_sha": {
+              "before": "32cc730e508b78af9c5039c1ee4a88bb29e970e6",
+              "after": "0279867f9af52d568a2ed834532967459306d521"
+            },
+            "acceptance": {
+              "before": {
+                "state": "PENDING",
+                "assessed_by": null,
+                "assessed_at": null,
+                "assessed_sha": null,
+                "assessment_evidence_urls": [],
+                "tested_sha": null,
+                "implemented_by": [],
+                "independent_reviewer": null,
+                "reviewed_at": null,
+                "reviewed_sha": null,
+                "review_evidence_urls": [],
+                "criteria": [
+                  {
+                    "id": "TC-07-011-AC1",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-07-011-AC2",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  }
+                ],
+                "definition_of_done": [
+                  {
+                    "id": "TC-07-011-DOD1",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-07-011-DOD2",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-07-011-DOD3",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-07-011-DOD4",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-07-011-DOD5",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  }
+                ],
+                "note": "Full original-parent acceptance is pending baseline validation; merged work and artifact presence alone confer no acceptance. Claude's review tick on #85 comment 7039897301 moves the PARTIAL report docs/release/verification/TC-07-011.md in PR #315 (merge 64f0297c6517b9fcdd287da0b1d455df2e029aa6, head e23d3a0a68edc960ccc9475ae90593be17b5d455) to IMPLEMENTATION_GAPS_IDENTIFIED. The report was checked at 2647b2e2ad5ef575ee354a3c9c92a8bd16680dbc. Upload warnings still include filenames, classification logs model text, and Sentry drops only cookies and Authorization. Child TC-07-011a (P0) and child TC-07-011b (P0) are registered and open. The children are not counted toward DONE. Status is IMPLEMENTATION_GAPS_IDENTIFIED. This record does not accept the ticket. Recorded by Grok (worker) from Claude's review. Grok is not the independent reviewer."
+              },
+              "after": {
+                "state": "PENDING",
+                "assessed_by": null,
+                "assessed_at": null,
+                "assessed_sha": null,
+                "assessment_evidence_urls": [],
+                "tested_sha": null,
+                "implemented_by": [],
+                "independent_reviewer": null,
+                "reviewed_at": null,
+                "reviewed_sha": null,
+                "review_evidence_urls": [],
+                "criteria": [
+                  {
+                    "id": "TC-07-011-AC1",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-07-011-AC2",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  }
+                ],
+                "definition_of_done": [
+                  {
+                    "id": "TC-07-011-DOD1",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-07-011-DOD2",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-07-011-DOD3",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-07-011-DOD4",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-07-011-DOD5",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  }
+                ],
+                "note": "Full original-parent acceptance is pending baseline validation; merged work and artifact presence alone confer no acceptance. Claude's review tick on #85 comment 7039897301 moves the PARTIAL report docs/release/verification/TC-07-011.md in PR #315 (merge 64f0297c6517b9fcdd287da0b1d455df2e029aa6, head e23d3a0a68edc960ccc9475ae90593be17b5d455) to IMPLEMENTATION_GAPS_IDENTIFIED. The report was checked at 2647b2e2ad5ef575ee354a3c9c92a8bd16680dbc. Upload warnings still include filenames, classification logs model text, and Sentry drops only cookies and Authorization. Child TC-07-011a (P0) and child TC-07-011b (P0) are registered and open. The children are not counted toward DONE. Status is IMPLEMENTATION_GAPS_IDENTIFIED. This record does not accept the ticket. Recorded by Grok (worker) from Claude's review. Grok is not the independent reviewer. Records revision 37 closes child TC-07-011a (P0) by #318 (head 80fccbac10cade631a8e4889ddedc2344af40428, merge 15c6da1032a17fa68d88517efa9ffd9c26788d45) and child TC-07-011b (P0) by #320 (head 3536e3aeb08cda9a80d2001e79be0b1fec0527b1, merge 924158a08165a8dd659b8281a6b8004c948454f2). Both registered children are closed. Those closes are not parent acceptance. Original criteria stay NOT_VERIFIED. Status stays IMPLEMENTATION_GAPS_IDENTIFIED. This record does not accept the ticket. Recorded by Grok (worker). Grok is not the independent reviewer."
+              }
+            },
+            "pr_links": {
+              "before": [
+                {
+                  "number": 315,
+                  "title": "docs: baseline reconciliation batch 11 (TC-16-003, TC-04-007, TC-07-011, TC-15-006)",
+                  "url": "https://github.com/Johnathan-u/trust-copilot/pull/315",
+                  "state": "merged",
+                  "draft": false,
+                  "head_sha": "e23d3a0a68edc960ccc9475ae90593be17b5d455",
+                  "merge_commit_sha": "64f0297c6517b9fcdd287da0b1d455df2e029aa6",
+                  "merged_at": "2026-11-20T12:46:11Z",
+                  "mapping_basis": [
+                    "verification report"
+                  ],
+                  "scope_ids": [
+                    "TC-07-011"
+                  ]
+                }
+              ],
+              "after": [
+                {
+                  "number": 315,
+                  "title": "docs: baseline reconciliation batch 11 (TC-16-003, TC-04-007, TC-07-011, TC-15-006)",
+                  "url": "https://github.com/Johnathan-u/trust-copilot/pull/315",
+                  "state": "merged",
+                  "draft": false,
+                  "head_sha": "e23d3a0a68edc960ccc9475ae90593be17b5d455",
+                  "merge_commit_sha": "64f0297c6517b9fcdd287da0b1d455df2e029aa6",
+                  "merged_at": "2026-11-20T12:46:11Z",
+                  "mapping_basis": [
+                    "verification report"
+                  ],
+                  "scope_ids": [
+                    "TC-07-011"
+                  ]
+                },
+                {
+                  "number": 318,
+                  "title": "TC-07-011a: redact filenames from upload logs",
+                  "url": "https://github.com/Johnathan-u/trust-copilot/pull/318",
+                  "state": "merged",
+                  "draft": false,
+                  "head_sha": "80fccbac10cade631a8e4889ddedc2344af40428",
+                  "merge_commit_sha": "15c6da1032a17fa68d88517efa9ffd9c26788d45",
+                  "merged_at": "2026-11-20T14:51:22Z",
+                  "mapping_basis": [
+                    "child closure"
+                  ],
+                  "scope_ids": [
+                    "TC-07-011a"
+                  ]
+                },
+                {
+                  "number": 320,
+                  "title": "TC-07-011b: add the named log-redaction test",
+                  "url": "https://github.com/Johnathan-u/trust-copilot/pull/320",
+                  "state": "merged",
+                  "draft": false,
+                  "head_sha": "3536e3aeb08cda9a80d2001e79be0b1fec0527b1",
+                  "merge_commit_sha": "924158a08165a8dd659b8281a6b8004c948454f2",
+                  "merged_at": "2026-11-20T16:49:46Z",
+                  "mapping_basis": [
+                    "child closure"
+                  ],
+                  "scope_ids": [
+                    "TC-07-011b"
+                  ]
+                }
+              ]
+            },
+            "evidence_links": {
+              "before": [
+                "https://github.com/Johnathan-u/trust-copilot/pull/315",
+                "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-7039897301",
+                "https://github.com/Johnathan-u/trust-copilot/commit/e23d3a0a68edc960ccc9475ae90593be17b5d455",
+                "https://github.com/Johnathan-u/trust-copilot/commit/64f0297c6517b9fcdd287da0b1d455df2e029aa6",
+                "https://github.com/Johnathan-u/trust-copilot/blob/64f0297c6517b9fcdd287da0b1d455df2e029aa6/docs/release/verification/TC-07-011.md"
+              ],
+              "after": [
+                "https://github.com/Johnathan-u/trust-copilot/pull/315",
+                "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-7039897301",
+                "https://github.com/Johnathan-u/trust-copilot/commit/e23d3a0a68edc960ccc9475ae90593be17b5d455",
+                "https://github.com/Johnathan-u/trust-copilot/commit/64f0297c6517b9fcdd287da0b1d455df2e029aa6",
+                "https://github.com/Johnathan-u/trust-copilot/blob/64f0297c6517b9fcdd287da0b1d455df2e029aa6/docs/release/verification/TC-07-011.md",
+                "https://github.com/Johnathan-u/trust-copilot/pull/318",
+                "https://github.com/Johnathan-u/trust-copilot/commit/80fccbac10cade631a8e4889ddedc2344af40428",
+                "https://github.com/Johnathan-u/trust-copilot/commit/15c6da1032a17fa68d88517efa9ffd9c26788d45",
+                "https://github.com/Johnathan-u/trust-copilot/blob/15c6da1032a17fa68d88517efa9ffd9c26788d45/docs/release/tickets/TC-07-011a.md",
+                "https://github.com/Johnathan-u/trust-copilot/pull/320",
+                "https://github.com/Johnathan-u/trust-copilot/commit/3536e3aeb08cda9a80d2001e79be0b1fec0527b1",
+                "https://github.com/Johnathan-u/trust-copilot/commit/924158a08165a8dd659b8281a6b8004c948454f2",
+                "https://github.com/Johnathan-u/trust-copilot/blob/924158a08165a8dd659b8281a6b8004c948454f2/docs/release/tickets/TC-07-011b.md",
+                "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-7046162703"
+              ]
+            }
+          },
+          "TC-04-007": {
+            "next_action": {
+              "before": "Gaps from docs/release/verification/TC-04-007.md (PARTIAL, checked at 2647b2e2ad5ef575ee354a3c9c92a8bd16680dbc; PR #315 merge 64f0297c6517b9fcdd287da0b1d455df2e029aa6, head e23d3a0a68edc960ccc9475ae90593be17b5d455; Claude's review tick #85 comment 7039897301): Login, resend, forgot-password, reset-password, and invite verification return 429. The default limiter is per-process memory. Child TC-04-007a (P0 security) is registered first in this revision and closed by #316 (head f06dda55321a6e2952e0ae3c64012dc5b931599e, merge 7df09a860b8d25ec197848c78776e6b4952bc031). That close is not parent acceptance. Child TC-04-007b (P0) is registered and open: share the limiter across processes, send Retry-After, limit invite creation, and add tests/release/test_auth_rate_limits.py. Not accepted.",
+              "after": "Gaps from docs/release/verification/TC-04-007.md (PARTIAL, checked at 2647b2e2ad5ef575ee354a3c9c92a8bd16680dbc; PR #315 merge 64f0297c6517b9fcdd287da0b1d455df2e029aa6, head e23d3a0a68edc960ccc9475ae90593be17b5d455; Claude's review tick #85 comment 7039897301). Child TC-04-007a (P0 security) is closed by #316 (head f06dda55321a6e2952e0ae3c64012dc5b931599e, merge 7df09a860b8d25ec197848c78776e6b4952bc031). That close is not parent acceptance. Child TC-04-007b (P0) is closed by #319 (head 160d7c254656dcda91df39135c23c2d11f696885, merge 265a268c750287f2cf347f95cb4c695c9645ae5d). That close is not parent acceptance. Child TC-04-007c (P2) is registered and open: prune rate-limit buckets and record the fail-open note. Ruling: #85 comment 7044441373. Not accepted."
+            },
+            "updated_at": {
+              "before": "2026-11-20T13:31:15Z",
+              "after": "2026-11-20T17:38:20Z"
+            },
+            "source_sha": {
+              "before": "32cc730e508b78af9c5039c1ee4a88bb29e970e6",
+              "after": "0279867f9af52d568a2ed834532967459306d521"
+            },
+            "acceptance": {
+              "before": {
+                "state": "PENDING",
+                "assessed_by": null,
+                "assessed_at": null,
+                "assessed_sha": null,
+                "assessment_evidence_urls": [],
+                "tested_sha": null,
+                "implemented_by": [],
+                "independent_reviewer": null,
+                "reviewed_at": null,
+                "reviewed_sha": null,
+                "review_evidence_urls": [],
+                "criteria": [
+                  {
+                    "id": "TC-04-007-AC1",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-04-007-AC2",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  }
+                ],
+                "definition_of_done": [
+                  {
+                    "id": "TC-04-007-DOD1",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-04-007-DOD2",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-04-007-DOD3",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-04-007-DOD4",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-04-007-DOD5",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  }
+                ],
+                "note": "Full original-parent acceptance is pending baseline validation; merged work and artifact presence alone confer no acceptance. R10 closure (#85 comment 6896794377), recorded by Grok (worker). Closed unmerged #161 used the id TC-04-007a (https://github.com/Johnathan-u/trust-copilot/pull/161#issuecomment-6915229698) and is not this merge. Claude's review tick on #85 comment 7039897301 moves the PARTIAL report docs/release/verification/TC-04-007.md in PR #315 (merge 64f0297c6517b9fcdd287da0b1d455df2e029aa6, head e23d3a0a68edc960ccc9475ae90593be17b5d455) to IMPLEMENTATION_GAPS_IDENTIFIED. The report was checked at 2647b2e2ad5ef575ee354a3c9c92a8bd16680dbc. Login, resend, forgot-password, reset-password, and invite verification return 429. The default limiter is per-process memory. Child TC-04-007a (P0 security) is registered first in this revision and closed by #316 (head f06dda55321a6e2952e0ae3c64012dc5b931599e, merge 7df09a860b8d25ec197848c78776e6b4952bc031). That close is not parent acceptance. Child TC-04-007b (P0) is registered and open: share the limiter across processes, send Retry-After, limit invite creation, and add tests/release/test_auth_rate_limits.py. The children are not counted toward DONE. Status is IMPLEMENTATION_GAPS_IDENTIFIED. This record does not accept the ticket. Recorded by Grok (worker) from Claude's review. Grok is not the independent reviewer."
+              },
+              "after": {
+                "state": "PENDING",
+                "assessed_by": null,
+                "assessed_at": null,
+                "assessed_sha": null,
+                "assessment_evidence_urls": [],
+                "tested_sha": null,
+                "implemented_by": [],
+                "independent_reviewer": null,
+                "reviewed_at": null,
+                "reviewed_sha": null,
+                "review_evidence_urls": [],
+                "criteria": [
+                  {
+                    "id": "TC-04-007-AC1",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-04-007-AC2",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  }
+                ],
+                "definition_of_done": [
+                  {
+                    "id": "TC-04-007-DOD1",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-04-007-DOD2",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-04-007-DOD3",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-04-007-DOD4",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-04-007-DOD5",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  }
+                ],
+                "note": "Full original-parent acceptance is pending baseline validation; merged work and artifact presence alone confer no acceptance. R10 closure (#85 comment 6896794377), recorded by Grok (worker). Closed unmerged #161 used the id TC-04-007a (https://github.com/Johnathan-u/trust-copilot/pull/161#issuecomment-6915229698) and is not this merge. Claude's review tick on #85 comment 7039897301 moves the PARTIAL report docs/release/verification/TC-04-007.md in PR #315 (merge 64f0297c6517b9fcdd287da0b1d455df2e029aa6, head e23d3a0a68edc960ccc9475ae90593be17b5d455) to IMPLEMENTATION_GAPS_IDENTIFIED. The report was checked at 2647b2e2ad5ef575ee354a3c9c92a8bd16680dbc. Login, resend, forgot-password, reset-password, and invite verification return 429. The default limiter is per-process memory. Child TC-04-007a (P0 security) is registered first in this revision and closed by #316 (head f06dda55321a6e2952e0ae3c64012dc5b931599e, merge 7df09a860b8d25ec197848c78776e6b4952bc031). That close is not parent acceptance. Child TC-04-007b (P0) is registered and open: share the limiter across processes, send Retry-After, limit invite creation, and add tests/release/test_auth_rate_limits.py. The children are not counted toward DONE. Status is IMPLEMENTATION_GAPS_IDENTIFIED. This record does not accept the ticket. Recorded by Grok (worker) from Claude's review. Grok is not the independent reviewer. Records revision 37 closes child TC-04-007b (P0) by #319 (head 160d7c254656dcda91df39135c23c2d11f696885, merge 265a268c750287f2cf347f95cb4c695c9645ae5d). That close is not parent acceptance. Child TC-04-007c (P2) is registered and open: prune rate-limit buckets and record the fail-open note. Ruling: #85 comment 7044441373. The children are not counted toward DONE. Status stays IMPLEMENTATION_GAPS_IDENTIFIED. This record does not accept the ticket. Recorded by Grok (worker). Grok is not the independent reviewer."
+              }
+            },
+            "pr_links": {
+              "before": [
+                {
+                  "number": 315,
+                  "title": "docs: baseline reconciliation batch 11 (TC-16-003, TC-04-007, TC-07-011, TC-15-006)",
+                  "url": "https://github.com/Johnathan-u/trust-copilot/pull/315",
+                  "state": "merged",
+                  "draft": false,
+                  "head_sha": "e23d3a0a68edc960ccc9475ae90593be17b5d455",
+                  "merge_commit_sha": "64f0297c6517b9fcdd287da0b1d455df2e029aa6",
+                  "merged_at": "2026-11-20T12:46:11Z",
+                  "mapping_basis": [
+                    "verification report"
+                  ],
+                  "scope_ids": [
+                    "TC-04-007"
+                  ]
+                },
+                {
+                  "number": 316,
+                  "title": "TC-04-007a: count forgot-password attempts before user lookup",
+                  "url": "https://github.com/Johnathan-u/trust-copilot/pull/316",
+                  "state": "merged",
+                  "draft": false,
+                  "head_sha": "f06dda55321a6e2952e0ae3c64012dc5b931599e",
+                  "merge_commit_sha": "7df09a860b8d25ec197848c78776e6b4952bc031",
+                  "merged_at": "2026-11-20T12:44:47Z",
+                  "mapping_basis": [
+                    "child closure"
+                  ],
+                  "scope_ids": [
+                    "TC-04-007a"
+                  ]
+                }
+              ],
+              "after": [
+                {
+                  "number": 315,
+                  "title": "docs: baseline reconciliation batch 11 (TC-16-003, TC-04-007, TC-07-011, TC-15-006)",
+                  "url": "https://github.com/Johnathan-u/trust-copilot/pull/315",
+                  "state": "merged",
+                  "draft": false,
+                  "head_sha": "e23d3a0a68edc960ccc9475ae90593be17b5d455",
+                  "merge_commit_sha": "64f0297c6517b9fcdd287da0b1d455df2e029aa6",
+                  "merged_at": "2026-11-20T12:46:11Z",
+                  "mapping_basis": [
+                    "verification report"
+                  ],
+                  "scope_ids": [
+                    "TC-04-007"
+                  ]
+                },
+                {
+                  "number": 316,
+                  "title": "TC-04-007a: count forgot-password attempts before user lookup",
+                  "url": "https://github.com/Johnathan-u/trust-copilot/pull/316",
+                  "state": "merged",
+                  "draft": false,
+                  "head_sha": "f06dda55321a6e2952e0ae3c64012dc5b931599e",
+                  "merge_commit_sha": "7df09a860b8d25ec197848c78776e6b4952bc031",
+                  "merged_at": "2026-11-20T12:44:47Z",
+                  "mapping_basis": [
+                    "child closure"
+                  ],
+                  "scope_ids": [
+                    "TC-04-007a"
+                  ]
+                },
+                {
+                  "number": 319,
+                  "title": "TC-04-007b: shared auth rate limiter, Retry-After and invite limit",
+                  "url": "https://github.com/Johnathan-u/trust-copilot/pull/319",
+                  "state": "merged",
+                  "draft": false,
+                  "head_sha": "160d7c254656dcda91df39135c23c2d11f696885",
+                  "merge_commit_sha": "265a268c750287f2cf347f95cb4c695c9645ae5d",
+                  "merged_at": "2026-11-20T16:12:38Z",
+                  "mapping_basis": [
+                    "child closure"
+                  ],
+                  "scope_ids": [
+                    "TC-04-007b"
+                  ]
+                }
+              ]
+            },
+            "evidence_links": {
+              "before": [
+                "https://github.com/Johnathan-u/trust-copilot/pull/315",
+                "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-7039897301",
+                "https://github.com/Johnathan-u/trust-copilot/commit/e23d3a0a68edc960ccc9475ae90593be17b5d455",
+                "https://github.com/Johnathan-u/trust-copilot/commit/64f0297c6517b9fcdd287da0b1d455df2e029aa6",
+                "https://github.com/Johnathan-u/trust-copilot/blob/64f0297c6517b9fcdd287da0b1d455df2e029aa6/docs/release/verification/TC-04-007.md",
+                "https://github.com/Johnathan-u/trust-copilot/pull/316",
+                "https://github.com/Johnathan-u/trust-copilot/commit/f06dda55321a6e2952e0ae3c64012dc5b931599e",
+                "https://github.com/Johnathan-u/trust-copilot/commit/7df09a860b8d25ec197848c78776e6b4952bc031",
+                "https://github.com/Johnathan-u/trust-copilot/blob/7df09a860b8d25ec197848c78776e6b4952bc031/docs/release/tickets/TC-04-007a.md"
+              ],
+              "after": [
+                "https://github.com/Johnathan-u/trust-copilot/pull/315",
+                "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-7039897301",
+                "https://github.com/Johnathan-u/trust-copilot/commit/e23d3a0a68edc960ccc9475ae90593be17b5d455",
+                "https://github.com/Johnathan-u/trust-copilot/commit/64f0297c6517b9fcdd287da0b1d455df2e029aa6",
+                "https://github.com/Johnathan-u/trust-copilot/blob/64f0297c6517b9fcdd287da0b1d455df2e029aa6/docs/release/verification/TC-04-007.md",
+                "https://github.com/Johnathan-u/trust-copilot/pull/316",
+                "https://github.com/Johnathan-u/trust-copilot/commit/f06dda55321a6e2952e0ae3c64012dc5b931599e",
+                "https://github.com/Johnathan-u/trust-copilot/commit/7df09a860b8d25ec197848c78776e6b4952bc031",
+                "https://github.com/Johnathan-u/trust-copilot/blob/7df09a860b8d25ec197848c78776e6b4952bc031/docs/release/tickets/TC-04-007a.md",
+                "https://github.com/Johnathan-u/trust-copilot/pull/319",
+                "https://github.com/Johnathan-u/trust-copilot/commit/160d7c254656dcda91df39135c23c2d11f696885",
+                "https://github.com/Johnathan-u/trust-copilot/commit/265a268c750287f2cf347f95cb4c695c9645ae5d",
+                "https://github.com/Johnathan-u/trust-copilot/blob/265a268c750287f2cf347f95cb4c695c9645ae5d/docs/release/tickets/TC-04-007b.md",
+                "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-7044441373",
+                "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-7046162703"
+              ]
+            }
+          },
+          "TC-17-001": {
+            "next_action": {
+              "before": "Accepted. A published trust article is an immutable version. Readers see that snapshot. An acknowledgment binds to the version the reader saw, and a new version or an unpublish revokes the previous acknowledgment. A retried create returns the same article. Migration tc17001_article_versions is the head. Child TC-17-001b (P1 security) is closed by #313 (head 042b701810e430866a7f52958b466497c96beb57, merge 030550e86bf3393f480cc0802fcfde68233457ed). Child TC-17-001h (P1) is closed by #312 (head 2836f9974bcd91d33f7d50b83bed7e54441b616d, merge 32cc730e508b78af9c5039c1ee4a88bb29e970e6). Open children TC-17-001a, TC-17-001c, TC-17-001d, TC-17-001e, TC-17-001f and TC-17-001i do not change this acceptance. Those closes are not counted toward DONE. The publish-on-save default is an owner question and is not registered work. Reopen only on regression or when change control adds scope.",
+              "after": "Accepted. A published trust article is an immutable version. Readers see that snapshot. An acknowledgment binds to the version the reader saw, and a new version or an unpublish revokes the previous acknowledgment. A retried create returns the same article. Migration tc17001_article_versions is the head. Child TC-17-001b (P1 security) is closed by #313 (head 042b701810e430866a7f52958b466497c96beb57, merge 030550e86bf3393f480cc0802fcfde68233457ed). Child TC-17-001h (P1) is closed by #312 (head 2836f9974bcd91d33f7d50b83bed7e54441b616d, merge 32cc730e508b78af9c5039c1ee4a88bb29e970e6). Child TC-17-001a (P1) is closed by #321 (head a64ebf3d3f2ec80722d3f48dc510da3704cbd2a2, merge 0279867f9af52d568a2ed834532967459306d521). Open children TC-17-001c, TC-17-001d, TC-17-001e, TC-17-001f, TC-17-001g and TC-17-001i do not change this acceptance. Those closes are not counted toward DONE. Child TC-17-001g (P1) is registered and open: a save creates a draft, publishing is an explicit require_can_admin action, and new articles default to published=0. That is review item 7, ruled on #85 comment 7045436640. The docs do not define TC-17-001j, so that id is not registered. Reopen only on regression or when change control adds scope."
+            },
+            "updated_at": {
+              "before": "2026-11-20T13:31:15Z",
+              "after": "2026-11-20T17:38:20Z"
+            },
+            "source_sha": {
+              "before": "32cc730e508b78af9c5039c1ee4a88bb29e970e6",
+              "after": "0279867f9af52d568a2ed834532967459306d521"
+            },
+            "acceptance": {
+              "before": {
+                "state": "ACCEPTED",
+                "assessed_by": "claude-review-agent",
+                "assessed_at": "2026-11-19T12:22:50Z",
+                "assessed_sha": "07cbc176531edb9d5e58878a5574e43d4c4a4d91",
+                "assessment_evidence_urls": [
+                  "https://github.com/Johnathan-u/trust-copilot/pull/307#issuecomment-7008980985",
+                  "https://github.com/Johnathan-u/trust-copilot/pull/307#issuecomment-6998922136",
+                  "https://github.com/Johnathan-u/trust-copilot/pull/307",
+                  "https://github.com/Johnathan-u/trust-copilot/commit/07cbc176531edb9d5e58878a5574e43d4c4a4d91",
+                  "https://github.com/Johnathan-u/trust-copilot/commit/7fea456dde7a8ed3148e11045d5488a77004aff4",
+                  "https://github.com/Johnathan-u/trust-copilot/commit/383467b54170b143eccd738d61956548d1b87880",
+                  "https://github.com/Johnathan-u/trust-copilot/commit/559bd9d7f3c921a0400929d411770bfb4292d28c",
+                  "https://github.com/Johnathan-u/trust-copilot/actions/runs/44455944772",
+                  "https://github.com/Johnathan-u/trust-copilot/actions/runs/44455950570",
+                  "https://github.com/Johnathan-u/trust-copilot/blob/07cbc176531edb9d5e58878a5574e43d4c4a4d91/docs/release/tickets/TC-17-001.md",
+                  "https://github.com/Johnathan-u/trust-copilot/blob/07cbc176531edb9d5e58878a5574e43d4c4a4d91/docs/release/verification/TC-17-001.md",
+                  "https://github.com/Johnathan-u/trust-copilot/blob/07cbc176531edb9d5e58878a5574e43d4c4a4d91/artifacts/acceptance/TC-17-001/README.md",
+                  "https://github.com/Johnathan-u/trust-copilot/blob/07cbc176531edb9d5e58878a5574e43d4c4a4d91/artifacts/acceptance/TC-17-001/ci-runs.md"
+                ],
+                "tested_sha": "07cbc176531edb9d5e58878a5574e43d4c4a4d91",
+                "implemented_by": [
+                  "grok",
+                  "Johnathan-u"
+                ],
+                "independent_reviewer": "claude-review-agent",
+                "reviewed_at": "2026-11-19T12:22:50Z",
+                "reviewed_sha": "07cbc176531edb9d5e58878a5574e43d4c4a4d91",
+                "review_evidence_urls": [
+                  "https://github.com/Johnathan-u/trust-copilot/pull/307#issuecomment-7008980985",
+                  "https://github.com/Johnathan-u/trust-copilot/pull/307#issuecomment-6998922136",
+                  "https://github.com/Johnathan-u/trust-copilot/pull/307",
+                  "https://github.com/Johnathan-u/trust-copilot/commit/07cbc176531edb9d5e58878a5574e43d4c4a4d91",
+                  "https://github.com/Johnathan-u/trust-copilot/commit/7fea456dde7a8ed3148e11045d5488a77004aff4",
+                  "https://github.com/Johnathan-u/trust-copilot/commit/383467b54170b143eccd738d61956548d1b87880",
+                  "https://github.com/Johnathan-u/trust-copilot/commit/559bd9d7f3c921a0400929d411770bfb4292d28c",
+                  "https://github.com/Johnathan-u/trust-copilot/actions/runs/44455944772",
+                  "https://github.com/Johnathan-u/trust-copilot/actions/runs/44455950570",
+                  "https://github.com/Johnathan-u/trust-copilot/blob/07cbc176531edb9d5e58878a5574e43d4c4a4d91/docs/release/tickets/TC-17-001.md",
+                  "https://github.com/Johnathan-u/trust-copilot/blob/07cbc176531edb9d5e58878a5574e43d4c4a4d91/docs/release/verification/TC-17-001.md",
+                  "https://github.com/Johnathan-u/trust-copilot/blob/07cbc176531edb9d5e58878a5574e43d4c4a4d91/artifacts/acceptance/TC-17-001/README.md",
+                  "https://github.com/Johnathan-u/trust-copilot/blob/07cbc176531edb9d5e58878a5574e43d4c4a4d91/artifacts/acceptance/TC-17-001/ci-runs.md"
+                ],
+                "criteria": [
+                  {
+                    "id": "TC-17-001-AC1",
+                    "status": "PASS",
+                    "evidence_urls": [
+                      "https://github.com/Johnathan-u/trust-copilot/pull/307#issuecomment-7008980985",
+                      "https://github.com/Johnathan-u/trust-copilot/pull/307#issuecomment-6998922136",
+                      "https://github.com/Johnathan-u/trust-copilot/pull/307",
+                      "https://github.com/Johnathan-u/trust-copilot/commit/07cbc176531edb9d5e58878a5574e43d4c4a4d91",
+                      "https://github.com/Johnathan-u/trust-copilot/commit/7fea456dde7a8ed3148e11045d5488a77004aff4",
+                      "https://github.com/Johnathan-u/trust-copilot/commit/383467b54170b143eccd738d61956548d1b87880",
+                      "https://github.com/Johnathan-u/trust-copilot/commit/559bd9d7f3c921a0400929d411770bfb4292d28c",
+                      "https://github.com/Johnathan-u/trust-copilot/actions/runs/44455944772",
+                      "https://github.com/Johnathan-u/trust-copilot/actions/runs/44455950570",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/07cbc176531edb9d5e58878a5574e43d4c4a4d91/docs/release/tickets/TC-17-001.md",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/07cbc176531edb9d5e58878a5574e43d4c4a4d91/docs/release/verification/TC-17-001.md",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/07cbc176531edb9d5e58878a5574e43d4c4a4d91/artifacts/acceptance/TC-17-001/README.md",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/07cbc176531edb9d5e58878a5574e43d4c4a4d91/artifacts/acceptance/TC-17-001/ci-runs.md"
+                    ],
+                    "tested_sha": "07cbc176531edb9d5e58878a5574e43d4c4a4d91"
+                  },
+                  {
+                    "id": "TC-17-001-AC2",
+                    "status": "PASS",
+                    "evidence_urls": [
+                      "https://github.com/Johnathan-u/trust-copilot/pull/307#issuecomment-7008980985",
+                      "https://github.com/Johnathan-u/trust-copilot/pull/307#issuecomment-6998922136",
+                      "https://github.com/Johnathan-u/trust-copilot/pull/307",
+                      "https://github.com/Johnathan-u/trust-copilot/commit/07cbc176531edb9d5e58878a5574e43d4c4a4d91",
+                      "https://github.com/Johnathan-u/trust-copilot/commit/7fea456dde7a8ed3148e11045d5488a77004aff4",
+                      "https://github.com/Johnathan-u/trust-copilot/commit/383467b54170b143eccd738d61956548d1b87880",
+                      "https://github.com/Johnathan-u/trust-copilot/commit/559bd9d7f3c921a0400929d411770bfb4292d28c",
+                      "https://github.com/Johnathan-u/trust-copilot/actions/runs/44455944772",
+                      "https://github.com/Johnathan-u/trust-copilot/actions/runs/44455950570",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/07cbc176531edb9d5e58878a5574e43d4c4a4d91/docs/release/tickets/TC-17-001.md",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/07cbc176531edb9d5e58878a5574e43d4c4a4d91/docs/release/verification/TC-17-001.md",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/07cbc176531edb9d5e58878a5574e43d4c4a4d91/artifacts/acceptance/TC-17-001/README.md",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/07cbc176531edb9d5e58878a5574e43d4c4a4d91/artifacts/acceptance/TC-17-001/ci-runs.md"
+                    ],
+                    "tested_sha": "07cbc176531edb9d5e58878a5574e43d4c4a4d91"
+                  },
+                  {
+                    "id": "TC-17-001-AC3",
+                    "status": "PASS",
+                    "evidence_urls": [
+                      "https://github.com/Johnathan-u/trust-copilot/pull/307#issuecomment-7008980985",
+                      "https://github.com/Johnathan-u/trust-copilot/pull/307#issuecomment-6998922136",
+                      "https://github.com/Johnathan-u/trust-copilot/pull/307",
+                      "https://github.com/Johnathan-u/trust-copilot/commit/07cbc176531edb9d5e58878a5574e43d4c4a4d91",
+                      "https://github.com/Johnathan-u/trust-copilot/commit/7fea456dde7a8ed3148e11045d5488a77004aff4",
+                      "https://github.com/Johnathan-u/trust-copilot/commit/383467b54170b143eccd738d61956548d1b87880",
+                      "https://github.com/Johnathan-u/trust-copilot/commit/559bd9d7f3c921a0400929d411770bfb4292d28c",
+                      "https://github.com/Johnathan-u/trust-copilot/actions/runs/44455944772",
+                      "https://github.com/Johnathan-u/trust-copilot/actions/runs/44455950570",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/07cbc176531edb9d5e58878a5574e43d4c4a4d91/docs/release/tickets/TC-17-001.md",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/07cbc176531edb9d5e58878a5574e43d4c4a4d91/docs/release/verification/TC-17-001.md",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/07cbc176531edb9d5e58878a5574e43d4c4a4d91/artifacts/acceptance/TC-17-001/README.md",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/07cbc176531edb9d5e58878a5574e43d4c4a4d91/artifacts/acceptance/TC-17-001/ci-runs.md"
+                    ],
+                    "tested_sha": "07cbc176531edb9d5e58878a5574e43d4c4a4d91"
+                  }
+                ],
+                "definition_of_done": [
+                  {
+                    "id": "TC-17-001-DOD1",
+                    "status": "PASS",
+                    "evidence_urls": [
+                      "https://github.com/Johnathan-u/trust-copilot/pull/307#issuecomment-7008980985",
+                      "https://github.com/Johnathan-u/trust-copilot/pull/307#issuecomment-6998922136",
+                      "https://github.com/Johnathan-u/trust-copilot/pull/307",
+                      "https://github.com/Johnathan-u/trust-copilot/commit/07cbc176531edb9d5e58878a5574e43d4c4a4d91",
+                      "https://github.com/Johnathan-u/trust-copilot/commit/7fea456dde7a8ed3148e11045d5488a77004aff4",
+                      "https://github.com/Johnathan-u/trust-copilot/commit/383467b54170b143eccd738d61956548d1b87880",
+                      "https://github.com/Johnathan-u/trust-copilot/commit/559bd9d7f3c921a0400929d411770bfb4292d28c",
+                      "https://github.com/Johnathan-u/trust-copilot/actions/runs/44455944772",
+                      "https://github.com/Johnathan-u/trust-copilot/actions/runs/44455950570",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/07cbc176531edb9d5e58878a5574e43d4c4a4d91/docs/release/tickets/TC-17-001.md",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/07cbc176531edb9d5e58878a5574e43d4c4a4d91/docs/release/verification/TC-17-001.md",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/07cbc176531edb9d5e58878a5574e43d4c4a4d91/artifacts/acceptance/TC-17-001/README.md",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/07cbc176531edb9d5e58878a5574e43d4c4a4d91/artifacts/acceptance/TC-17-001/ci-runs.md"
+                    ],
+                    "tested_sha": "07cbc176531edb9d5e58878a5574e43d4c4a4d91"
+                  },
+                  {
+                    "id": "TC-17-001-DOD2",
+                    "status": "PASS",
+                    "evidence_urls": [
+                      "https://github.com/Johnathan-u/trust-copilot/pull/307#issuecomment-7008980985",
+                      "https://github.com/Johnathan-u/trust-copilot/pull/307#issuecomment-6998922136",
+                      "https://github.com/Johnathan-u/trust-copilot/pull/307",
+                      "https://github.com/Johnathan-u/trust-copilot/commit/07cbc176531edb9d5e58878a5574e43d4c4a4d91",
+                      "https://github.com/Johnathan-u/trust-copilot/commit/7fea456dde7a8ed3148e11045d5488a77004aff4",
+                      "https://github.com/Johnathan-u/trust-copilot/commit/383467b54170b143eccd738d61956548d1b87880",
+                      "https://github.com/Johnathan-u/trust-copilot/commit/559bd9d7f3c921a0400929d411770bfb4292d28c",
+                      "https://github.com/Johnathan-u/trust-copilot/actions/runs/44455944772",
+                      "https://github.com/Johnathan-u/trust-copilot/actions/runs/44455950570",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/07cbc176531edb9d5e58878a5574e43d4c4a4d91/docs/release/tickets/TC-17-001.md",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/07cbc176531edb9d5e58878a5574e43d4c4a4d91/docs/release/verification/TC-17-001.md",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/07cbc176531edb9d5e58878a5574e43d4c4a4d91/artifacts/acceptance/TC-17-001/README.md",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/07cbc176531edb9d5e58878a5574e43d4c4a4d91/artifacts/acceptance/TC-17-001/ci-runs.md"
+                    ],
+                    "tested_sha": "07cbc176531edb9d5e58878a5574e43d4c4a4d91"
+                  },
+                  {
+                    "id": "TC-17-001-DOD3",
+                    "status": "PASS",
+                    "evidence_urls": [
+                      "https://github.com/Johnathan-u/trust-copilot/pull/307#issuecomment-7008980985",
+                      "https://github.com/Johnathan-u/trust-copilot/pull/307#issuecomment-6998922136",
+                      "https://github.com/Johnathan-u/trust-copilot/pull/307",
+                      "https://github.com/Johnathan-u/trust-copilot/commit/07cbc176531edb9d5e58878a5574e43d4c4a4d91",
+                      "https://github.com/Johnathan-u/trust-copilot/commit/7fea456dde7a8ed3148e11045d5488a77004aff4",
+                      "https://github.com/Johnathan-u/trust-copilot/commit/383467b54170b143eccd738d61956548d1b87880",
+                      "https://github.com/Johnathan-u/trust-copilot/commit/559bd9d7f3c921a0400929d411770bfb4292d28c",
+                      "https://github.com/Johnathan-u/trust-copilot/actions/runs/44455944772",
+                      "https://github.com/Johnathan-u/trust-copilot/actions/runs/44455950570",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/07cbc176531edb9d5e58878a5574e43d4c4a4d91/docs/release/tickets/TC-17-001.md",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/07cbc176531edb9d5e58878a5574e43d4c4a4d91/docs/release/verification/TC-17-001.md",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/07cbc176531edb9d5e58878a5574e43d4c4a4d91/artifacts/acceptance/TC-17-001/README.md",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/07cbc176531edb9d5e58878a5574e43d4c4a4d91/artifacts/acceptance/TC-17-001/ci-runs.md"
+                    ],
+                    "tested_sha": "07cbc176531edb9d5e58878a5574e43d4c4a4d91"
+                  },
+                  {
+                    "id": "TC-17-001-DOD4",
+                    "status": "PASS",
+                    "evidence_urls": [
+                      "https://github.com/Johnathan-u/trust-copilot/pull/307#issuecomment-7008980985",
+                      "https://github.com/Johnathan-u/trust-copilot/pull/307#issuecomment-6998922136",
+                      "https://github.com/Johnathan-u/trust-copilot/pull/307",
+                      "https://github.com/Johnathan-u/trust-copilot/commit/07cbc176531edb9d5e58878a5574e43d4c4a4d91",
+                      "https://github.com/Johnathan-u/trust-copilot/commit/7fea456dde7a8ed3148e11045d5488a77004aff4",
+                      "https://github.com/Johnathan-u/trust-copilot/commit/383467b54170b143eccd738d61956548d1b87880",
+                      "https://github.com/Johnathan-u/trust-copilot/commit/559bd9d7f3c921a0400929d411770bfb4292d28c",
+                      "https://github.com/Johnathan-u/trust-copilot/actions/runs/44455944772",
+                      "https://github.com/Johnathan-u/trust-copilot/actions/runs/44455950570",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/07cbc176531edb9d5e58878a5574e43d4c4a4d91/docs/release/tickets/TC-17-001.md",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/07cbc176531edb9d5e58878a5574e43d4c4a4d91/docs/release/verification/TC-17-001.md",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/07cbc176531edb9d5e58878a5574e43d4c4a4d91/artifacts/acceptance/TC-17-001/README.md",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/07cbc176531edb9d5e58878a5574e43d4c4a4d91/artifacts/acceptance/TC-17-001/ci-runs.md"
+                    ],
+                    "tested_sha": "07cbc176531edb9d5e58878a5574e43d4c4a4d91"
+                  },
+                  {
+                    "id": "TC-17-001-DOD5",
+                    "status": "PASS",
+                    "evidence_urls": [
+                      "https://github.com/Johnathan-u/trust-copilot/pull/307#issuecomment-7008980985",
+                      "https://github.com/Johnathan-u/trust-copilot/pull/307#issuecomment-6998922136",
+                      "https://github.com/Johnathan-u/trust-copilot/pull/307",
+                      "https://github.com/Johnathan-u/trust-copilot/commit/07cbc176531edb9d5e58878a5574e43d4c4a4d91",
+                      "https://github.com/Johnathan-u/trust-copilot/commit/7fea456dde7a8ed3148e11045d5488a77004aff4",
+                      "https://github.com/Johnathan-u/trust-copilot/commit/383467b54170b143eccd738d61956548d1b87880",
+                      "https://github.com/Johnathan-u/trust-copilot/commit/559bd9d7f3c921a0400929d411770bfb4292d28c",
+                      "https://github.com/Johnathan-u/trust-copilot/actions/runs/44455944772",
+                      "https://github.com/Johnathan-u/trust-copilot/actions/runs/44455950570",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/07cbc176531edb9d5e58878a5574e43d4c4a4d91/docs/release/tickets/TC-17-001.md",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/07cbc176531edb9d5e58878a5574e43d4c4a4d91/docs/release/verification/TC-17-001.md",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/07cbc176531edb9d5e58878a5574e43d4c4a4d91/artifacts/acceptance/TC-17-001/README.md",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/07cbc176531edb9d5e58878a5574e43d4c4a4d91/artifacts/acceptance/TC-17-001/ci-runs.md"
+                    ],
+                    "tested_sha": "07cbc176531edb9d5e58878a5574e43d4c4a4d91"
+                  }
+                ],
+                "note": "DONE and VERIFIED_ACCEPTED. Claude is the independent reviewer. He accepted TC-17-001 on #307 comment 7008980985 at 2026-11-19T12:22:50Z, once recorded. Tested, assessed and reviewed SHA 07cbc176531edb9d5e58878a5574e43d4c4a4d91 is the #307 head he pinned. Behavior meets on 383467b54170b143eccd738d61956548d1b87880, which 559bd9d7f3c921a0400929d411770bfb4292d28c records, and 07cbc176 records that tree without changing the route, migration, or tests. Squash-merged as 7fea456dde7a8ed3148e11045d5488a77004aff4. CI for 07cbc176: push run 44455944772 (build 135330849141, web-release-e2e 135330848742) and pull_request run 44455950570 (build 135330868430, web-release-e2e 135330868166). build and web-release-e2e succeeded on both events. AC1, AC2, AC3, DoD1, DoD2, DoD3 and DoD4 meet on that SHA. DoD5 is this acceptance. Migration tc17001_article_versions changes persisted state. Run IDs are in artifacts/acceptance/TC-17-001/ci-runs.md. Non-blocking children stay off the DONE count. TC-17-001b (P1 security) is closed by #313 (head 042b701810e430866a7f52958b466497c96beb57, merge 030550e86bf3393f480cc0802fcfde68233457ed). TC-17-001h (P1) is closed by #312 (head 2836f9974bcd91d33f7d50b83bed7e54441b616d, merge 32cc730e508b78af9c5039c1ee4a88bb29e970e6). TC-17-001a (P1), TC-17-001c (P2), TC-17-001d (P2), TC-17-001e (P1), TC-17-001f (P2) and TC-17-001i (P2) stay open. Those closes are not parent acceptance and are not counted toward DONE. The product question about publish-on-save and the default published=1 (review item 7) is parked for the owner and is not registered work. Recorded by Grok (worker). Grok wrote the change and is not the independent reviewer."
+              },
+              "after": {
+                "state": "ACCEPTED",
+                "assessed_by": "claude-review-agent",
+                "assessed_at": "2026-11-19T12:22:50Z",
+                "assessed_sha": "07cbc176531edb9d5e58878a5574e43d4c4a4d91",
+                "assessment_evidence_urls": [
+                  "https://github.com/Johnathan-u/trust-copilot/pull/307#issuecomment-7008980985",
+                  "https://github.com/Johnathan-u/trust-copilot/pull/307#issuecomment-6998922136",
+                  "https://github.com/Johnathan-u/trust-copilot/pull/307",
+                  "https://github.com/Johnathan-u/trust-copilot/commit/07cbc176531edb9d5e58878a5574e43d4c4a4d91",
+                  "https://github.com/Johnathan-u/trust-copilot/commit/7fea456dde7a8ed3148e11045d5488a77004aff4",
+                  "https://github.com/Johnathan-u/trust-copilot/commit/383467b54170b143eccd738d61956548d1b87880",
+                  "https://github.com/Johnathan-u/trust-copilot/commit/559bd9d7f3c921a0400929d411770bfb4292d28c",
+                  "https://github.com/Johnathan-u/trust-copilot/actions/runs/44455944772",
+                  "https://github.com/Johnathan-u/trust-copilot/actions/runs/44455950570",
+                  "https://github.com/Johnathan-u/trust-copilot/blob/07cbc176531edb9d5e58878a5574e43d4c4a4d91/docs/release/tickets/TC-17-001.md",
+                  "https://github.com/Johnathan-u/trust-copilot/blob/07cbc176531edb9d5e58878a5574e43d4c4a4d91/docs/release/verification/TC-17-001.md",
+                  "https://github.com/Johnathan-u/trust-copilot/blob/07cbc176531edb9d5e58878a5574e43d4c4a4d91/artifacts/acceptance/TC-17-001/README.md",
+                  "https://github.com/Johnathan-u/trust-copilot/blob/07cbc176531edb9d5e58878a5574e43d4c4a4d91/artifacts/acceptance/TC-17-001/ci-runs.md"
+                ],
+                "tested_sha": "07cbc176531edb9d5e58878a5574e43d4c4a4d91",
+                "implemented_by": [
+                  "grok",
+                  "Johnathan-u"
+                ],
+                "independent_reviewer": "claude-review-agent",
+                "reviewed_at": "2026-11-19T12:22:50Z",
+                "reviewed_sha": "07cbc176531edb9d5e58878a5574e43d4c4a4d91",
+                "review_evidence_urls": [
+                  "https://github.com/Johnathan-u/trust-copilot/pull/307#issuecomment-7008980985",
+                  "https://github.com/Johnathan-u/trust-copilot/pull/307#issuecomment-6998922136",
+                  "https://github.com/Johnathan-u/trust-copilot/pull/307",
+                  "https://github.com/Johnathan-u/trust-copilot/commit/07cbc176531edb9d5e58878a5574e43d4c4a4d91",
+                  "https://github.com/Johnathan-u/trust-copilot/commit/7fea456dde7a8ed3148e11045d5488a77004aff4",
+                  "https://github.com/Johnathan-u/trust-copilot/commit/383467b54170b143eccd738d61956548d1b87880",
+                  "https://github.com/Johnathan-u/trust-copilot/commit/559bd9d7f3c921a0400929d411770bfb4292d28c",
+                  "https://github.com/Johnathan-u/trust-copilot/actions/runs/44455944772",
+                  "https://github.com/Johnathan-u/trust-copilot/actions/runs/44455950570",
+                  "https://github.com/Johnathan-u/trust-copilot/blob/07cbc176531edb9d5e58878a5574e43d4c4a4d91/docs/release/tickets/TC-17-001.md",
+                  "https://github.com/Johnathan-u/trust-copilot/blob/07cbc176531edb9d5e58878a5574e43d4c4a4d91/docs/release/verification/TC-17-001.md",
+                  "https://github.com/Johnathan-u/trust-copilot/blob/07cbc176531edb9d5e58878a5574e43d4c4a4d91/artifacts/acceptance/TC-17-001/README.md",
+                  "https://github.com/Johnathan-u/trust-copilot/blob/07cbc176531edb9d5e58878a5574e43d4c4a4d91/artifacts/acceptance/TC-17-001/ci-runs.md"
+                ],
+                "criteria": [
+                  {
+                    "id": "TC-17-001-AC1",
+                    "status": "PASS",
+                    "evidence_urls": [
+                      "https://github.com/Johnathan-u/trust-copilot/pull/307#issuecomment-7008980985",
+                      "https://github.com/Johnathan-u/trust-copilot/pull/307#issuecomment-6998922136",
+                      "https://github.com/Johnathan-u/trust-copilot/pull/307",
+                      "https://github.com/Johnathan-u/trust-copilot/commit/07cbc176531edb9d5e58878a5574e43d4c4a4d91",
+                      "https://github.com/Johnathan-u/trust-copilot/commit/7fea456dde7a8ed3148e11045d5488a77004aff4",
+                      "https://github.com/Johnathan-u/trust-copilot/commit/383467b54170b143eccd738d61956548d1b87880",
+                      "https://github.com/Johnathan-u/trust-copilot/commit/559bd9d7f3c921a0400929d411770bfb4292d28c",
+                      "https://github.com/Johnathan-u/trust-copilot/actions/runs/44455944772",
+                      "https://github.com/Johnathan-u/trust-copilot/actions/runs/44455950570",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/07cbc176531edb9d5e58878a5574e43d4c4a4d91/docs/release/tickets/TC-17-001.md",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/07cbc176531edb9d5e58878a5574e43d4c4a4d91/docs/release/verification/TC-17-001.md",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/07cbc176531edb9d5e58878a5574e43d4c4a4d91/artifacts/acceptance/TC-17-001/README.md",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/07cbc176531edb9d5e58878a5574e43d4c4a4d91/artifacts/acceptance/TC-17-001/ci-runs.md"
+                    ],
+                    "tested_sha": "07cbc176531edb9d5e58878a5574e43d4c4a4d91"
+                  },
+                  {
+                    "id": "TC-17-001-AC2",
+                    "status": "PASS",
+                    "evidence_urls": [
+                      "https://github.com/Johnathan-u/trust-copilot/pull/307#issuecomment-7008980985",
+                      "https://github.com/Johnathan-u/trust-copilot/pull/307#issuecomment-6998922136",
+                      "https://github.com/Johnathan-u/trust-copilot/pull/307",
+                      "https://github.com/Johnathan-u/trust-copilot/commit/07cbc176531edb9d5e58878a5574e43d4c4a4d91",
+                      "https://github.com/Johnathan-u/trust-copilot/commit/7fea456dde7a8ed3148e11045d5488a77004aff4",
+                      "https://github.com/Johnathan-u/trust-copilot/commit/383467b54170b143eccd738d61956548d1b87880",
+                      "https://github.com/Johnathan-u/trust-copilot/commit/559bd9d7f3c921a0400929d411770bfb4292d28c",
+                      "https://github.com/Johnathan-u/trust-copilot/actions/runs/44455944772",
+                      "https://github.com/Johnathan-u/trust-copilot/actions/runs/44455950570",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/07cbc176531edb9d5e58878a5574e43d4c4a4d91/docs/release/tickets/TC-17-001.md",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/07cbc176531edb9d5e58878a5574e43d4c4a4d91/docs/release/verification/TC-17-001.md",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/07cbc176531edb9d5e58878a5574e43d4c4a4d91/artifacts/acceptance/TC-17-001/README.md",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/07cbc176531edb9d5e58878a5574e43d4c4a4d91/artifacts/acceptance/TC-17-001/ci-runs.md"
+                    ],
+                    "tested_sha": "07cbc176531edb9d5e58878a5574e43d4c4a4d91"
+                  },
+                  {
+                    "id": "TC-17-001-AC3",
+                    "status": "PASS",
+                    "evidence_urls": [
+                      "https://github.com/Johnathan-u/trust-copilot/pull/307#issuecomment-7008980985",
+                      "https://github.com/Johnathan-u/trust-copilot/pull/307#issuecomment-6998922136",
+                      "https://github.com/Johnathan-u/trust-copilot/pull/307",
+                      "https://github.com/Johnathan-u/trust-copilot/commit/07cbc176531edb9d5e58878a5574e43d4c4a4d91",
+                      "https://github.com/Johnathan-u/trust-copilot/commit/7fea456dde7a8ed3148e11045d5488a77004aff4",
+                      "https://github.com/Johnathan-u/trust-copilot/commit/383467b54170b143eccd738d61956548d1b87880",
+                      "https://github.com/Johnathan-u/trust-copilot/commit/559bd9d7f3c921a0400929d411770bfb4292d28c",
+                      "https://github.com/Johnathan-u/trust-copilot/actions/runs/44455944772",
+                      "https://github.com/Johnathan-u/trust-copilot/actions/runs/44455950570",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/07cbc176531edb9d5e58878a5574e43d4c4a4d91/docs/release/tickets/TC-17-001.md",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/07cbc176531edb9d5e58878a5574e43d4c4a4d91/docs/release/verification/TC-17-001.md",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/07cbc176531edb9d5e58878a5574e43d4c4a4d91/artifacts/acceptance/TC-17-001/README.md",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/07cbc176531edb9d5e58878a5574e43d4c4a4d91/artifacts/acceptance/TC-17-001/ci-runs.md"
+                    ],
+                    "tested_sha": "07cbc176531edb9d5e58878a5574e43d4c4a4d91"
+                  }
+                ],
+                "definition_of_done": [
+                  {
+                    "id": "TC-17-001-DOD1",
+                    "status": "PASS",
+                    "evidence_urls": [
+                      "https://github.com/Johnathan-u/trust-copilot/pull/307#issuecomment-7008980985",
+                      "https://github.com/Johnathan-u/trust-copilot/pull/307#issuecomment-6998922136",
+                      "https://github.com/Johnathan-u/trust-copilot/pull/307",
+                      "https://github.com/Johnathan-u/trust-copilot/commit/07cbc176531edb9d5e58878a5574e43d4c4a4d91",
+                      "https://github.com/Johnathan-u/trust-copilot/commit/7fea456dde7a8ed3148e11045d5488a77004aff4",
+                      "https://github.com/Johnathan-u/trust-copilot/commit/383467b54170b143eccd738d61956548d1b87880",
+                      "https://github.com/Johnathan-u/trust-copilot/commit/559bd9d7f3c921a0400929d411770bfb4292d28c",
+                      "https://github.com/Johnathan-u/trust-copilot/actions/runs/44455944772",
+                      "https://github.com/Johnathan-u/trust-copilot/actions/runs/44455950570",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/07cbc176531edb9d5e58878a5574e43d4c4a4d91/docs/release/tickets/TC-17-001.md",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/07cbc176531edb9d5e58878a5574e43d4c4a4d91/docs/release/verification/TC-17-001.md",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/07cbc176531edb9d5e58878a5574e43d4c4a4d91/artifacts/acceptance/TC-17-001/README.md",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/07cbc176531edb9d5e58878a5574e43d4c4a4d91/artifacts/acceptance/TC-17-001/ci-runs.md"
+                    ],
+                    "tested_sha": "07cbc176531edb9d5e58878a5574e43d4c4a4d91"
+                  },
+                  {
+                    "id": "TC-17-001-DOD2",
+                    "status": "PASS",
+                    "evidence_urls": [
+                      "https://github.com/Johnathan-u/trust-copilot/pull/307#issuecomment-7008980985",
+                      "https://github.com/Johnathan-u/trust-copilot/pull/307#issuecomment-6998922136",
+                      "https://github.com/Johnathan-u/trust-copilot/pull/307",
+                      "https://github.com/Johnathan-u/trust-copilot/commit/07cbc176531edb9d5e58878a5574e43d4c4a4d91",
+                      "https://github.com/Johnathan-u/trust-copilot/commit/7fea456dde7a8ed3148e11045d5488a77004aff4",
+                      "https://github.com/Johnathan-u/trust-copilot/commit/383467b54170b143eccd738d61956548d1b87880",
+                      "https://github.com/Johnathan-u/trust-copilot/commit/559bd9d7f3c921a0400929d411770bfb4292d28c",
+                      "https://github.com/Johnathan-u/trust-copilot/actions/runs/44455944772",
+                      "https://github.com/Johnathan-u/trust-copilot/actions/runs/44455950570",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/07cbc176531edb9d5e58878a5574e43d4c4a4d91/docs/release/tickets/TC-17-001.md",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/07cbc176531edb9d5e58878a5574e43d4c4a4d91/docs/release/verification/TC-17-001.md",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/07cbc176531edb9d5e58878a5574e43d4c4a4d91/artifacts/acceptance/TC-17-001/README.md",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/07cbc176531edb9d5e58878a5574e43d4c4a4d91/artifacts/acceptance/TC-17-001/ci-runs.md"
+                    ],
+                    "tested_sha": "07cbc176531edb9d5e58878a5574e43d4c4a4d91"
+                  },
+                  {
+                    "id": "TC-17-001-DOD3",
+                    "status": "PASS",
+                    "evidence_urls": [
+                      "https://github.com/Johnathan-u/trust-copilot/pull/307#issuecomment-7008980985",
+                      "https://github.com/Johnathan-u/trust-copilot/pull/307#issuecomment-6998922136",
+                      "https://github.com/Johnathan-u/trust-copilot/pull/307",
+                      "https://github.com/Johnathan-u/trust-copilot/commit/07cbc176531edb9d5e58878a5574e43d4c4a4d91",
+                      "https://github.com/Johnathan-u/trust-copilot/commit/7fea456dde7a8ed3148e11045d5488a77004aff4",
+                      "https://github.com/Johnathan-u/trust-copilot/commit/383467b54170b143eccd738d61956548d1b87880",
+                      "https://github.com/Johnathan-u/trust-copilot/commit/559bd9d7f3c921a0400929d411770bfb4292d28c",
+                      "https://github.com/Johnathan-u/trust-copilot/actions/runs/44455944772",
+                      "https://github.com/Johnathan-u/trust-copilot/actions/runs/44455950570",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/07cbc176531edb9d5e58878a5574e43d4c4a4d91/docs/release/tickets/TC-17-001.md",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/07cbc176531edb9d5e58878a5574e43d4c4a4d91/docs/release/verification/TC-17-001.md",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/07cbc176531edb9d5e58878a5574e43d4c4a4d91/artifacts/acceptance/TC-17-001/README.md",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/07cbc176531edb9d5e58878a5574e43d4c4a4d91/artifacts/acceptance/TC-17-001/ci-runs.md"
+                    ],
+                    "tested_sha": "07cbc176531edb9d5e58878a5574e43d4c4a4d91"
+                  },
+                  {
+                    "id": "TC-17-001-DOD4",
+                    "status": "PASS",
+                    "evidence_urls": [
+                      "https://github.com/Johnathan-u/trust-copilot/pull/307#issuecomment-7008980985",
+                      "https://github.com/Johnathan-u/trust-copilot/pull/307#issuecomment-6998922136",
+                      "https://github.com/Johnathan-u/trust-copilot/pull/307",
+                      "https://github.com/Johnathan-u/trust-copilot/commit/07cbc176531edb9d5e58878a5574e43d4c4a4d91",
+                      "https://github.com/Johnathan-u/trust-copilot/commit/7fea456dde7a8ed3148e11045d5488a77004aff4",
+                      "https://github.com/Johnathan-u/trust-copilot/commit/383467b54170b143eccd738d61956548d1b87880",
+                      "https://github.com/Johnathan-u/trust-copilot/commit/559bd9d7f3c921a0400929d411770bfb4292d28c",
+                      "https://github.com/Johnathan-u/trust-copilot/actions/runs/44455944772",
+                      "https://github.com/Johnathan-u/trust-copilot/actions/runs/44455950570",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/07cbc176531edb9d5e58878a5574e43d4c4a4d91/docs/release/tickets/TC-17-001.md",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/07cbc176531edb9d5e58878a5574e43d4c4a4d91/docs/release/verification/TC-17-001.md",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/07cbc176531edb9d5e58878a5574e43d4c4a4d91/artifacts/acceptance/TC-17-001/README.md",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/07cbc176531edb9d5e58878a5574e43d4c4a4d91/artifacts/acceptance/TC-17-001/ci-runs.md"
+                    ],
+                    "tested_sha": "07cbc176531edb9d5e58878a5574e43d4c4a4d91"
+                  },
+                  {
+                    "id": "TC-17-001-DOD5",
+                    "status": "PASS",
+                    "evidence_urls": [
+                      "https://github.com/Johnathan-u/trust-copilot/pull/307#issuecomment-7008980985",
+                      "https://github.com/Johnathan-u/trust-copilot/pull/307#issuecomment-6998922136",
+                      "https://github.com/Johnathan-u/trust-copilot/pull/307",
+                      "https://github.com/Johnathan-u/trust-copilot/commit/07cbc176531edb9d5e58878a5574e43d4c4a4d91",
+                      "https://github.com/Johnathan-u/trust-copilot/commit/7fea456dde7a8ed3148e11045d5488a77004aff4",
+                      "https://github.com/Johnathan-u/trust-copilot/commit/383467b54170b143eccd738d61956548d1b87880",
+                      "https://github.com/Johnathan-u/trust-copilot/commit/559bd9d7f3c921a0400929d411770bfb4292d28c",
+                      "https://github.com/Johnathan-u/trust-copilot/actions/runs/44455944772",
+                      "https://github.com/Johnathan-u/trust-copilot/actions/runs/44455950570",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/07cbc176531edb9d5e58878a5574e43d4c4a4d91/docs/release/tickets/TC-17-001.md",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/07cbc176531edb9d5e58878a5574e43d4c4a4d91/docs/release/verification/TC-17-001.md",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/07cbc176531edb9d5e58878a5574e43d4c4a4d91/artifacts/acceptance/TC-17-001/README.md",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/07cbc176531edb9d5e58878a5574e43d4c4a4d91/artifacts/acceptance/TC-17-001/ci-runs.md"
+                    ],
+                    "tested_sha": "07cbc176531edb9d5e58878a5574e43d4c4a4d91"
+                  }
+                ],
+                "note": "DONE and VERIFIED_ACCEPTED. Claude is the independent reviewer. He accepted TC-17-001 on #307 comment 7008980985 at 2026-11-19T12:22:50Z, once recorded. Tested, assessed and reviewed SHA 07cbc176531edb9d5e58878a5574e43d4c4a4d91 is the #307 head he pinned. Behavior meets on 383467b54170b143eccd738d61956548d1b87880, which 559bd9d7f3c921a0400929d411770bfb4292d28c records, and 07cbc176 records that tree without changing the route, migration, or tests. Squash-merged as 7fea456dde7a8ed3148e11045d5488a77004aff4. CI for 07cbc176: push run 44455944772 (build 135330849141, web-release-e2e 135330848742) and pull_request run 44455950570 (build 135330868430, web-release-e2e 135330868166). build and web-release-e2e succeeded on both events. AC1, AC2, AC3, DoD1, DoD2, DoD3 and DoD4 meet on that SHA. DoD5 is this acceptance. Migration tc17001_article_versions changes persisted state. Run IDs are in artifacts/acceptance/TC-17-001/ci-runs.md. Non-blocking children stay off the DONE count. TC-17-001b (P1 security) is closed by #313 (head 042b701810e430866a7f52958b466497c96beb57, merge 030550e86bf3393f480cc0802fcfde68233457ed). TC-17-001h (P1) is closed by #312 (head 2836f9974bcd91d33f7d50b83bed7e54441b616d, merge 32cc730e508b78af9c5039c1ee4a88bb29e970e6). TC-17-001a (P1), TC-17-001c (P2), TC-17-001d (P2), TC-17-001e (P1), TC-17-001f (P2) and TC-17-001i (P2) stay open. Those closes are not parent acceptance and are not counted toward DONE. The product question about publish-on-save and the default published=1 (review item 7) is parked for the owner and is not registered work. Recorded by Grok (worker). Grok wrote the change and is not the independent reviewer. Records revision 37 closes child TC-17-001a (P1) by #321 (head a64ebf3d3f2ec80722d3f48dc510da3704cbd2a2, merge 0279867f9af52d568a2ed834532967459306d521). That close does not change this acceptance and is not counted toward DONE. Child TC-17-001g (P1) is registered and open: a save creates a draft, publishing is an explicit require_can_admin action, and new articles default to published=0. That is review item 7 from #307 comment 6998922136, ruled on #85 comment 7045436640. The docs do not define TC-17-001j, so that id is not registered. Open children do not change this acceptance. This note does not change the parent's acceptance. Recorded by Grok (worker). Grok is not the independent reviewer."
+              }
+            },
+            "pr_links": {
+              "before": [
+                {
+                  "number": 299,
+                  "title": "docs: baseline reconciliation batch 7 (TC-07-004, TC-16-001, TC-16-006, TC-17-001)",
+                  "url": "https://github.com/Johnathan-u/trust-copilot/pull/299",
+                  "state": "merged",
+                  "draft": false,
+                  "head_sha": "0ecaff47cd4de4de152d437e2ddf72fd0ccabe79",
+                  "merge_commit_sha": "e8ed98aaa3490c03aff2f8724f7221a6148582b1",
+                  "merged_at": "2026-11-18T16:05:49Z",
+                  "mapping_basis": [
+                    "verification report"
+                  ],
+                  "scope_ids": [
+                    "TC-17-001"
+                  ]
+                },
+                {
+                  "number": 301,
+                  "title": "TC-17-001: keep trust articles in the session workspace",
+                  "url": "https://github.com/Johnathan-u/trust-copilot/pull/301",
+                  "state": "merged",
+                  "draft": false,
+                  "head_sha": "c893fa27937ed851f9ba3af87148d26b757af946",
+                  "merge_commit_sha": "08443a6922ac8d62756b72459ad9e595da8a9366",
+                  "merged_at": "2026-11-18T17:16:09Z",
+                  "mapping_basis": [
+                    "PR title"
+                  ],
+                  "scope_ids": [
+                    "TC-17-001"
+                  ]
+                },
+                {
+                  "number": 307,
+                  "title": "TC-17-001: publish immutable article versions and bind acknowledgments",
+                  "url": "https://github.com/Johnathan-u/trust-copilot/pull/307",
+                  "state": "merged",
+                  "draft": false,
+                  "head_sha": "07cbc176531edb9d5e58878a5574e43d4c4a4d91",
+                  "merge_commit_sha": "7fea456dde7a8ed3148e11045d5488a77004aff4",
+                  "merged_at": "2026-11-19T12:22:32Z",
+                  "mapping_basis": [
+                    "acceptance"
+                  ],
+                  "scope_ids": [
+                    "TC-17-001"
+                  ]
+                },
+                {
+                  "number": 313,
+                  "title": "TC-17-001b: acknowledging no longer publishes a draft",
+                  "url": "https://github.com/Johnathan-u/trust-copilot/pull/313",
+                  "state": "merged",
+                  "draft": false,
+                  "head_sha": "042b701810e430866a7f52958b466497c96beb57",
+                  "merge_commit_sha": "030550e86bf3393f480cc0802fcfde68233457ed",
+                  "merged_at": "2026-11-20T12:45:00Z",
+                  "mapping_basis": [
+                    "child closure"
+                  ],
+                  "scope_ids": [
+                    "TC-17-001b"
+                  ]
+                },
+                {
+                  "number": 312,
+                  "title": "TC-17-001h: revoke acknowledgments with IS DISTINCT FROM",
+                  "url": "https://github.com/Johnathan-u/trust-copilot/pull/312",
+                  "state": "merged",
+                  "draft": false,
+                  "head_sha": "2836f9974bcd91d33f7d50b83bed7e54441b616d",
+                  "merge_commit_sha": "32cc730e508b78af9c5039c1ee4a88bb29e970e6",
+                  "merged_at": "2026-11-20T13:21:55Z",
+                  "mapping_basis": [
+                    "child closure"
+                  ],
+                  "scope_ids": [
+                    "TC-17-001h"
+                  ]
+                }
+              ],
+              "after": [
+                {
+                  "number": 299,
+                  "title": "docs: baseline reconciliation batch 7 (TC-07-004, TC-16-001, TC-16-006, TC-17-001)",
+                  "url": "https://github.com/Johnathan-u/trust-copilot/pull/299",
+                  "state": "merged",
+                  "draft": false,
+                  "head_sha": "0ecaff47cd4de4de152d437e2ddf72fd0ccabe79",
+                  "merge_commit_sha": "e8ed98aaa3490c03aff2f8724f7221a6148582b1",
+                  "merged_at": "2026-11-18T16:05:49Z",
+                  "mapping_basis": [
+                    "verification report"
+                  ],
+                  "scope_ids": [
+                    "TC-17-001"
+                  ]
+                },
+                {
+                  "number": 301,
+                  "title": "TC-17-001: keep trust articles in the session workspace",
+                  "url": "https://github.com/Johnathan-u/trust-copilot/pull/301",
+                  "state": "merged",
+                  "draft": false,
+                  "head_sha": "c893fa27937ed851f9ba3af87148d26b757af946",
+                  "merge_commit_sha": "08443a6922ac8d62756b72459ad9e595da8a9366",
+                  "merged_at": "2026-11-18T17:16:09Z",
+                  "mapping_basis": [
+                    "PR title"
+                  ],
+                  "scope_ids": [
+                    "TC-17-001"
+                  ]
+                },
+                {
+                  "number": 307,
+                  "title": "TC-17-001: publish immutable article versions and bind acknowledgments",
+                  "url": "https://github.com/Johnathan-u/trust-copilot/pull/307",
+                  "state": "merged",
+                  "draft": false,
+                  "head_sha": "07cbc176531edb9d5e58878a5574e43d4c4a4d91",
+                  "merge_commit_sha": "7fea456dde7a8ed3148e11045d5488a77004aff4",
+                  "merged_at": "2026-11-19T12:22:32Z",
+                  "mapping_basis": [
+                    "acceptance"
+                  ],
+                  "scope_ids": [
+                    "TC-17-001"
+                  ]
+                },
+                {
+                  "number": 313,
+                  "title": "TC-17-001b: acknowledging no longer publishes a draft",
+                  "url": "https://github.com/Johnathan-u/trust-copilot/pull/313",
+                  "state": "merged",
+                  "draft": false,
+                  "head_sha": "042b701810e430866a7f52958b466497c96beb57",
+                  "merge_commit_sha": "030550e86bf3393f480cc0802fcfde68233457ed",
+                  "merged_at": "2026-11-20T12:45:00Z",
+                  "mapping_basis": [
+                    "child closure"
+                  ],
+                  "scope_ids": [
+                    "TC-17-001b"
+                  ]
+                },
+                {
+                  "number": 312,
+                  "title": "TC-17-001h: revoke acknowledgments with IS DISTINCT FROM",
+                  "url": "https://github.com/Johnathan-u/trust-copilot/pull/312",
+                  "state": "merged",
+                  "draft": false,
+                  "head_sha": "2836f9974bcd91d33f7d50b83bed7e54441b616d",
+                  "merge_commit_sha": "32cc730e508b78af9c5039c1ee4a88bb29e970e6",
+                  "merged_at": "2026-11-20T13:21:55Z",
+                  "mapping_basis": [
+                    "child closure"
+                  ],
+                  "scope_ids": [
+                    "TC-17-001h"
+                  ]
+                },
+                {
+                  "number": 321,
+                  "title": "TC-17-001a: public reads require a published version",
+                  "url": "https://github.com/Johnathan-u/trust-copilot/pull/321",
+                  "state": "merged",
+                  "draft": false,
+                  "head_sha": "a64ebf3d3f2ec80722d3f48dc510da3704cbd2a2",
+                  "merge_commit_sha": "0279867f9af52d568a2ed834532967459306d521",
+                  "merged_at": "2026-11-20T17:29:17Z",
+                  "mapping_basis": [
+                    "child closure"
+                  ],
+                  "scope_ids": [
+                    "TC-17-001a"
+                  ]
+                }
+              ]
+            },
+            "evidence_links": {
+              "before": [
+                "https://github.com/Johnathan-u/trust-copilot/blob/e8ed98aaa3490c03aff2f8724f7221a6148582b1/docs/release/verification/TC-17-001.md",
+                "https://github.com/Johnathan-u/trust-copilot/pull/299",
+                "https://github.com/Johnathan-u/trust-copilot/commit/e8ed98aaa3490c03aff2f8724f7221a6148582b1",
+                "https://github.com/Johnathan-u/trust-copilot/commit/0ecaff47cd4de4de152d437e2ddf72fd0ccabe79",
+                "https://github.com/Johnathan-u/trust-copilot/pull/299#issuecomment-6984081800",
+                "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-6983773499",
+                "https://github.com/Johnathan-u/trust-copilot/pull/301",
+                "https://github.com/Johnathan-u/trust-copilot/commit/c893fa27937ed851f9ba3af87148d26b757af946",
+                "https://github.com/Johnathan-u/trust-copilot/commit/08443a6922ac8d62756b72459ad9e595da8a9366",
+                "https://github.com/Johnathan-u/trust-copilot/actions/runs/44353190364",
+                "https://github.com/Johnathan-u/trust-copilot/actions/runs/44353324788",
+                "https://github.com/Johnathan-u/trust-copilot/blob/c893fa27937ed851f9ba3af87148d26b757af946/docs/release/tickets/TC-17-001.md",
+                "https://github.com/Johnathan-u/trust-copilot/blob/c893fa27937ed851f9ba3af87148d26b757af946/artifacts/acceptance/TC-17-001/README.md",
+                "https://github.com/Johnathan-u/trust-copilot/pull/307#issuecomment-7008980985",
+                "https://github.com/Johnathan-u/trust-copilot/pull/307#issuecomment-6998922136",
+                "https://github.com/Johnathan-u/trust-copilot/pull/307",
+                "https://github.com/Johnathan-u/trust-copilot/commit/07cbc176531edb9d5e58878a5574e43d4c4a4d91",
+                "https://github.com/Johnathan-u/trust-copilot/commit/7fea456dde7a8ed3148e11045d5488a77004aff4",
+                "https://github.com/Johnathan-u/trust-copilot/commit/383467b54170b143eccd738d61956548d1b87880",
+                "https://github.com/Johnathan-u/trust-copilot/commit/559bd9d7f3c921a0400929d411770bfb4292d28c",
+                "https://github.com/Johnathan-u/trust-copilot/actions/runs/44455944772",
+                "https://github.com/Johnathan-u/trust-copilot/actions/runs/44455950570",
+                "https://github.com/Johnathan-u/trust-copilot/blob/07cbc176531edb9d5e58878a5574e43d4c4a4d91/docs/release/tickets/TC-17-001.md",
+                "https://github.com/Johnathan-u/trust-copilot/blob/07cbc176531edb9d5e58878a5574e43d4c4a4d91/docs/release/verification/TC-17-001.md",
+                "https://github.com/Johnathan-u/trust-copilot/blob/07cbc176531edb9d5e58878a5574e43d4c4a4d91/artifacts/acceptance/TC-17-001/README.md",
+                "https://github.com/Johnathan-u/trust-copilot/blob/07cbc176531edb9d5e58878a5574e43d4c4a4d91/artifacts/acceptance/TC-17-001/ci-runs.md",
+                "https://github.com/Johnathan-u/trust-copilot/pull/313",
+                "https://github.com/Johnathan-u/trust-copilot/commit/042b701810e430866a7f52958b466497c96beb57",
+                "https://github.com/Johnathan-u/trust-copilot/commit/030550e86bf3393f480cc0802fcfde68233457ed",
+                "https://github.com/Johnathan-u/trust-copilot/blob/030550e86bf3393f480cc0802fcfde68233457ed/docs/release/tickets/TC-17-001b.md",
+                "https://github.com/Johnathan-u/trust-copilot/pull/312",
+                "https://github.com/Johnathan-u/trust-copilot/commit/2836f9974bcd91d33f7d50b83bed7e54441b616d",
+                "https://github.com/Johnathan-u/trust-copilot/commit/32cc730e508b78af9c5039c1ee4a88bb29e970e6",
+                "https://github.com/Johnathan-u/trust-copilot/blob/32cc730e508b78af9c5039c1ee4a88bb29e970e6/docs/release/tickets/TC-17-001h.md",
+                "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-7039897301"
+              ],
+              "after": [
+                "https://github.com/Johnathan-u/trust-copilot/blob/e8ed98aaa3490c03aff2f8724f7221a6148582b1/docs/release/verification/TC-17-001.md",
+                "https://github.com/Johnathan-u/trust-copilot/pull/299",
+                "https://github.com/Johnathan-u/trust-copilot/commit/e8ed98aaa3490c03aff2f8724f7221a6148582b1",
+                "https://github.com/Johnathan-u/trust-copilot/commit/0ecaff47cd4de4de152d437e2ddf72fd0ccabe79",
+                "https://github.com/Johnathan-u/trust-copilot/pull/299#issuecomment-6984081800",
+                "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-6983773499",
+                "https://github.com/Johnathan-u/trust-copilot/pull/301",
+                "https://github.com/Johnathan-u/trust-copilot/commit/c893fa27937ed851f9ba3af87148d26b757af946",
+                "https://github.com/Johnathan-u/trust-copilot/commit/08443a6922ac8d62756b72459ad9e595da8a9366",
+                "https://github.com/Johnathan-u/trust-copilot/actions/runs/44353190364",
+                "https://github.com/Johnathan-u/trust-copilot/actions/runs/44353324788",
+                "https://github.com/Johnathan-u/trust-copilot/blob/c893fa27937ed851f9ba3af87148d26b757af946/docs/release/tickets/TC-17-001.md",
+                "https://github.com/Johnathan-u/trust-copilot/blob/c893fa27937ed851f9ba3af87148d26b757af946/artifacts/acceptance/TC-17-001/README.md",
+                "https://github.com/Johnathan-u/trust-copilot/pull/307#issuecomment-7008980985",
+                "https://github.com/Johnathan-u/trust-copilot/pull/307#issuecomment-6998922136",
+                "https://github.com/Johnathan-u/trust-copilot/pull/307",
+                "https://github.com/Johnathan-u/trust-copilot/commit/07cbc176531edb9d5e58878a5574e43d4c4a4d91",
+                "https://github.com/Johnathan-u/trust-copilot/commit/7fea456dde7a8ed3148e11045d5488a77004aff4",
+                "https://github.com/Johnathan-u/trust-copilot/commit/383467b54170b143eccd738d61956548d1b87880",
+                "https://github.com/Johnathan-u/trust-copilot/commit/559bd9d7f3c921a0400929d411770bfb4292d28c",
+                "https://github.com/Johnathan-u/trust-copilot/actions/runs/44455944772",
+                "https://github.com/Johnathan-u/trust-copilot/actions/runs/44455950570",
+                "https://github.com/Johnathan-u/trust-copilot/blob/07cbc176531edb9d5e58878a5574e43d4c4a4d91/docs/release/tickets/TC-17-001.md",
+                "https://github.com/Johnathan-u/trust-copilot/blob/07cbc176531edb9d5e58878a5574e43d4c4a4d91/docs/release/verification/TC-17-001.md",
+                "https://github.com/Johnathan-u/trust-copilot/blob/07cbc176531edb9d5e58878a5574e43d4c4a4d91/artifacts/acceptance/TC-17-001/README.md",
+                "https://github.com/Johnathan-u/trust-copilot/blob/07cbc176531edb9d5e58878a5574e43d4c4a4d91/artifacts/acceptance/TC-17-001/ci-runs.md",
+                "https://github.com/Johnathan-u/trust-copilot/pull/313",
+                "https://github.com/Johnathan-u/trust-copilot/commit/042b701810e430866a7f52958b466497c96beb57",
+                "https://github.com/Johnathan-u/trust-copilot/commit/030550e86bf3393f480cc0802fcfde68233457ed",
+                "https://github.com/Johnathan-u/trust-copilot/blob/030550e86bf3393f480cc0802fcfde68233457ed/docs/release/tickets/TC-17-001b.md",
+                "https://github.com/Johnathan-u/trust-copilot/pull/312",
+                "https://github.com/Johnathan-u/trust-copilot/commit/2836f9974bcd91d33f7d50b83bed7e54441b616d",
+                "https://github.com/Johnathan-u/trust-copilot/commit/32cc730e508b78af9c5039c1ee4a88bb29e970e6",
+                "https://github.com/Johnathan-u/trust-copilot/blob/32cc730e508b78af9c5039c1ee4a88bb29e970e6/docs/release/tickets/TC-17-001h.md",
+                "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-7039897301",
+                "https://github.com/Johnathan-u/trust-copilot/pull/321",
+                "https://github.com/Johnathan-u/trust-copilot/commit/a64ebf3d3f2ec80722d3f48dc510da3704cbd2a2",
+                "https://github.com/Johnathan-u/trust-copilot/commit/0279867f9af52d568a2ed834532967459306d521",
+                "https://github.com/Johnathan-u/trust-copilot/blob/0279867f9af52d568a2ed834532967459306d521/docs/release/tickets/TC-17-001a.md",
+                "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-7045436640",
+                "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-7046162703"
+              ]
+            }
+          },
+          "TC-04-005": {
+            "next_action": {
+              "before": "Accepted. Reopen only on regression or when change control adds scope. Child TC-04-005a is closed by #278 (head ab403a6dcd107215d9aa21a7982cc9e83f45b50a, merge 538a81815da61164065a17328f03448fdcea5489). Ruling: pull/278 comment 6966126776. CI-id follow-up #279 merged as d69109e720df3a697ff4af9eb1b222ae1553a628. The child is not an original parent and is not counted toward DONE. API keys are workspace credentials and are not revoked on member suspension, removal or demotion. That is the current policy Claude accepted on #271 comment 6962020496, noted for the owner to revisit.",
+              "after": "Accepted. Reopen only on regression or when change control adds scope. Child TC-04-005a is closed by #278 (head ab403a6dcd107215d9aa21a7982cc9e83f45b50a, merge 538a81815da61164065a17328f03448fdcea5489). Ruling: pull/278 comment 6966126776. CI-id follow-up #279 merged as d69109e720df3a697ff4af9eb1b222ae1553a628. The child is not an original parent and is not counted toward DONE. The policy Claude accepted on #271 comment 6962020496, that API keys are workspace credentials and are not revoked on member suspension, removal or demotion, was noted for the owner to revisit. The owner reversed it on #85 comment 7045436640 (ruling 6). Child TC-04-005b (P1) is registered and open: when a member is suspended, removed, or demoted below the key-creating role, the keys they created are disabled, and an admin can reassign or re-enable them, audited. The child does not change this acceptance and is not counted toward DONE."
+            },
+            "updated_at": {
+              "before": "2026-11-18T09:55:51Z",
+              "after": "2026-11-20T17:38:20Z"
+            },
+            "source_sha": {
+              "before": "af478a601a5df6ac49410711c77a14b014c70bf4",
+              "after": "0279867f9af52d568a2ed834532967459306d521"
+            },
+            "acceptance": {
+              "before": {
+                "state": "ACCEPTED",
+                "assessed_by": "claude-review-agent",
+                "assessed_at": "2026-11-17T22:16:37Z",
+                "assessed_sha": "d397e8e8259037a510efa678a3c320708c8e55db",
+                "assessment_evidence_urls": [
+                  "https://github.com/Johnathan-u/trust-copilot/pull/271#issuecomment-6962587389",
+                  "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-6962588081",
+                  "https://github.com/Johnathan-u/trust-copilot/pull/271#issuecomment-6962020496",
+                  "https://github.com/Johnathan-u/trust-copilot/pull/271",
+                  "https://github.com/Johnathan-u/trust-copilot/commit/d397e8e8259037a510efa678a3c320708c8e55db",
+                  "https://github.com/Johnathan-u/trust-copilot/commit/480b4ae19d14fc46b3638b341dad8d90f2fcec2f",
+                  "https://github.com/Johnathan-u/trust-copilot/pull/272",
+                  "https://github.com/Johnathan-u/trust-copilot/commit/3c0e12a5ca7f643275dc4a8ff6060458ec394bb7",
+                  "https://github.com/Johnathan-u/trust-copilot/commit/37ac10b80e55e6901a5b70c930207c734b5b4b17",
+                  "https://github.com/Johnathan-u/trust-copilot/actions/runs/44184737539",
+                  "https://github.com/Johnathan-u/trust-copilot/actions/runs/44184748040",
+                  "https://github.com/Johnathan-u/trust-copilot/blob/d397e8e8259037a510efa678a3c320708c8e55db/docs/release/tickets/TC-04-005.md",
+                  "https://github.com/Johnathan-u/trust-copilot/blob/d397e8e8259037a510efa678a3c320708c8e55db/docs/release/verification/TC-04-005.md",
+                  "https://github.com/Johnathan-u/trust-copilot/blob/d397e8e8259037a510efa678a3c320708c8e55db/artifacts/acceptance/TC-04-005/README.md",
+                  "https://github.com/Johnathan-u/trust-copilot/blob/3c0e12a5ca7f643275dc4a8ff6060458ec394bb7/artifacts/acceptance/TC-04-005/ci-runs.md"
+                ],
+                "tested_sha": "d397e8e8259037a510efa678a3c320708c8e55db",
+                "implemented_by": [
+                  "grok",
+                  "Johnathan-u"
+                ],
+                "independent_reviewer": "claude-review-agent",
+                "reviewed_at": "2026-11-17T22:16:37Z",
+                "reviewed_sha": "d397e8e8259037a510efa678a3c320708c8e55db",
+                "review_evidence_urls": [
+                  "https://github.com/Johnathan-u/trust-copilot/pull/271#issuecomment-6962587389",
+                  "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-6962588081",
+                  "https://github.com/Johnathan-u/trust-copilot/pull/271#issuecomment-6962020496",
+                  "https://github.com/Johnathan-u/trust-copilot/pull/271",
+                  "https://github.com/Johnathan-u/trust-copilot/commit/d397e8e8259037a510efa678a3c320708c8e55db",
+                  "https://github.com/Johnathan-u/trust-copilot/commit/480b4ae19d14fc46b3638b341dad8d90f2fcec2f",
+                  "https://github.com/Johnathan-u/trust-copilot/pull/272",
+                  "https://github.com/Johnathan-u/trust-copilot/commit/3c0e12a5ca7f643275dc4a8ff6060458ec394bb7",
+                  "https://github.com/Johnathan-u/trust-copilot/commit/37ac10b80e55e6901a5b70c930207c734b5b4b17",
+                  "https://github.com/Johnathan-u/trust-copilot/actions/runs/44184737539",
+                  "https://github.com/Johnathan-u/trust-copilot/actions/runs/44184748040",
+                  "https://github.com/Johnathan-u/trust-copilot/blob/d397e8e8259037a510efa678a3c320708c8e55db/docs/release/tickets/TC-04-005.md",
+                  "https://github.com/Johnathan-u/trust-copilot/blob/d397e8e8259037a510efa678a3c320708c8e55db/docs/release/verification/TC-04-005.md",
+                  "https://github.com/Johnathan-u/trust-copilot/blob/d397e8e8259037a510efa678a3c320708c8e55db/artifacts/acceptance/TC-04-005/README.md",
+                  "https://github.com/Johnathan-u/trust-copilot/blob/3c0e12a5ca7f643275dc4a8ff6060458ec394bb7/artifacts/acceptance/TC-04-005/ci-runs.md"
+                ],
+                "criteria": [
+                  {
+                    "id": "TC-04-005-AC1",
+                    "status": "PASS",
+                    "evidence_urls": [
+                      "https://github.com/Johnathan-u/trust-copilot/pull/271#issuecomment-6962587389",
+                      "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-6962588081",
+                      "https://github.com/Johnathan-u/trust-copilot/pull/271#issuecomment-6962020496",
+                      "https://github.com/Johnathan-u/trust-copilot/pull/271",
+                      "https://github.com/Johnathan-u/trust-copilot/commit/d397e8e8259037a510efa678a3c320708c8e55db",
+                      "https://github.com/Johnathan-u/trust-copilot/commit/480b4ae19d14fc46b3638b341dad8d90f2fcec2f",
+                      "https://github.com/Johnathan-u/trust-copilot/pull/272",
+                      "https://github.com/Johnathan-u/trust-copilot/commit/3c0e12a5ca7f643275dc4a8ff6060458ec394bb7",
+                      "https://github.com/Johnathan-u/trust-copilot/commit/37ac10b80e55e6901a5b70c930207c734b5b4b17",
+                      "https://github.com/Johnathan-u/trust-copilot/actions/runs/44184737539",
+                      "https://github.com/Johnathan-u/trust-copilot/actions/runs/44184748040",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/d397e8e8259037a510efa678a3c320708c8e55db/docs/release/tickets/TC-04-005.md",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/d397e8e8259037a510efa678a3c320708c8e55db/docs/release/verification/TC-04-005.md",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/d397e8e8259037a510efa678a3c320708c8e55db/artifacts/acceptance/TC-04-005/README.md",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/3c0e12a5ca7f643275dc4a8ff6060458ec394bb7/artifacts/acceptance/TC-04-005/ci-runs.md"
+                    ],
+                    "tested_sha": "d397e8e8259037a510efa678a3c320708c8e55db"
+                  },
+                  {
+                    "id": "TC-04-005-AC2",
+                    "status": "PASS",
+                    "evidence_urls": [
+                      "https://github.com/Johnathan-u/trust-copilot/pull/271#issuecomment-6962587389",
+                      "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-6962588081",
+                      "https://github.com/Johnathan-u/trust-copilot/pull/271#issuecomment-6962020496",
+                      "https://github.com/Johnathan-u/trust-copilot/pull/271",
+                      "https://github.com/Johnathan-u/trust-copilot/commit/d397e8e8259037a510efa678a3c320708c8e55db",
+                      "https://github.com/Johnathan-u/trust-copilot/commit/480b4ae19d14fc46b3638b341dad8d90f2fcec2f",
+                      "https://github.com/Johnathan-u/trust-copilot/pull/272",
+                      "https://github.com/Johnathan-u/trust-copilot/commit/3c0e12a5ca7f643275dc4a8ff6060458ec394bb7",
+                      "https://github.com/Johnathan-u/trust-copilot/commit/37ac10b80e55e6901a5b70c930207c734b5b4b17",
+                      "https://github.com/Johnathan-u/trust-copilot/actions/runs/44184737539",
+                      "https://github.com/Johnathan-u/trust-copilot/actions/runs/44184748040",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/d397e8e8259037a510efa678a3c320708c8e55db/docs/release/tickets/TC-04-005.md",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/d397e8e8259037a510efa678a3c320708c8e55db/docs/release/verification/TC-04-005.md",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/d397e8e8259037a510efa678a3c320708c8e55db/artifacts/acceptance/TC-04-005/README.md",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/3c0e12a5ca7f643275dc4a8ff6060458ec394bb7/artifacts/acceptance/TC-04-005/ci-runs.md"
+                    ],
+                    "tested_sha": "d397e8e8259037a510efa678a3c320708c8e55db"
+                  }
+                ],
+                "definition_of_done": [
+                  {
+                    "id": "TC-04-005-DOD1",
+                    "status": "PASS",
+                    "evidence_urls": [
+                      "https://github.com/Johnathan-u/trust-copilot/pull/271#issuecomment-6962587389",
+                      "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-6962588081",
+                      "https://github.com/Johnathan-u/trust-copilot/pull/271#issuecomment-6962020496",
+                      "https://github.com/Johnathan-u/trust-copilot/pull/271",
+                      "https://github.com/Johnathan-u/trust-copilot/commit/d397e8e8259037a510efa678a3c320708c8e55db",
+                      "https://github.com/Johnathan-u/trust-copilot/commit/480b4ae19d14fc46b3638b341dad8d90f2fcec2f",
+                      "https://github.com/Johnathan-u/trust-copilot/pull/272",
+                      "https://github.com/Johnathan-u/trust-copilot/commit/3c0e12a5ca7f643275dc4a8ff6060458ec394bb7",
+                      "https://github.com/Johnathan-u/trust-copilot/commit/37ac10b80e55e6901a5b70c930207c734b5b4b17",
+                      "https://github.com/Johnathan-u/trust-copilot/actions/runs/44184737539",
+                      "https://github.com/Johnathan-u/trust-copilot/actions/runs/44184748040",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/d397e8e8259037a510efa678a3c320708c8e55db/docs/release/tickets/TC-04-005.md",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/d397e8e8259037a510efa678a3c320708c8e55db/docs/release/verification/TC-04-005.md",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/d397e8e8259037a510efa678a3c320708c8e55db/artifacts/acceptance/TC-04-005/README.md",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/3c0e12a5ca7f643275dc4a8ff6060458ec394bb7/artifacts/acceptance/TC-04-005/ci-runs.md"
+                    ],
+                    "tested_sha": "d397e8e8259037a510efa678a3c320708c8e55db"
+                  },
+                  {
+                    "id": "TC-04-005-DOD2",
+                    "status": "PASS",
+                    "evidence_urls": [
+                      "https://github.com/Johnathan-u/trust-copilot/pull/271#issuecomment-6962587389",
+                      "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-6962588081",
+                      "https://github.com/Johnathan-u/trust-copilot/pull/271#issuecomment-6962020496",
+                      "https://github.com/Johnathan-u/trust-copilot/pull/271",
+                      "https://github.com/Johnathan-u/trust-copilot/commit/d397e8e8259037a510efa678a3c320708c8e55db",
+                      "https://github.com/Johnathan-u/trust-copilot/commit/480b4ae19d14fc46b3638b341dad8d90f2fcec2f",
+                      "https://github.com/Johnathan-u/trust-copilot/pull/272",
+                      "https://github.com/Johnathan-u/trust-copilot/commit/3c0e12a5ca7f643275dc4a8ff6060458ec394bb7",
+                      "https://github.com/Johnathan-u/trust-copilot/commit/37ac10b80e55e6901a5b70c930207c734b5b4b17",
+                      "https://github.com/Johnathan-u/trust-copilot/actions/runs/44184737539",
+                      "https://github.com/Johnathan-u/trust-copilot/actions/runs/44184748040",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/d397e8e8259037a510efa678a3c320708c8e55db/docs/release/tickets/TC-04-005.md",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/d397e8e8259037a510efa678a3c320708c8e55db/docs/release/verification/TC-04-005.md",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/d397e8e8259037a510efa678a3c320708c8e55db/artifacts/acceptance/TC-04-005/README.md",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/3c0e12a5ca7f643275dc4a8ff6060458ec394bb7/artifacts/acceptance/TC-04-005/ci-runs.md"
+                    ],
+                    "tested_sha": "d397e8e8259037a510efa678a3c320708c8e55db"
+                  },
+                  {
+                    "id": "TC-04-005-DOD3",
+                    "status": "PASS",
+                    "evidence_urls": [
+                      "https://github.com/Johnathan-u/trust-copilot/pull/271#issuecomment-6962587389",
+                      "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-6962588081",
+                      "https://github.com/Johnathan-u/trust-copilot/pull/271#issuecomment-6962020496",
+                      "https://github.com/Johnathan-u/trust-copilot/pull/271",
+                      "https://github.com/Johnathan-u/trust-copilot/commit/d397e8e8259037a510efa678a3c320708c8e55db",
+                      "https://github.com/Johnathan-u/trust-copilot/commit/480b4ae19d14fc46b3638b341dad8d90f2fcec2f",
+                      "https://github.com/Johnathan-u/trust-copilot/pull/272",
+                      "https://github.com/Johnathan-u/trust-copilot/commit/3c0e12a5ca7f643275dc4a8ff6060458ec394bb7",
+                      "https://github.com/Johnathan-u/trust-copilot/commit/37ac10b80e55e6901a5b70c930207c734b5b4b17",
+                      "https://github.com/Johnathan-u/trust-copilot/actions/runs/44184737539",
+                      "https://github.com/Johnathan-u/trust-copilot/actions/runs/44184748040",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/d397e8e8259037a510efa678a3c320708c8e55db/docs/release/tickets/TC-04-005.md",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/d397e8e8259037a510efa678a3c320708c8e55db/docs/release/verification/TC-04-005.md",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/d397e8e8259037a510efa678a3c320708c8e55db/artifacts/acceptance/TC-04-005/README.md",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/3c0e12a5ca7f643275dc4a8ff6060458ec394bb7/artifacts/acceptance/TC-04-005/ci-runs.md"
+                    ],
+                    "tested_sha": "d397e8e8259037a510efa678a3c320708c8e55db"
+                  },
+                  {
+                    "id": "TC-04-005-DOD4",
+                    "status": "PASS",
+                    "evidence_urls": [
+                      "https://github.com/Johnathan-u/trust-copilot/pull/271#issuecomment-6962587389",
+                      "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-6962588081",
+                      "https://github.com/Johnathan-u/trust-copilot/pull/271#issuecomment-6962020496",
+                      "https://github.com/Johnathan-u/trust-copilot/pull/271",
+                      "https://github.com/Johnathan-u/trust-copilot/commit/d397e8e8259037a510efa678a3c320708c8e55db",
+                      "https://github.com/Johnathan-u/trust-copilot/commit/480b4ae19d14fc46b3638b341dad8d90f2fcec2f",
+                      "https://github.com/Johnathan-u/trust-copilot/pull/272",
+                      "https://github.com/Johnathan-u/trust-copilot/commit/3c0e12a5ca7f643275dc4a8ff6060458ec394bb7",
+                      "https://github.com/Johnathan-u/trust-copilot/commit/37ac10b80e55e6901a5b70c930207c734b5b4b17",
+                      "https://github.com/Johnathan-u/trust-copilot/actions/runs/44184737539",
+                      "https://github.com/Johnathan-u/trust-copilot/actions/runs/44184748040",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/d397e8e8259037a510efa678a3c320708c8e55db/docs/release/tickets/TC-04-005.md",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/d397e8e8259037a510efa678a3c320708c8e55db/docs/release/verification/TC-04-005.md",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/d397e8e8259037a510efa678a3c320708c8e55db/artifacts/acceptance/TC-04-005/README.md",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/3c0e12a5ca7f643275dc4a8ff6060458ec394bb7/artifacts/acceptance/TC-04-005/ci-runs.md"
+                    ],
+                    "tested_sha": "d397e8e8259037a510efa678a3c320708c8e55db"
+                  },
+                  {
+                    "id": "TC-04-005-DOD5",
+                    "status": "PASS",
+                    "evidence_urls": [
+                      "https://github.com/Johnathan-u/trust-copilot/pull/271#issuecomment-6962587389",
+                      "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-6962588081",
+                      "https://github.com/Johnathan-u/trust-copilot/pull/271#issuecomment-6962020496",
+                      "https://github.com/Johnathan-u/trust-copilot/pull/271",
+                      "https://github.com/Johnathan-u/trust-copilot/commit/d397e8e8259037a510efa678a3c320708c8e55db",
+                      "https://github.com/Johnathan-u/trust-copilot/commit/480b4ae19d14fc46b3638b341dad8d90f2fcec2f",
+                      "https://github.com/Johnathan-u/trust-copilot/pull/272",
+                      "https://github.com/Johnathan-u/trust-copilot/commit/3c0e12a5ca7f643275dc4a8ff6060458ec394bb7",
+                      "https://github.com/Johnathan-u/trust-copilot/commit/37ac10b80e55e6901a5b70c930207c734b5b4b17",
+                      "https://github.com/Johnathan-u/trust-copilot/actions/runs/44184737539",
+                      "https://github.com/Johnathan-u/trust-copilot/actions/runs/44184748040",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/d397e8e8259037a510efa678a3c320708c8e55db/docs/release/tickets/TC-04-005.md",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/d397e8e8259037a510efa678a3c320708c8e55db/docs/release/verification/TC-04-005.md",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/d397e8e8259037a510efa678a3c320708c8e55db/artifacts/acceptance/TC-04-005/README.md",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/3c0e12a5ca7f643275dc4a8ff6060458ec394bb7/artifacts/acceptance/TC-04-005/ci-runs.md"
+                    ],
+                    "tested_sha": "d397e8e8259037a510efa678a3c320708c8e55db"
+                  }
+                ],
+                "note": "DONE and VERIFIED_ACCEPTED. Claude is the independent reviewer. He accepted TC-04-005 on #271 comment 6962587389, pinned to d397e8e8259037a510efa678a3c320708c8e55db, squash-merged as 480b4ae19d14fc46b3638b341dad8d90f2fcec2f. CI for that head: push run 44184737539 and pull_request run 44184748040. Follow-up #272 (head 3c0e12a5ca7f643275dc4a8ff6060458ec394bb7, merge 37ac10b80e55e6901a5b70c930207c734b5b4b17) records those run IDs. AC1, AC2, DoD1, DoD2, DoD3 and DoD4 meet on d397e8e8259037a510efa678a3c320708c8e55db; DoD5 is this acceptance. API keys are workspace credentials and are not revoked on member suspension, removal or demotion. Claude accepted that current policy on #271 comment 6962020496 and noted it for the owner to revisit. Child TC-04-005a is closed by #278 (head ab403a6dcd107215d9aa21a7982cc9e83f45b50a, merge 538a81815da61164065a17328f03448fdcea5489). Ruling: pull/278 comment 6966126776. CI-id follow-up #279 merged as d69109e720df3a697ff4af9eb1b222ae1553a628. The child is not counted toward DONE. This note does not change the parent's acceptance. Recorded by Grok (worker). Grok wrote the test and is not the independent reviewer."
+              },
+              "after": {
+                "state": "ACCEPTED",
+                "assessed_by": "claude-review-agent",
+                "assessed_at": "2026-11-17T22:16:37Z",
+                "assessed_sha": "d397e8e8259037a510efa678a3c320708c8e55db",
+                "assessment_evidence_urls": [
+                  "https://github.com/Johnathan-u/trust-copilot/pull/271#issuecomment-6962587389",
+                  "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-6962588081",
+                  "https://github.com/Johnathan-u/trust-copilot/pull/271#issuecomment-6962020496",
+                  "https://github.com/Johnathan-u/trust-copilot/pull/271",
+                  "https://github.com/Johnathan-u/trust-copilot/commit/d397e8e8259037a510efa678a3c320708c8e55db",
+                  "https://github.com/Johnathan-u/trust-copilot/commit/480b4ae19d14fc46b3638b341dad8d90f2fcec2f",
+                  "https://github.com/Johnathan-u/trust-copilot/pull/272",
+                  "https://github.com/Johnathan-u/trust-copilot/commit/3c0e12a5ca7f643275dc4a8ff6060458ec394bb7",
+                  "https://github.com/Johnathan-u/trust-copilot/commit/37ac10b80e55e6901a5b70c930207c734b5b4b17",
+                  "https://github.com/Johnathan-u/trust-copilot/actions/runs/44184737539",
+                  "https://github.com/Johnathan-u/trust-copilot/actions/runs/44184748040",
+                  "https://github.com/Johnathan-u/trust-copilot/blob/d397e8e8259037a510efa678a3c320708c8e55db/docs/release/tickets/TC-04-005.md",
+                  "https://github.com/Johnathan-u/trust-copilot/blob/d397e8e8259037a510efa678a3c320708c8e55db/docs/release/verification/TC-04-005.md",
+                  "https://github.com/Johnathan-u/trust-copilot/blob/d397e8e8259037a510efa678a3c320708c8e55db/artifacts/acceptance/TC-04-005/README.md",
+                  "https://github.com/Johnathan-u/trust-copilot/blob/3c0e12a5ca7f643275dc4a8ff6060458ec394bb7/artifacts/acceptance/TC-04-005/ci-runs.md"
+                ],
+                "tested_sha": "d397e8e8259037a510efa678a3c320708c8e55db",
+                "implemented_by": [
+                  "grok",
+                  "Johnathan-u"
+                ],
+                "independent_reviewer": "claude-review-agent",
+                "reviewed_at": "2026-11-17T22:16:37Z",
+                "reviewed_sha": "d397e8e8259037a510efa678a3c320708c8e55db",
+                "review_evidence_urls": [
+                  "https://github.com/Johnathan-u/trust-copilot/pull/271#issuecomment-6962587389",
+                  "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-6962588081",
+                  "https://github.com/Johnathan-u/trust-copilot/pull/271#issuecomment-6962020496",
+                  "https://github.com/Johnathan-u/trust-copilot/pull/271",
+                  "https://github.com/Johnathan-u/trust-copilot/commit/d397e8e8259037a510efa678a3c320708c8e55db",
+                  "https://github.com/Johnathan-u/trust-copilot/commit/480b4ae19d14fc46b3638b341dad8d90f2fcec2f",
+                  "https://github.com/Johnathan-u/trust-copilot/pull/272",
+                  "https://github.com/Johnathan-u/trust-copilot/commit/3c0e12a5ca7f643275dc4a8ff6060458ec394bb7",
+                  "https://github.com/Johnathan-u/trust-copilot/commit/37ac10b80e55e6901a5b70c930207c734b5b4b17",
+                  "https://github.com/Johnathan-u/trust-copilot/actions/runs/44184737539",
+                  "https://github.com/Johnathan-u/trust-copilot/actions/runs/44184748040",
+                  "https://github.com/Johnathan-u/trust-copilot/blob/d397e8e8259037a510efa678a3c320708c8e55db/docs/release/tickets/TC-04-005.md",
+                  "https://github.com/Johnathan-u/trust-copilot/blob/d397e8e8259037a510efa678a3c320708c8e55db/docs/release/verification/TC-04-005.md",
+                  "https://github.com/Johnathan-u/trust-copilot/blob/d397e8e8259037a510efa678a3c320708c8e55db/artifacts/acceptance/TC-04-005/README.md",
+                  "https://github.com/Johnathan-u/trust-copilot/blob/3c0e12a5ca7f643275dc4a8ff6060458ec394bb7/artifacts/acceptance/TC-04-005/ci-runs.md"
+                ],
+                "criteria": [
+                  {
+                    "id": "TC-04-005-AC1",
+                    "status": "PASS",
+                    "evidence_urls": [
+                      "https://github.com/Johnathan-u/trust-copilot/pull/271#issuecomment-6962587389",
+                      "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-6962588081",
+                      "https://github.com/Johnathan-u/trust-copilot/pull/271#issuecomment-6962020496",
+                      "https://github.com/Johnathan-u/trust-copilot/pull/271",
+                      "https://github.com/Johnathan-u/trust-copilot/commit/d397e8e8259037a510efa678a3c320708c8e55db",
+                      "https://github.com/Johnathan-u/trust-copilot/commit/480b4ae19d14fc46b3638b341dad8d90f2fcec2f",
+                      "https://github.com/Johnathan-u/trust-copilot/pull/272",
+                      "https://github.com/Johnathan-u/trust-copilot/commit/3c0e12a5ca7f643275dc4a8ff6060458ec394bb7",
+                      "https://github.com/Johnathan-u/trust-copilot/commit/37ac10b80e55e6901a5b70c930207c734b5b4b17",
+                      "https://github.com/Johnathan-u/trust-copilot/actions/runs/44184737539",
+                      "https://github.com/Johnathan-u/trust-copilot/actions/runs/44184748040",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/d397e8e8259037a510efa678a3c320708c8e55db/docs/release/tickets/TC-04-005.md",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/d397e8e8259037a510efa678a3c320708c8e55db/docs/release/verification/TC-04-005.md",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/d397e8e8259037a510efa678a3c320708c8e55db/artifacts/acceptance/TC-04-005/README.md",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/3c0e12a5ca7f643275dc4a8ff6060458ec394bb7/artifacts/acceptance/TC-04-005/ci-runs.md"
+                    ],
+                    "tested_sha": "d397e8e8259037a510efa678a3c320708c8e55db"
+                  },
+                  {
+                    "id": "TC-04-005-AC2",
+                    "status": "PASS",
+                    "evidence_urls": [
+                      "https://github.com/Johnathan-u/trust-copilot/pull/271#issuecomment-6962587389",
+                      "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-6962588081",
+                      "https://github.com/Johnathan-u/trust-copilot/pull/271#issuecomment-6962020496",
+                      "https://github.com/Johnathan-u/trust-copilot/pull/271",
+                      "https://github.com/Johnathan-u/trust-copilot/commit/d397e8e8259037a510efa678a3c320708c8e55db",
+                      "https://github.com/Johnathan-u/trust-copilot/commit/480b4ae19d14fc46b3638b341dad8d90f2fcec2f",
+                      "https://github.com/Johnathan-u/trust-copilot/pull/272",
+                      "https://github.com/Johnathan-u/trust-copilot/commit/3c0e12a5ca7f643275dc4a8ff6060458ec394bb7",
+                      "https://github.com/Johnathan-u/trust-copilot/commit/37ac10b80e55e6901a5b70c930207c734b5b4b17",
+                      "https://github.com/Johnathan-u/trust-copilot/actions/runs/44184737539",
+                      "https://github.com/Johnathan-u/trust-copilot/actions/runs/44184748040",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/d397e8e8259037a510efa678a3c320708c8e55db/docs/release/tickets/TC-04-005.md",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/d397e8e8259037a510efa678a3c320708c8e55db/docs/release/verification/TC-04-005.md",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/d397e8e8259037a510efa678a3c320708c8e55db/artifacts/acceptance/TC-04-005/README.md",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/3c0e12a5ca7f643275dc4a8ff6060458ec394bb7/artifacts/acceptance/TC-04-005/ci-runs.md"
+                    ],
+                    "tested_sha": "d397e8e8259037a510efa678a3c320708c8e55db"
+                  }
+                ],
+                "definition_of_done": [
+                  {
+                    "id": "TC-04-005-DOD1",
+                    "status": "PASS",
+                    "evidence_urls": [
+                      "https://github.com/Johnathan-u/trust-copilot/pull/271#issuecomment-6962587389",
+                      "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-6962588081",
+                      "https://github.com/Johnathan-u/trust-copilot/pull/271#issuecomment-6962020496",
+                      "https://github.com/Johnathan-u/trust-copilot/pull/271",
+                      "https://github.com/Johnathan-u/trust-copilot/commit/d397e8e8259037a510efa678a3c320708c8e55db",
+                      "https://github.com/Johnathan-u/trust-copilot/commit/480b4ae19d14fc46b3638b341dad8d90f2fcec2f",
+                      "https://github.com/Johnathan-u/trust-copilot/pull/272",
+                      "https://github.com/Johnathan-u/trust-copilot/commit/3c0e12a5ca7f643275dc4a8ff6060458ec394bb7",
+                      "https://github.com/Johnathan-u/trust-copilot/commit/37ac10b80e55e6901a5b70c930207c734b5b4b17",
+                      "https://github.com/Johnathan-u/trust-copilot/actions/runs/44184737539",
+                      "https://github.com/Johnathan-u/trust-copilot/actions/runs/44184748040",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/d397e8e8259037a510efa678a3c320708c8e55db/docs/release/tickets/TC-04-005.md",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/d397e8e8259037a510efa678a3c320708c8e55db/docs/release/verification/TC-04-005.md",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/d397e8e8259037a510efa678a3c320708c8e55db/artifacts/acceptance/TC-04-005/README.md",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/3c0e12a5ca7f643275dc4a8ff6060458ec394bb7/artifacts/acceptance/TC-04-005/ci-runs.md"
+                    ],
+                    "tested_sha": "d397e8e8259037a510efa678a3c320708c8e55db"
+                  },
+                  {
+                    "id": "TC-04-005-DOD2",
+                    "status": "PASS",
+                    "evidence_urls": [
+                      "https://github.com/Johnathan-u/trust-copilot/pull/271#issuecomment-6962587389",
+                      "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-6962588081",
+                      "https://github.com/Johnathan-u/trust-copilot/pull/271#issuecomment-6962020496",
+                      "https://github.com/Johnathan-u/trust-copilot/pull/271",
+                      "https://github.com/Johnathan-u/trust-copilot/commit/d397e8e8259037a510efa678a3c320708c8e55db",
+                      "https://github.com/Johnathan-u/trust-copilot/commit/480b4ae19d14fc46b3638b341dad8d90f2fcec2f",
+                      "https://github.com/Johnathan-u/trust-copilot/pull/272",
+                      "https://github.com/Johnathan-u/trust-copilot/commit/3c0e12a5ca7f643275dc4a8ff6060458ec394bb7",
+                      "https://github.com/Johnathan-u/trust-copilot/commit/37ac10b80e55e6901a5b70c930207c734b5b4b17",
+                      "https://github.com/Johnathan-u/trust-copilot/actions/runs/44184737539",
+                      "https://github.com/Johnathan-u/trust-copilot/actions/runs/44184748040",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/d397e8e8259037a510efa678a3c320708c8e55db/docs/release/tickets/TC-04-005.md",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/d397e8e8259037a510efa678a3c320708c8e55db/docs/release/verification/TC-04-005.md",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/d397e8e8259037a510efa678a3c320708c8e55db/artifacts/acceptance/TC-04-005/README.md",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/3c0e12a5ca7f643275dc4a8ff6060458ec394bb7/artifacts/acceptance/TC-04-005/ci-runs.md"
+                    ],
+                    "tested_sha": "d397e8e8259037a510efa678a3c320708c8e55db"
+                  },
+                  {
+                    "id": "TC-04-005-DOD3",
+                    "status": "PASS",
+                    "evidence_urls": [
+                      "https://github.com/Johnathan-u/trust-copilot/pull/271#issuecomment-6962587389",
+                      "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-6962588081",
+                      "https://github.com/Johnathan-u/trust-copilot/pull/271#issuecomment-6962020496",
+                      "https://github.com/Johnathan-u/trust-copilot/pull/271",
+                      "https://github.com/Johnathan-u/trust-copilot/commit/d397e8e8259037a510efa678a3c320708c8e55db",
+                      "https://github.com/Johnathan-u/trust-copilot/commit/480b4ae19d14fc46b3638b341dad8d90f2fcec2f",
+                      "https://github.com/Johnathan-u/trust-copilot/pull/272",
+                      "https://github.com/Johnathan-u/trust-copilot/commit/3c0e12a5ca7f643275dc4a8ff6060458ec394bb7",
+                      "https://github.com/Johnathan-u/trust-copilot/commit/37ac10b80e55e6901a5b70c930207c734b5b4b17",
+                      "https://github.com/Johnathan-u/trust-copilot/actions/runs/44184737539",
+                      "https://github.com/Johnathan-u/trust-copilot/actions/runs/44184748040",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/d397e8e8259037a510efa678a3c320708c8e55db/docs/release/tickets/TC-04-005.md",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/d397e8e8259037a510efa678a3c320708c8e55db/docs/release/verification/TC-04-005.md",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/d397e8e8259037a510efa678a3c320708c8e55db/artifacts/acceptance/TC-04-005/README.md",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/3c0e12a5ca7f643275dc4a8ff6060458ec394bb7/artifacts/acceptance/TC-04-005/ci-runs.md"
+                    ],
+                    "tested_sha": "d397e8e8259037a510efa678a3c320708c8e55db"
+                  },
+                  {
+                    "id": "TC-04-005-DOD4",
+                    "status": "PASS",
+                    "evidence_urls": [
+                      "https://github.com/Johnathan-u/trust-copilot/pull/271#issuecomment-6962587389",
+                      "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-6962588081",
+                      "https://github.com/Johnathan-u/trust-copilot/pull/271#issuecomment-6962020496",
+                      "https://github.com/Johnathan-u/trust-copilot/pull/271",
+                      "https://github.com/Johnathan-u/trust-copilot/commit/d397e8e8259037a510efa678a3c320708c8e55db",
+                      "https://github.com/Johnathan-u/trust-copilot/commit/480b4ae19d14fc46b3638b341dad8d90f2fcec2f",
+                      "https://github.com/Johnathan-u/trust-copilot/pull/272",
+                      "https://github.com/Johnathan-u/trust-copilot/commit/3c0e12a5ca7f643275dc4a8ff6060458ec394bb7",
+                      "https://github.com/Johnathan-u/trust-copilot/commit/37ac10b80e55e6901a5b70c930207c734b5b4b17",
+                      "https://github.com/Johnathan-u/trust-copilot/actions/runs/44184737539",
+                      "https://github.com/Johnathan-u/trust-copilot/actions/runs/44184748040",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/d397e8e8259037a510efa678a3c320708c8e55db/docs/release/tickets/TC-04-005.md",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/d397e8e8259037a510efa678a3c320708c8e55db/docs/release/verification/TC-04-005.md",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/d397e8e8259037a510efa678a3c320708c8e55db/artifacts/acceptance/TC-04-005/README.md",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/3c0e12a5ca7f643275dc4a8ff6060458ec394bb7/artifacts/acceptance/TC-04-005/ci-runs.md"
+                    ],
+                    "tested_sha": "d397e8e8259037a510efa678a3c320708c8e55db"
+                  },
+                  {
+                    "id": "TC-04-005-DOD5",
+                    "status": "PASS",
+                    "evidence_urls": [
+                      "https://github.com/Johnathan-u/trust-copilot/pull/271#issuecomment-6962587389",
+                      "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-6962588081",
+                      "https://github.com/Johnathan-u/trust-copilot/pull/271#issuecomment-6962020496",
+                      "https://github.com/Johnathan-u/trust-copilot/pull/271",
+                      "https://github.com/Johnathan-u/trust-copilot/commit/d397e8e8259037a510efa678a3c320708c8e55db",
+                      "https://github.com/Johnathan-u/trust-copilot/commit/480b4ae19d14fc46b3638b341dad8d90f2fcec2f",
+                      "https://github.com/Johnathan-u/trust-copilot/pull/272",
+                      "https://github.com/Johnathan-u/trust-copilot/commit/3c0e12a5ca7f643275dc4a8ff6060458ec394bb7",
+                      "https://github.com/Johnathan-u/trust-copilot/commit/37ac10b80e55e6901a5b70c930207c734b5b4b17",
+                      "https://github.com/Johnathan-u/trust-copilot/actions/runs/44184737539",
+                      "https://github.com/Johnathan-u/trust-copilot/actions/runs/44184748040",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/d397e8e8259037a510efa678a3c320708c8e55db/docs/release/tickets/TC-04-005.md",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/d397e8e8259037a510efa678a3c320708c8e55db/docs/release/verification/TC-04-005.md",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/d397e8e8259037a510efa678a3c320708c8e55db/artifacts/acceptance/TC-04-005/README.md",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/3c0e12a5ca7f643275dc4a8ff6060458ec394bb7/artifacts/acceptance/TC-04-005/ci-runs.md"
+                    ],
+                    "tested_sha": "d397e8e8259037a510efa678a3c320708c8e55db"
+                  }
+                ],
+                "note": "DONE and VERIFIED_ACCEPTED. Claude is the independent reviewer. He accepted TC-04-005 on #271 comment 6962587389, pinned to d397e8e8259037a510efa678a3c320708c8e55db, squash-merged as 480b4ae19d14fc46b3638b341dad8d90f2fcec2f. CI for that head: push run 44184737539 and pull_request run 44184748040. Follow-up #272 (head 3c0e12a5ca7f643275dc4a8ff6060458ec394bb7, merge 37ac10b80e55e6901a5b70c930207c734b5b4b17) records those run IDs. AC1, AC2, DoD1, DoD2, DoD3 and DoD4 meet on d397e8e8259037a510efa678a3c320708c8e55db; DoD5 is this acceptance. API keys are workspace credentials and are not revoked on member suspension, removal or demotion. Claude accepted that current policy on #271 comment 6962020496 and noted it for the owner to revisit. Child TC-04-005a is closed by #278 (head ab403a6dcd107215d9aa21a7982cc9e83f45b50a, merge 538a81815da61164065a17328f03448fdcea5489). Ruling: pull/278 comment 6966126776. CI-id follow-up #279 merged as d69109e720df3a697ff4af9eb1b222ae1553a628. The child is not counted toward DONE. This note does not change the parent's acceptance. Recorded by Grok (worker). Grok wrote the test and is not the independent reviewer. Records revision 37 registers child TC-04-005b (P1). Ruling 6 on #85 comment 7045436640 reverses the policy that API keys stay active when the creating member is suspended, removed, or demoted below the key-creating role. The keys they created are disabled. An admin can reassign or re-enable them, and that action is audited. The child is open. It does not change this acceptance and is not counted toward DONE. Recorded by Grok (worker). Grok is not the independent reviewer."
+              }
+            },
+            "evidence_links": {
+              "before": [
+                "https://github.com/Johnathan-u/trust-copilot/blob/0fb552fc449c70b947406c855e10be170ed8f26a/docs/release/verification/TC-04-005.md",
+                "https://github.com/Johnathan-u/trust-copilot/pull/267",
+                "https://github.com/Johnathan-u/trust-copilot/commit/0fb552fc449c70b947406c855e10be170ed8f26a",
+                "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-6961380351",
+                "https://github.com/Johnathan-u/trust-copilot/pull/271#issuecomment-6962587389",
+                "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-6962588081",
+                "https://github.com/Johnathan-u/trust-copilot/pull/271#issuecomment-6962020496",
+                "https://github.com/Johnathan-u/trust-copilot/pull/271",
+                "https://github.com/Johnathan-u/trust-copilot/commit/d397e8e8259037a510efa678a3c320708c8e55db",
+                "https://github.com/Johnathan-u/trust-copilot/commit/480b4ae19d14fc46b3638b341dad8d90f2fcec2f",
+                "https://github.com/Johnathan-u/trust-copilot/pull/272",
+                "https://github.com/Johnathan-u/trust-copilot/commit/3c0e12a5ca7f643275dc4a8ff6060458ec394bb7",
+                "https://github.com/Johnathan-u/trust-copilot/commit/37ac10b80e55e6901a5b70c930207c734b5b4b17",
+                "https://github.com/Johnathan-u/trust-copilot/actions/runs/44184737539",
+                "https://github.com/Johnathan-u/trust-copilot/actions/runs/44184748040",
+                "https://github.com/Johnathan-u/trust-copilot/blob/d397e8e8259037a510efa678a3c320708c8e55db/docs/release/tickets/TC-04-005.md",
+                "https://github.com/Johnathan-u/trust-copilot/blob/d397e8e8259037a510efa678a3c320708c8e55db/docs/release/verification/TC-04-005.md",
+                "https://github.com/Johnathan-u/trust-copilot/blob/d397e8e8259037a510efa678a3c320708c8e55db/artifacts/acceptance/TC-04-005/README.md",
+                "https://github.com/Johnathan-u/trust-copilot/blob/3c0e12a5ca7f643275dc4a8ff6060458ec394bb7/artifacts/acceptance/TC-04-005/ci-runs.md",
+                "https://github.com/Johnathan-u/trust-copilot/pull/278",
+                "https://github.com/Johnathan-u/trust-copilot/pull/278#issuecomment-6966126776",
+                "https://github.com/Johnathan-u/trust-copilot/commit/ab403a6dcd107215d9aa21a7982cc9e83f45b50a",
+                "https://github.com/Johnathan-u/trust-copilot/commit/538a81815da61164065a17328f03448fdcea5489",
+                "https://github.com/Johnathan-u/trust-copilot/pull/279",
+                "https://github.com/Johnathan-u/trust-copilot/commit/88c07bc17c8c65133ac7bd2b0e9450a3b94595c1",
+                "https://github.com/Johnathan-u/trust-copilot/commit/d69109e720df3a697ff4af9eb1b222ae1553a628",
+                "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-6974255416"
+              ],
+              "after": [
+                "https://github.com/Johnathan-u/trust-copilot/blob/0fb552fc449c70b947406c855e10be170ed8f26a/docs/release/verification/TC-04-005.md",
+                "https://github.com/Johnathan-u/trust-copilot/pull/267",
+                "https://github.com/Johnathan-u/trust-copilot/commit/0fb552fc449c70b947406c855e10be170ed8f26a",
+                "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-6961380351",
+                "https://github.com/Johnathan-u/trust-copilot/pull/271#issuecomment-6962587389",
+                "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-6962588081",
+                "https://github.com/Johnathan-u/trust-copilot/pull/271#issuecomment-6962020496",
+                "https://github.com/Johnathan-u/trust-copilot/pull/271",
+                "https://github.com/Johnathan-u/trust-copilot/commit/d397e8e8259037a510efa678a3c320708c8e55db",
+                "https://github.com/Johnathan-u/trust-copilot/commit/480b4ae19d14fc46b3638b341dad8d90f2fcec2f",
+                "https://github.com/Johnathan-u/trust-copilot/pull/272",
+                "https://github.com/Johnathan-u/trust-copilot/commit/3c0e12a5ca7f643275dc4a8ff6060458ec394bb7",
+                "https://github.com/Johnathan-u/trust-copilot/commit/37ac10b80e55e6901a5b70c930207c734b5b4b17",
+                "https://github.com/Johnathan-u/trust-copilot/actions/runs/44184737539",
+                "https://github.com/Johnathan-u/trust-copilot/actions/runs/44184748040",
+                "https://github.com/Johnathan-u/trust-copilot/blob/d397e8e8259037a510efa678a3c320708c8e55db/docs/release/tickets/TC-04-005.md",
+                "https://github.com/Johnathan-u/trust-copilot/blob/d397e8e8259037a510efa678a3c320708c8e55db/docs/release/verification/TC-04-005.md",
+                "https://github.com/Johnathan-u/trust-copilot/blob/d397e8e8259037a510efa678a3c320708c8e55db/artifacts/acceptance/TC-04-005/README.md",
+                "https://github.com/Johnathan-u/trust-copilot/blob/3c0e12a5ca7f643275dc4a8ff6060458ec394bb7/artifacts/acceptance/TC-04-005/ci-runs.md",
+                "https://github.com/Johnathan-u/trust-copilot/pull/278",
+                "https://github.com/Johnathan-u/trust-copilot/pull/278#issuecomment-6966126776",
+                "https://github.com/Johnathan-u/trust-copilot/commit/ab403a6dcd107215d9aa21a7982cc9e83f45b50a",
+                "https://github.com/Johnathan-u/trust-copilot/commit/538a81815da61164065a17328f03448fdcea5489",
+                "https://github.com/Johnathan-u/trust-copilot/pull/279",
+                "https://github.com/Johnathan-u/trust-copilot/commit/88c07bc17c8c65133ac7bd2b0e9450a3b94595c1",
+                "https://github.com/Johnathan-u/trust-copilot/commit/d69109e720df3a697ff4af9eb1b222ae1553a628",
+                "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-6974255416",
+                "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-7045436640",
+                "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-7046162703"
+              ]
+            }
+          },
+          "TC-02-003": {
+            "next_action": {
+              "before": "Accepted. Reopen only on regression.",
+              "after": "Accepted. Reopen only on regression. Child TC-02-003a (P1) is registered and open: upgrade to the latest patched Next.js 16.x and record npm audit output before and after. The lock is next 16.4.3. Ruling: #85 comment 7045436640 (ruling 7). Epic E02 owns toolchain and frontend dependency upgrades, and this parent owns that upgrade. The child does not change this acceptance and is not counted toward DONE."
+            },
+            "updated_at": {
+              "before": "2026-11-01T14:23:59Z",
+              "after": "2026-11-20T17:38:20Z"
+            },
+            "source_sha": {
+              "before": "90146e0cfe2220beb3e43f98f6073262f7c0abfb",
+              "after": "0279867f9af52d568a2ed834532967459306d521"
+            },
+            "acceptance": {
+              "before": {
+                "state": "ACCEPTED",
+                "assessed_by": "claude-reviewer",
+                "assessed_at": "2026-11-01T14:23:58Z",
+                "assessed_sha": "951c81e3f338c93a88e988d9b1ac5d9cbdffaa88",
+                "assessment_evidence_urls": [
+                  "https://github.com/Johnathan-u/trust-copilot/actions/runs/41139637051",
+                  "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-6559232272"
+                ],
+                "tested_sha": "951c81e3f338c93a88e988d9b1ac5d9cbdffaa88",
+                "implemented_by": [
+                  "Johnathan-u",
+                  "cursor-agent"
+                ],
+                "independent_reviewer": "claude-reviewer",
+                "reviewed_at": "2026-11-01T14:23:58Z",
+                "reviewed_sha": "951c81e3f338c93a88e988d9b1ac5d9cbdffaa88",
+                "review_evidence_urls": [
+                  "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-6559232272"
+                ],
+                "criteria": [
+                  {
+                    "id": "TC-02-003-AC1",
+                    "status": "PASS",
+                    "evidence_urls": [
+                      "https://github.com/Johnathan-u/trust-copilot/actions/runs/41139637051",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/apps/api/tests/release/test_web_lock.py",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/artifacts/acceptance/TC-02-003/README.md",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/docs/release/tickets/TC-02-003.md"
+                    ],
+                    "tested_sha": "951c81e3f338c93a88e988d9b1ac5d9cbdffaa88"
+                  },
+                  {
+                    "id": "TC-02-003-AC2",
+                    "status": "PASS",
+                    "evidence_urls": [
+                      "https://github.com/Johnathan-u/trust-copilot/actions/runs/41139637051",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/apps/api/tests/release/test_web_lock.py",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/artifacts/acceptance/TC-02-003/README.md",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/docs/release/tickets/TC-02-003.md"
+                    ],
+                    "tested_sha": "951c81e3f338c93a88e988d9b1ac5d9cbdffaa88"
+                  }
+                ],
+                "definition_of_done": [
+                  {
+                    "id": "TC-02-003-DOD1",
+                    "status": "PASS",
+                    "evidence_urls": [
+                      "https://github.com/Johnathan-u/trust-copilot/actions/runs/41139637051",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/apps/api/tests/release/test_web_lock.py",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/artifacts/acceptance/TC-02-003/README.md",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/docs/release/tickets/TC-02-003.md"
+                    ],
+                    "tested_sha": "951c81e3f338c93a88e988d9b1ac5d9cbdffaa88"
+                  },
+                  {
+                    "id": "TC-02-003-DOD2",
+                    "status": "PASS",
+                    "evidence_urls": [
+                      "https://github.com/Johnathan-u/trust-copilot/actions/runs/41139637051",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/apps/api/tests/release/test_web_lock.py",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/artifacts/acceptance/TC-02-003/README.md",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/docs/release/tickets/TC-02-003.md"
+                    ],
+                    "tested_sha": "951c81e3f338c93a88e988d9b1ac5d9cbdffaa88"
+                  },
+                  {
+                    "id": "TC-02-003-DOD3",
+                    "status": "PASS",
+                    "evidence_urls": [
+                      "https://github.com/Johnathan-u/trust-copilot/actions/runs/41139637051",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/apps/api/tests/release/test_web_lock.py",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/artifacts/acceptance/TC-02-003/README.md",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/docs/release/tickets/TC-02-003.md"
+                    ],
+                    "tested_sha": "951c81e3f338c93a88e988d9b1ac5d9cbdffaa88"
+                  },
+                  {
+                    "id": "TC-02-003-DOD4",
+                    "status": "PASS",
+                    "evidence_urls": [
+                      "https://github.com/Johnathan-u/trust-copilot/actions/runs/41139637051",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/apps/api/tests/release/test_web_lock.py",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/artifacts/acceptance/TC-02-003/README.md",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/docs/release/tickets/TC-02-003.md"
+                    ],
+                    "tested_sha": "951c81e3f338c93a88e988d9b1ac5d9cbdffaa88"
+                  },
+                  {
+                    "id": "TC-02-003-DOD5",
+                    "status": "PASS",
+                    "evidence_urls": [
+                      "https://github.com/Johnathan-u/trust-copilot/actions/runs/41139637051",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/apps/api/tests/release/test_web_lock.py",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/artifacts/acceptance/TC-02-003/README.md",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/docs/release/tickets/TC-02-003.md"
+                    ],
+                    "tested_sha": "951c81e3f338c93a88e988d9b1ac5d9cbdffaa88"
+                  }
+                ],
+                "note": "Accepted on exact-SHA master CI (build + web-release-e2e green) and review of code, tests and evidence; implemented via PR #9."
+              },
+              "after": {
+                "state": "ACCEPTED",
+                "assessed_by": "claude-reviewer",
+                "assessed_at": "2026-11-01T14:23:58Z",
+                "assessed_sha": "951c81e3f338c93a88e988d9b1ac5d9cbdffaa88",
+                "assessment_evidence_urls": [
+                  "https://github.com/Johnathan-u/trust-copilot/actions/runs/41139637051",
+                  "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-6559232272"
+                ],
+                "tested_sha": "951c81e3f338c93a88e988d9b1ac5d9cbdffaa88",
+                "implemented_by": [
+                  "Johnathan-u",
+                  "cursor-agent"
+                ],
+                "independent_reviewer": "claude-reviewer",
+                "reviewed_at": "2026-11-01T14:23:58Z",
+                "reviewed_sha": "951c81e3f338c93a88e988d9b1ac5d9cbdffaa88",
+                "review_evidence_urls": [
+                  "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-6559232272"
+                ],
+                "criteria": [
+                  {
+                    "id": "TC-02-003-AC1",
+                    "status": "PASS",
+                    "evidence_urls": [
+                      "https://github.com/Johnathan-u/trust-copilot/actions/runs/41139637051",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/apps/api/tests/release/test_web_lock.py",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/artifacts/acceptance/TC-02-003/README.md",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/docs/release/tickets/TC-02-003.md"
+                    ],
+                    "tested_sha": "951c81e3f338c93a88e988d9b1ac5d9cbdffaa88"
+                  },
+                  {
+                    "id": "TC-02-003-AC2",
+                    "status": "PASS",
+                    "evidence_urls": [
+                      "https://github.com/Johnathan-u/trust-copilot/actions/runs/41139637051",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/apps/api/tests/release/test_web_lock.py",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/artifacts/acceptance/TC-02-003/README.md",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/docs/release/tickets/TC-02-003.md"
+                    ],
+                    "tested_sha": "951c81e3f338c93a88e988d9b1ac5d9cbdffaa88"
+                  }
+                ],
+                "definition_of_done": [
+                  {
+                    "id": "TC-02-003-DOD1",
+                    "status": "PASS",
+                    "evidence_urls": [
+                      "https://github.com/Johnathan-u/trust-copilot/actions/runs/41139637051",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/apps/api/tests/release/test_web_lock.py",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/artifacts/acceptance/TC-02-003/README.md",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/docs/release/tickets/TC-02-003.md"
+                    ],
+                    "tested_sha": "951c81e3f338c93a88e988d9b1ac5d9cbdffaa88"
+                  },
+                  {
+                    "id": "TC-02-003-DOD2",
+                    "status": "PASS",
+                    "evidence_urls": [
+                      "https://github.com/Johnathan-u/trust-copilot/actions/runs/41139637051",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/apps/api/tests/release/test_web_lock.py",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/artifacts/acceptance/TC-02-003/README.md",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/docs/release/tickets/TC-02-003.md"
+                    ],
+                    "tested_sha": "951c81e3f338c93a88e988d9b1ac5d9cbdffaa88"
+                  },
+                  {
+                    "id": "TC-02-003-DOD3",
+                    "status": "PASS",
+                    "evidence_urls": [
+                      "https://github.com/Johnathan-u/trust-copilot/actions/runs/41139637051",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/apps/api/tests/release/test_web_lock.py",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/artifacts/acceptance/TC-02-003/README.md",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/docs/release/tickets/TC-02-003.md"
+                    ],
+                    "tested_sha": "951c81e3f338c93a88e988d9b1ac5d9cbdffaa88"
+                  },
+                  {
+                    "id": "TC-02-003-DOD4",
+                    "status": "PASS",
+                    "evidence_urls": [
+                      "https://github.com/Johnathan-u/trust-copilot/actions/runs/41139637051",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/apps/api/tests/release/test_web_lock.py",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/artifacts/acceptance/TC-02-003/README.md",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/docs/release/tickets/TC-02-003.md"
+                    ],
+                    "tested_sha": "951c81e3f338c93a88e988d9b1ac5d9cbdffaa88"
+                  },
+                  {
+                    "id": "TC-02-003-DOD5",
+                    "status": "PASS",
+                    "evidence_urls": [
+                      "https://github.com/Johnathan-u/trust-copilot/actions/runs/41139637051",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/apps/api/tests/release/test_web_lock.py",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/artifacts/acceptance/TC-02-003/README.md",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/docs/release/tickets/TC-02-003.md"
+                    ],
+                    "tested_sha": "951c81e3f338c93a88e988d9b1ac5d9cbdffaa88"
+                  }
+                ],
+                "note": "Accepted on exact-SHA master CI (build + web-release-e2e green) and review of code, tests and evidence; implemented via PR #9. Records revision 37 registers child TC-02-003a (P1): upgrade to the latest patched Next.js 16.x and record npm audit output before and after. The lock on this snapshot is next 16.4.3. Ruling 7 on #85 comment 7045436640. The child does not change this acceptance and is not counted toward DONE. Recorded by Grok (worker). Grok is not the independent reviewer."
+              }
+            },
+            "evidence_links": {
+              "before": [
+                "https://github.com/Johnathan-u/trust-copilot/blob/b2bd1e0df5cdeb03b8d0cd240f5a161835ea621d/docs/release/tickets/TC-02-003.md",
+                "https://github.com/Johnathan-u/trust-copilot/tree/b2bd1e0df5cdeb03b8d0cd240f5a161835ea621d/artifacts/acceptance/TC-02-003"
+              ],
+              "after": [
+                "https://github.com/Johnathan-u/trust-copilot/blob/b2bd1e0df5cdeb03b8d0cd240f5a161835ea621d/docs/release/tickets/TC-02-003.md",
+                "https://github.com/Johnathan-u/trust-copilot/tree/b2bd1e0df5cdeb03b8d0cd240f5a161835ea621d/artifacts/acceptance/TC-02-003",
+                "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-7045436640",
+                "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-7046162703"
+              ]
+            }
+          }
+        },
+        "followups": {
+          "TC-07-011a": {
+            "title": {
+              "before": "P0: Keep filenames, reset links, and source text out of application logs and Sentry",
+              "after": "P0: Keep filenames, reset links, and source text out of application logs and Sentry (closed, #318)"
+            },
+            "source_url": {
+              "before": "https://github.com/Johnathan-u/trust-copilot/pull/315",
+              "after": "https://github.com/Johnathan-u/trust-copilot/pull/318"
+            }
+          },
+          "TC-07-011b": {
+            "title": {
+              "before": "P0: Add tests/release/test_log_redaction.py and docs/release/tickets/TC-07-011.md",
+              "after": "P0: Add tests/release/test_log_redaction.py and docs/release/tickets/TC-07-011.md (closed, #320)"
+            },
+            "source_url": {
+              "before": "https://github.com/Johnathan-u/trust-copilot/pull/315",
+              "after": "https://github.com/Johnathan-u/trust-copilot/pull/320"
+            }
+          },
+          "TC-04-007b": {
+            "title": {
+              "before": "P0: Share the auth limiter across processes, send Retry-After, limit invite creation, and add tests/release/test_auth_rate_limits.py",
+              "after": "P0: Share the auth limiter across processes, send Retry-After, limit invite creation, and add tests/release/test_auth_rate_limits.py (closed, #319)"
+            },
+            "source_url": {
+              "before": "https://github.com/Johnathan-u/trust-copilot/pull/315",
+              "after": "https://github.com/Johnathan-u/trust-copilot/pull/319"
+            }
+          },
+          "TC-17-001a": {
+            "title": {
+              "before": "P1: Public reads require a published version, or seeds publish through approve_current_draft",
+              "after": "P1: Public reads require a published version, or seeds publish through approve_current_draft (closed, #321)"
+            },
+            "source_url": {
+              "before": "https://github.com/Johnathan-u/trust-copilot/pull/307#issuecomment-6998922136",
+              "after": "https://github.com/Johnathan-u/trust-copilot/pull/321"
+            }
+          },
+          "TC-04-007c": {
+            "id": {
+              "before": null,
+              "after": "TC-04-007c"
+            },
+            "title": {
+              "before": null,
+              "after": "P2: Prune expired rate-limit buckets and record the fail-open note"
+            },
+            "parent_id": {
+              "before": null,
+              "after": "TC-04-007"
+            },
+            "story_points": {
+              "before": null,
+              "after": null
+            },
+            "source_url": {
+              "before": null,
+              "after": "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-7044441373"
+            },
+            "source_path": {
+              "before": null,
+              "after": "docs/release/tickets/TC-04-007c.md"
+            }
+          },
+          "TC-17-001g": {
+            "id": {
+              "before": null,
+              "after": "TC-17-001g"
+            },
+            "title": {
+              "before": null,
+              "after": "P1: A save creates a draft, publishing is an explicit require_can_admin action, and new articles default to published=0"
+            },
+            "parent_id": {
+              "before": null,
+              "after": "TC-17-001"
+            },
+            "story_points": {
+              "before": null,
+              "after": null
+            },
+            "source_url": {
+              "before": null,
+              "after": "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-7045436640"
+            },
+            "source_path": {
+              "before": null,
+              "after": "docs/release/tickets/TC-17-001g.md"
+            }
+          },
+          "TC-04-005b": {
+            "id": {
+              "before": null,
+              "after": "TC-04-005b"
+            },
+            "title": {
+              "before": null,
+              "after": "P1: Disable API keys created by a member who is suspended, removed, or demoted below the key-creating role; an admin can reassign or re-enable them, audited"
+            },
+            "parent_id": {
+              "before": null,
+              "after": "TC-04-005"
+            },
+            "story_points": {
+              "before": null,
+              "after": null
+            },
+            "source_url": {
+              "before": null,
+              "after": "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-7045436640"
+            },
+            "source_path": {
+              "before": null,
+              "after": "docs/release/tickets/TC-04-005b.md"
+            }
+          },
+          "TC-02-003a": {
+            "id": {
+              "before": null,
+              "after": "TC-02-003a"
+            },
+            "title": {
+              "before": null,
+              "after": "P1: Upgrade to the latest patched Next.js 16.x and record npm audit output before and after"
+            },
+            "parent_id": {
+              "before": null,
+              "after": "TC-02-003"
+            },
+            "story_points": {
+              "before": null,
+              "after": null
+            },
+            "source_url": {
+              "before": null,
+              "after": "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-7045436640"
+            },
+            "source_path": {
+              "before": null,
+              "after": "docs/release/tickets/TC-02-003a.md"
             }
           }
         }
