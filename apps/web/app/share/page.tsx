@@ -153,8 +153,9 @@ function ShareContent() {
       })
       .then(async (body) => {
         const parsed = parseAccess(body)
-        if (!parsed.ok) {
-          if (!cancelled) setPhase({ kind: 'denied', reason: parsed.reason })
+        if (parsed.ok === false) {
+          const reason = parsed.reason
+          if (!cancelled) setPhase({ kind: 'denied', reason })
           return
         }
         const articles = (
