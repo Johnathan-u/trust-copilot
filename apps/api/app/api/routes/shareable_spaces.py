@@ -10,8 +10,8 @@ from app.core.database import get_db
 from app.services import shareable_space_service as ss
 from app.services.storage import StorageClient, get_storage
 
-# One body for a missing object and an object the token does not list.
-TOKEN_OBJECT_NOT_FOUND = "Not found"
+# One body for a missing object and an object the share link does not list.
+LISTED_OBJECT_MISSING = "Not found"
 _LIST_FIELDS = ("article_ids", "answer_ids", "document_ids")
 
 router = APIRouter(prefix="/shareable-spaces", tags=["shareable-spaces"])
@@ -156,7 +156,7 @@ async def update_space_lists(
 def _live_space(db: Session, token: str):
     space = ss.live_space_for_token(db, token)
     if space is None:
-        raise HTTPException(status_code=404, detail=TOKEN_OBJECT_NOT_FOUND)
+        raise HTTPException(status_code=404, detail=LISTED_OBJECT_MISSING)
     return space
 
 
@@ -185,7 +185,7 @@ async def access_document_content(
     space = _live_space(db, token)
     document = ss.granted_document(db, space, document_id)
     if document is None:
-        raise HTTPException(status_code=404, detail=TOKEN_OBJECT_NOT_FOUND)
+        raise HTTPException(status_code=404, detail=LISTED_OBJECT_MISSING)
     return stream_stored_document(document, storage)
 
 
@@ -199,7 +199,7 @@ async def access_article(
     space = _live_space(db, token)
     article = ss.granted_article(db, space, article_id)
     if article is None:
-        raise HTTPException(status_code=404, detail=TOKEN_OBJECT_NOT_FOUND)
+        raise HTTPException(status_code=404, detail=LISTED_OBJECT_MISSING)
     return {"id": article.id, "title": article.title, "content": article.content}
 
 
@@ -213,5 +213,5 @@ async def access_answer(
     space = _live_space(db, token)
     answer = ss.granted_answer(db, space, answer_id)
     if answer is None:
-        raise HTTPException(status_code=404, detail=TOKEN_OBJECT_NOT_FOUND)
+        raise HTTPException(status_code=404, detail=LISTED_OBJECT_MISSING)
     return {"id": answer.id, "text": answer.text, "status": answer.status}
