@@ -5,4 +5,4 @@ tests/release/test_domain_trust_articles.py: 20 warnings
     return util.wrap_callable(lambda ctx: fn(), fn)  # type: ignore
 
 -- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
-4 passed, 19 deselected, 20 warnings in 2.46s
+4 passed, 19 deselected, 20 warnings in 2.35s

@@ -221,9 +221,9 @@ def authority(request, monkeypatch):
         db.query(AuditEvent).filter(
             or_(AuditEvent.user_id.in_(user_ids), AuditEvent.workspace_id.in_(owned_ws))
         ).delete(synchronize_session=False)
-        db.query(TrustArticleVersion).filter(
-            TrustArticleVersion.workspace_id.in_(owned_ws)
-        ).delete(synchronize_session=False)
+        db.query(TrustArticleVersion).filter(TrustArticleVersion.workspace_id.in_(owned_ws)).delete(
+            synchronize_session=False
+        )
         for model in (TrustArticle, Subscription, ApiKey, CustomRole):
             db.query(model).filter(model.workspace_id.in_(owned_ws)).delete(
                 synchronize_session=False

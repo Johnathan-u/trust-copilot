@@ -1046,9 +1046,7 @@ def test_public_read_hides_published_row_without_version(
     slug = _slug("no-version")
     title = f"Live draft title {slug}"
     content = f"live-draft-secret-{slug}"
-    article_id = _insert_published_without_version(
-        db_session, slug, title=title, content=content
-    )
+    article_id = _insert_published_without_version(db_session, slug, title=title, content=content)
     try:
         _assert_public_omits(client, article_id, title, content)
 
