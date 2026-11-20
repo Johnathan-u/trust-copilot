@@ -1,0 +1,24 @@
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - ESM syntax in a file loaded as CommonJS (vitest.config.ts:1:1). Use a `.mjs` extension or set `"type": "module"` in the closest package.json
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+
+ RUN  v5.0.5 /agent/repos/trust-copilot/apps/web
+
+ ✓ lib/shareable-space-link.test.ts > treats an active unexpired space as live 1ms
+ ✓ lib/shareable-space-link.test.ts > builds the buyer link without storing the token 0ms
+ ✓ tests/unit/share-page.test.ts > shows the articles, answers, and documents from the access payload 36ms
+ ✓ tests/unit/share-page.test.ts > does not show an article that is absent from the access payload 9ms
+ ✓ tests/unit/share-page.test.ts > shows the access reason and no lists when the token is not valid 4ms
+ ✓ tests/unit/share-page.test.ts > does not call the API when the token is missing 2ms
+ ✓ tests/unit/share-page.test.ts > shows an empty section when a list in the payload is empty 9ms
+ ✓ tests/unit/share-page.test.ts > omits an article the token read does not return 8ms
+ ✓ tests/unit/shareable-spaces-page.test.ts > shows Rotate link only to admins and only on live spaces 38ms
+ ✓ tests/unit/shareable-spaces-page.test.ts > hides Rotate link from a non-admin 6ms
+ ✓ tests/unit/shareable-spaces-page.test.ts > confirms that the old link stops immediately, then shows the new link once 40ms
+ ✓ tests/unit/shareable-spaces-page.test.ts > says a repeated create has no new link 13ms
+ ✓ tests/unit/shareable-spaces-page.test.ts > does not reveal a link when rotation is refused 17ms
+
+ Test Files  3 passed (3)
+      Tests  13 passed (13)
+   Start at  23:39:39
+   Duration  675ms (environment 39%, transform 23%, tests 19%, import 18%, worker 2%)
