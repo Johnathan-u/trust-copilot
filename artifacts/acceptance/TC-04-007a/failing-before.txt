@@ -16,7 +16,7 @@ ________ test_forgot_password_rate_limit_matches_for_known_and_unknown _________
 tests/release/test_forgot_password_enumeration.py:97: in test_forgot_password_rate_limit_matches_for_known_and_unknown
     assert known == unknown == expected
 E   AssertionError: assert [(200, {'mess...link.'}), ...] == [(200, {'mess...link.'}), ...]
-E     
+E
 E     At index 10 diff: (429, {'detail': 'Too many requests. Try again later.'}) != (200, {'message': 'If that email is registered, you will receive a reset link.'})
 E     Use -v to get more diff
 =============================== warnings summary ===============================
