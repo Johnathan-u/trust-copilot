@@ -1,0 +1,30 @@
+FFFF                                                                     [100%]
+=================================== FAILURES ===================================
+E   AssertionError: {"id":296,"workspace_id":1,"slug":"no-version-892257b0","category":"Security","title":"Live draft title no-version-892257b0","content":"live-draft-secret-no-version-892257b0","published":1,"is_policy":false,"created_at":"2026-11-20T17:01:36.187902","updated_at":"2026-11-20T17:01:36.187910","published_version_id":null,"published_version":null,"published_slug":null,"published_title":null,"published_content":null,"published_category":null,"published_is_policy":null}
+    assert 200 == 404
+     +  where 200 = <Response [200 OK]>.status_code
+/agent/repos/trust-copilot/apps/api/tests/release/test_domain_trust_articles.py:1026: AssertionError: {"id":296,"workspace_id":1,"slug":"no-version-892257b0","category":"Security","title":"Live draft title no-version-892257b0","content":"live-draft-secret-no-version-892257b0","published":1,"is_policy":false,"created_at":"2026-11-20T17:01:36.187902","updated_at":"2026-11-20T17:01:36.187910","published_version_id":null,"published_version":null,"published_slug":null,"published_title":null,"published_content":null,"published_category":null,"published_is_policy":null}
+E   AssertionError: {"id":297,"workspace_id":1,"slug":"dangling-public-f7423145","category":"Security","title":"Dangling live title dangling-public-f7423145","content":"dangling-live-secret-dangling-public-f7423145","published":1,"is_policy":false,"created_at":"2026-11-20T17:01:36.263450","updated_at":"2026-11-20T17:01:36.263456","published_version_id":null,"published_version":null,"published_slug":null,"published_title":null,"published_content":null,"published_category":null,"published_is_policy":null}
+    assert 200 == 404
+     +  where 200 = <Response [200 OK]>.status_code
+/agent/repos/trust-copilot/apps/api/tests/release/test_domain_trust_articles.py:1026: AssertionError: {"id":297,"workspace_id":1,"slug":"dangling-public-f7423145","category":"Security","title":"Dangling live title dangling-public-f7423145","content":"dangling-live-secret-dangling-public-f7423145","published":1,"is_policy":false,"created_at":"2026-11-20T17:01:36.263450","updated_at":"2026-11-20T17:01:36.263456","published_version_id":null,"published_version":null,"published_slug":null,"published_title":null,"published_content":null,"published_category":null,"published_is_policy":null}
+E   AssertionError: assert [{'id': 299, ...curity', ...}] == []
+      
+      Left contains one more item: {'id': 299, 'workspace_id': 1, 'slug': 'bare-neighbour-51513815', 'category': 'Security', ...}
+      Use -v to get more diff
+/agent/repos/trust-copilot/apps/api/tests/release/test_domain_trust_articles.py:1162: AssertionError: assert [{'id': 299, ...curity', ...}] == []
+E   assert False
+     +  where False = isinstance(None, int)
+/agent/repos/trust-copilot/apps/api/tests/release/test_domain_trust_articles.py:1194: assert False
+=============================== warnings summary ===============================
+tests/release/test_domain_trust_articles.py: 16 warnings
+  /tmp/tc-api-venv/lib/python3.12/site-packages/sqlalchemy/sql/schema.py:3627: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    return util.wrap_callable(lambda ctx: fn(), fn)  # type: ignore
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/release/test_domain_trust_articles.py::test_public_read_hides_published_row_without_version
+FAILED tests/release/test_domain_trust_articles.py::test_public_read_hides_dangling_published_version
+FAILED tests/release/test_domain_trust_articles.py::test_public_list_keeps_versioned_article_beside_versionless
+FAILED tests/release/test_domain_trust_articles.py::test_seed_publishes_published_article_through_approve_current_draft
+4 failed, 19 deselected, 16 warnings in 2.49s

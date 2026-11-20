@@ -53,6 +53,7 @@ from app.models import (  # noqa: E402
 )
 from app.services.file_service import make_key  # noqa: E402
 from app.services.storage import StorageClient  # noqa: E402
+from app.services.trust_article_versions import approve_current_draft  # noqa: E402
 from app.services.xlsx_questionnaire_parser import parse_xlsx_questionnaire  # noqa: E402
 
 try:
@@ -369,22 +370,28 @@ def seed_trust_articles(db: Session, workspace_id: int, prefix: str) -> None:
         (f"{prefix}-published", f"{prefix} Published Article", True),
         (f"{prefix}-draft", f"{prefix} Unpublished Article", False),
     ]:
-        if (
+        existing = (
             db.query(TrustArticle)
             .filter(TrustArticle.workspace_id == workspace_id, TrustArticle.slug == slug)
             .first()
-        ):
-            continue
-        db.add(
-            TrustArticle(
-                workspace_id=workspace_id,
-                slug=slug,
-                title=title,
-                content=f"Content for {title}.",
-                published=1 if published else 0,
-                category="Security",
-            )
         )
+        if existing:
+            # A previous seed could store published=1 with no version. Publish it.
+            if published and existing.published == 1 and existing.published_version_id is None:
+                approve_current_draft(db, existing)
+            continue
+        article = TrustArticle(
+            workspace_id=workspace_id,
+            slug=slug,
+            title=title,
+            content=f"Content for {title}.",
+            published=1 if published else 0,
+            category="Security",
+        )
+        db.add(article)
+        db.flush()
+        if published:
+            approve_current_draft(db, article)
     db.commit()
 
 

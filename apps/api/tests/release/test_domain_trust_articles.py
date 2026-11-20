@@ -1,5 +1,8 @@
 """TC-17-001: workspace on create, versioned publish, acknowledgment, retry.
 
+TC-17-001a: a public read of a published article requires a version row.
+The live columns are not served when that row is missing.
+
 TC-17-001b: acknowledging a policy that has no published version returns 400
 and does not insert or approve a trust_article_versions row.
 
@@ -136,7 +139,13 @@ def test_unauthenticated_read_hides_null_workspace_published(
 def test_public_get_named_workspace_does_not_return_another(
     client: TestClient, db_session: Session
 ) -> None:
-    """A public read that names a workspace returns only that workspace's article."""
+    """A public read that names a workspace returns only that workspace's article.
+
+    The article is published through approve_current_draft. A public read
+    requires that version.
+    """
+    from app.services.trust_article_versions import approve_current_draft
+
     slug = _slug("ws2-public")
     article = TrustArticle(
         workspace_id=2,
@@ -146,9 +155,12 @@ def test_public_get_named_workspace_does_not_return_another(
         published=1,
     )
     db_session.add(article)
+    db_session.flush()
+    approve_current_draft(db_session, article)
     db_session.commit()
     db_session.refresh(article)
     article_id = article.id
+    assert article.published_version_id is not None
     try:
         wrong = client.get(f"/api/trust-articles/{article_id}?workspace_id=1")
         assert wrong.status_code == 404, wrong.text
@@ -981,3 +993,227 @@ def test_admin_publish_still_approves_the_current_draft(
     finally:
         db_session.rollback()
         _delete_slugs(db_session, slug)
+
+
+def _insert_published_without_version(
+    db: Session,
+    slug: str,
+    *,
+    content: str,
+    title: str,
+    published_version_id: int | None = None,
+) -> int:
+    """A published row inserted outside approve_current_draft, the way seeds used to."""
+    article = TrustArticle(
+        workspace_id=1,
+        slug=slug,
+        title=title,
+        content=content,
+        category="Security",
+        published=1,
+        is_policy=False,
+        published_version_id=published_version_id,
+    )
+    db.add(article)
+    db.commit()
+    db.refresh(article)
+    return int(article.id)
+
+
+def _assert_public_omits(client: TestClient, article_id: int, *secrets: str) -> None:
+    """Anonymous get, a named-workspace get, and a published_only list hide the row."""
+    by_id = client.get(f"/api/trust-articles/{article_id}")
+    assert by_id.status_code == 404, by_id.text
+    named = client.get(f"/api/trust-articles/{article_id}?workspace_id=1")
+    assert named.status_code == 404, named.text
+    listed = client.get("/api/trust-articles?workspace_id=1&published_only=true")
+    assert listed.status_code == 200, listed.text
+    assert all(item["id"] != article_id for item in listed.json())
+    for secret in secrets:
+        assert secret not in by_id.text
+        assert secret not in named.text
+        assert secret not in listed.text
+
+
+def test_public_read_hides_published_row_without_version(
+    client: TestClient, db_session: Session
+) -> None:
+    """A published row with no version is not served as its live columns.
+
+    The row stays stored. A signed-in get with no workspace_id, and the
+    dashboard list, still return the draft. A published_only list does not.
+    """
+    slug = _slug("no-version")
+    title = f"Live draft title {slug}"
+    content = f"live-draft-secret-{slug}"
+    article_id = _insert_published_without_version(
+        db_session, slug, title=title, content=content
+    )
+    try:
+        _assert_public_omits(client, article_id, title, content)
+
+        db_session.expire_all()
+        stored = db_session.get(TrustArticle, article_id)
+        assert stored is not None
+        assert stored.published == 1
+        assert stored.published_version_id is None
+        assert stored.content == content
+        assert _version_count(db_session, article_id) == 0
+
+        _login(client, "editor@trust.local", "e")
+        signed_public = client.get("/api/trust-articles?workspace_id=1&published_only=true")
+        assert signed_public.status_code == 200, signed_public.text
+        assert all(item["id"] != article_id for item in signed_public.json())
+        assert content not in signed_public.text
+        assert title not in signed_public.text
+
+        editor = client.get(f"/api/trust-articles/{article_id}")
+        assert editor.status_code == 200, editor.text
+        body = editor.json()
+        assert body["title"] == title
+        assert body["content"] == content
+        assert body["slug"] == slug
+        assert body["published"] == 1
+        assert body["published_version_id"] is None
+
+        dashboard = client.get("/api/trust-articles?workspace_id=1")
+        assert dashboard.status_code == 200, dashboard.text
+        match = [item for item in dashboard.json() if item["id"] == article_id]
+        assert len(match) == 1
+        assert match[0]["title"] == title
+        assert match[0]["content"] == content
+        assert match[0]["published_version_id"] is None
+    finally:
+        db_session.rollback()
+        _delete_slugs(db_session, slug)
+
+
+def test_public_read_hides_dangling_published_version(
+    client: TestClient, db_session: Session
+) -> None:
+    """A published_version_id that points at no row is not served as the live draft."""
+    slug = _slug("dangling-public")
+    title = f"Dangling live title {slug}"
+    content = f"dangling-live-secret-{slug}"
+    dangling_id = 2_000_000_002
+    article_id = _insert_published_without_version(
+        db_session,
+        slug,
+        title=title,
+        content=content,
+        published_version_id=dangling_id,
+    )
+    try:
+        _assert_public_omits(client, article_id, title, content)
+
+        db_session.expire_all()
+        stored = db_session.get(TrustArticle, article_id)
+        assert stored is not None
+        assert stored.published_version_id == dangling_id
+        assert _version_count(db_session, article_id) == 0
+
+        _login(client, "editor@trust.local", "e")
+        editor = client.get(f"/api/trust-articles/{article_id}")
+        assert editor.status_code == 200, editor.text
+        assert editor.json()["content"] == content
+        assert editor.json()["title"] == title
+    finally:
+        db_session.rollback()
+        _delete_slugs(db_session, slug)
+
+
+def test_public_list_keeps_versioned_article_beside_versionless(
+    client: TestClient, db_session: Session
+) -> None:
+    """published_only keeps the snapshot and omits a published neighbour with no version."""
+    _login_admin(client)
+    versioned_slug = _slug("has-version")
+    bare_slug = _slug("bare-neighbour")
+    bare_title = f"Bare neighbour title {bare_slug}"
+    bare_content = f"bare-neighbour-secret-{bare_slug}"
+    try:
+        created = client.post(
+            "/api/trust-articles/",
+            json={
+                "slug": versioned_slug,
+                "title": "Approved neighbour",
+                "content": "approved neighbour text",
+                "workspace_id": 1,
+                "published": 1,
+            },
+        )
+        assert created.status_code == 200, created.text
+        versioned_id = created.json()["id"]
+        version_id = created.json()["published_version_id"]
+        assert isinstance(version_id, int)
+
+        _insert_published_without_version(
+            db_session, bare_slug, title=bare_title, content=bare_content
+        )
+        client.post("/api/auth/logout")
+        listed = client.get("/api/trust-articles?workspace_id=1&published_only=true")
+        assert listed.status_code == 200, listed.text
+        match = [item for item in listed.json() if item["id"] == versioned_id]
+        assert len(match) == 1
+        assert match[0]["title"] == "Approved neighbour"
+        assert match[0]["content"] == "approved neighbour text"
+        assert match[0]["published_version_id"] == version_id
+        bare = [item for item in listed.json() if item["slug"] == bare_slug]
+        assert bare == []
+        assert bare_title not in listed.text
+        assert bare_content not in listed.text
+    finally:
+        db_session.rollback()
+        _delete_slugs(db_session, versioned_slug, bare_slug)
+
+
+def test_seed_publishes_published_article_through_approve_current_draft(
+    client: TestClient, db_session: Session
+) -> None:
+    """QA seed stores version 1 for a published article and leaves the draft unpublished."""
+    import scripts.seed_qa_test_data as qa
+
+    prefix = _slug("seedpub")
+    published_slug = f"{prefix}-published"
+    draft_slug = f"{prefix}-draft"
+    try:
+        qa.seed_trust_articles(db_session, 1, prefix)
+        db_session.expire_all()
+        published = (
+            db_session.query(TrustArticle)
+            .filter(TrustArticle.workspace_id == 1, TrustArticle.slug == published_slug)
+            .one()
+        )
+        draft = (
+            db_session.query(TrustArticle)
+            .filter(TrustArticle.workspace_id == 1, TrustArticle.slug == draft_slug)
+            .one()
+        )
+        assert published.published == 1
+        version_id = published.published_version_id
+        assert isinstance(version_id, int)
+        version = db_session.get(TrustArticleVersion, version_id)
+        assert version is not None
+        assert version.trust_article_id == published.id
+        assert version.version_number == 1
+        assert version.slug == published.slug
+        assert version.title == published.title
+        assert version.content == published.content
+        assert draft.published == 0
+        assert draft.published_version_id is None
+        assert _version_count(db_session, draft.id) == 0
+
+        listed = client.get("/api/trust-articles?workspace_id=1&published_only=true")
+        assert listed.status_code == 200, listed.text
+        match = [item for item in listed.json() if item["id"] == published.id]
+        assert len(match) == 1
+        assert match[0]["title"] == version.title
+        assert match[0]["content"] == version.content
+        assert match[0]["slug"] == version.slug
+        assert match[0]["published_version_id"] == version_id
+        assert all(item["id"] != draft.id for item in listed.json())
+        assert draft.title not in listed.text
+        assert draft.content not in listed.text
+    finally:
+        db_session.rollback()
+        _delete_slugs(db_session, published_slug, draft_slug)
