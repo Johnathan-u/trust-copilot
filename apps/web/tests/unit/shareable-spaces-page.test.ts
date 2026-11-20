@@ -62,6 +62,8 @@ let rows: unknown[]
 let writes: Array<{ path: string; init: RequestInit }>
 let rotateStatus: number
 let rotateBody: unknown
+let createStatus: number
+let createBody: unknown
 let stored: string[]
 
 beforeEach(() => {
@@ -74,12 +76,22 @@ beforeEach(() => {
     access_token: 'rotated-token',
     has_access_token: true,
   }
+  createStatus = 200
+  createBody = {
+    ...live,
+    access_token: 'fresh-link',
+    token_available: true,
+  }
   stored = []
   vi.spyOn(Storage.prototype, 'setItem').mockImplementation((key, value) => {
     stored.push(`${key}=${value}`)
   })
   vi.stubGlobal('fetch', (input: RequestInfo | URL, init: RequestInit = {}) => {
     const path = String(input)
+    if (init.method === 'POST' && path === '/api/shareable-spaces') {
+      writes.push({ path, init })
+      return Promise.resolve(json(createBody, createStatus))
+    }
     if (init.method === 'POST') {
       writes.push({ path, init })
       return Promise.resolve(json(rotateBody, rotateStatus))
@@ -187,6 +199,31 @@ it('confirms that the old link stops immediately, then shows the new link once',
       'rotated-token'
     )
   }
+})
+
+it('says a repeated create has no new link', async () => {
+  createBody = {
+    id: 41,
+    name: 'Synthetic room',
+    access_token: null,
+    token_available: false,
+  }
+  await open()
+  fireEvent.change(screen.getByLabelText('Name'), {
+    target: { value: 'Synthetic room' },
+  })
+  fireEvent.click(screen.getByRole('button', { name: 'Create space' }))
+  expect(
+    await screen.findByText(
+      'This link was already created. Rotate it to get a new link.'
+    )
+  ).toBeTruthy()
+  expect(screen.queryByRole('dialog', { name: 'New buyer link' })).toBeNull()
+  expect(document.body.textContent).not.toContain('fresh-link')
+  const created = writes.find((write) => write.path === '/api/shareable-spaces')
+  const headers = new Headers(created?.init.headers)
+  expect(headers.get('Idempotency-Key')).toBeTruthy()
+  expect(headers.get('Content-Type')).toBe('application/json')
 })
 
 it('does not reveal a link when rotation is refused', async () => {

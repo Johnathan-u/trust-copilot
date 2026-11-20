@@ -1,6 +1,11 @@
-"""Shareable spaces API (P1-66, P1-70, TC-17-005b)."""
+"""Shareable spaces API (P1-66, P1-70, TC-17-005b, TC-17-005c)."""
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+import hashlib
+import json
+from urllib.parse import quote
+
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
@@ -8,12 +13,22 @@ from app.api.routes.documents import stream_stored_document
 from app.api.routes.trust_articles import _load_version
 from app.core.auth_deps import _resolve_permission, require_can_admin, require_session
 from app.core.database import get_db
+from app.core.idempotency import (
+    IdempotencyKeyError,
+    claim as idempotency_claim,
+    get as idempotency_get,
+    release as idempotency_release,
+    scoped_key,
+    set as idempotency_set,
+)
 from app.services import shareable_space_service as ss
 from app.services.storage import StorageClient, get_storage
 
 # One body for a missing object and an object the share link does not list.
 LISTED_OBJECT_MISSING = "Not found"
 _LIST_FIELDS = ("article_ids", "answer_ids", "document_ids")
+_REQUEST_HASH = "_request_hash"
+_CREATE_ROUTE = "shareable-spaces:create"
 
 router = APIRouter(prefix="/shareable-spaces", tags=["shareable-spaces"])
 
@@ -47,16 +62,123 @@ def _asset_lists(body: UpdateSpaceListsBody) -> dict[str, list[int]]:
     return lists
 
 
+def _create_hash(body: CreateSpaceBody) -> str:
+    raw = json.dumps(body.model_dump(mode="json"), sort_keys=True, separators=(",", ":"))
+    return hashlib.sha256(raw.encode()).hexdigest()
+
+
+def _idempotency_key(request: Request, workspace_id: int) -> str | None:
+    """Optional key scoped to this workspace and the create route. Absent means no claim."""
+    names = {name.lower() for name in request.headers.keys()}
+    if "idempotency-key" not in names:
+        return None
+    raw = request.headers.get("Idempotency-Key")
+    try:
+        key = scoped_key(workspace_id, _CREATE_ROUTE, "new", raw)
+    except IdempotencyKeyError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from None
+    return key or None
+
+
+def _public_payload(stored: dict) -> dict:
+    payload = dict(stored)
+    payload.pop(_REQUEST_HASH, None)
+    return payload
+
+
+def _credential_needles(raw: str) -> tuple[str, ...]:
+    """The one-time value and the same value as it would appear in a URL."""
+    encoded = quote(raw, safe="")
+    if encoded == raw:
+        return (raw,)
+    return (raw, encoded)
+
+
+def _drop_credential(value, needles: tuple[str, ...]):
+    """Replace any string that still contains the one-time value."""
+    if isinstance(value, str):
+        if any(needle and needle in value for needle in needles):
+            return None
+        return value
+    if isinstance(value, dict):
+        return {key: _drop_credential(item, needles) for key, item in value.items()}
+    if isinstance(value, list):
+        return [_drop_credential(item, needles) for item in value]
+    return value
+
+
+def _stored_create_result(result: dict, body_hash: str) -> dict:
+    """What may be written for a retry. The one-time credential is not included."""
+    raw = result.get("access_token")
+    stored = {key: value for key, value in result.items() if key != "access_token"}
+    if isinstance(raw, str) and raw:
+        stored = _drop_credential(stored, _credential_needles(raw))
+    stored["access_token"] = None
+    stored[_REQUEST_HASH] = body_hash
+    return stored
+
+
+def _replay(stored: dict, body_hash: str) -> JSONResponse:
+    recorded = stored.get(_REQUEST_HASH)
+    if isinstance(recorded, str) and recorded != body_hash:
+        raise HTTPException(
+            status_code=422,
+            detail="Idempotency-Key was already used with a different request body",
+        )
+    payload = _public_payload(stored)
+    payload["access_token"] = None
+    payload["token_available"] = False
+    return JSONResponse(content=payload, status_code=200)
+
+
+def _claim_or_replay(
+    db: Session, key: str | None, body_hash: str
+) -> tuple[JSONResponse | None, str | None]:
+    if not key:
+        return None, None
+    cached = idempotency_get(db, key)
+    if cached:
+        return _replay(cached[1], body_hash), None
+    owner = idempotency_claim(db, key)
+    if owner is None:
+        cached_again = idempotency_get(db, key)
+        if cached_again:
+            return _replay(cached_again[1], body_hash), None
+        raise HTTPException(
+            status_code=409, detail="Request in progress; retry with same Idempotency-Key"
+        )
+    return None, owner
+
+
+def _release_claim(db: Session, key: str | None, owner: str | None) -> None:
+    if key and owner:
+        idempotency_release(db, key, owner=owner)
+
+
 @router.post("")
 async def create_space(
     body: CreateSpaceBody,
+    request: Request,
     session: dict = Depends(require_can_admin),
     db: Session = Depends(get_db),
 ):
+    """Create one space. The same Idempotency-Key returns that space.
+
+    The stored retry record omits the one-time credential and any URL built
+    from it. A later retry, including one from a new API process, returns the
+    space with that field null and ``token_available`` false. It does not
+    insert another row. A failed create releases the key.
+    """
+    workspace_id = session["workspace_id"]
+    body_hash = _create_hash(body)
+    key = _idempotency_key(request, workspace_id)
+    replay, owner = _claim_or_replay(db, key, body_hash)
+    if replay is not None:
+        return replay
     try:
         result = ss.create_space(
             db,
-            session["workspace_id"],
+            workspace_id,
             body.name,
             session["user_id"],
             buyer_company=body.buyer_company,
@@ -68,9 +190,24 @@ async def create_space(
             document_ids=body.document_ids,
             expires_days=body.expires_days,
         )
+        if key and owner:
+            idempotency_set(
+                db,
+                key,
+                200,
+                _stored_create_result(result, body_hash),
+                owner=owner,
+                commit=False,
+            )
+        db.commit()
     except ss.ListedAssetNotFound as exc:
+        db.rollback()
+        _release_claim(db, key, owner)
         raise HTTPException(status_code=404, detail=exc.detail) from exc
-    db.commit()
+    except Exception:
+        db.rollback()
+        _release_claim(db, key, owner)
+        raise
     return result
 
 

@@ -7,6 +7,7 @@ import {
   Dialog,
   EmptyState,
   ErrorState,
+  Input,
   LoadingState,
   useDestructiveConfirm,
 } from '@/components/ui'
@@ -39,6 +40,20 @@ const STATUS_LABEL: Record<SpaceLiveness, string> = {
   expired: 'Expired',
 }
 
+const ALREADY_CREATED =
+  'This link was already created. Rotate it to get a new link.'
+
+function createOutcome(
+  body: unknown
+): { kind: 'link'; token: string } | { kind: 'again' } | { kind: 'missing' } {
+  if (!body || typeof body !== 'object') return { kind: 'missing' }
+  const row = body as Record<string, unknown>
+  if (row.token_available === false) return { kind: 'again' }
+  const token = row.access_token
+  if (typeof token === 'string' && token.trim()) return { kind: 'link', token }
+  return { kind: 'missing' }
+}
+
 function asSpace(value: unknown, now: number): ShareableSpaceRow | null {
   if (!value || typeof value !== 'object') return null
   const row = value as Record<string, unknown>
@@ -68,6 +83,10 @@ export default function ShareableSpacesPage() {
   const [revealed, setRevealed] = useState<string | null>(null)
   const [copied, setCopied] = useState(false)
   const [copyError, setCopyError] = useState<string | null>(null)
+  const [spaceName, setSpaceName] = useState('')
+  const [createKey, setCreateKey] = useState<string | null>(null)
+  const [createdAgain, setCreatedAgain] = useState(false)
+  const [createError, setCreateError] = useState<string | null>(null)
   const { confirm, dialog: confirmDialog } = useDestructiveConfirm()
 
   useEffect(() => {
@@ -112,6 +131,52 @@ export default function ShareableSpacesPage() {
       setCopied(false)
       setCopyError('The link could not be copied.')
     }
+  }
+
+  const onNameChange = (value: string) => {
+    setSpaceName(value)
+    setCreateKey(null)
+    setCreatedAgain(false)
+    setCreateError(null)
+  }
+
+  const createSpace = async () => {
+    const name = spaceName.trim()
+    if (!name) return
+    const key = createKey ?? crypto.randomUUID()
+    if (createKey == null) setCreateKey(key)
+    setCreateError(null)
+    const response = await fetch('/api/shareable-spaces', {
+      method: 'POST',
+      credentials: 'include',
+      headers: {
+        'Content-Type': 'application/json',
+        'Idempotency-Key': key,
+      },
+      body: JSON.stringify({ name }),
+    })
+    if (!response.ok) {
+      setCreatedAgain(false)
+      setCreateError('The space could not be created.')
+      return
+    }
+    const outcome = createOutcome(await response.json())
+    if (outcome.kind === 'again') {
+      setRevealed(null)
+      setCreatedAgain(true)
+      setLoadAttempt((attempt) => attempt + 1)
+      return
+    }
+    if (outcome.kind === 'link') {
+      setCreatedAgain(false)
+      setCopied(false)
+      setCopyError(null)
+      setRevealed(buyerAccessLink(window.location.origin, outcome.token))
+      setLoadAttempt((attempt) => attempt + 1)
+      return
+    }
+    setCreatedAgain(false)
+    setCreateError('The space could not be created.')
   }
 
   const askRotate = (space: ShareableSpaceRow) => {
@@ -159,6 +224,38 @@ export default function ShareableSpacesPage() {
           is not saved.
         </p>
       </header>
+
+      {canAdmin && (
+        <form
+          className="flex flex-col gap-tc-3"
+          onSubmit={(event) => {
+            event.preventDefault()
+            void createSpace()
+          }}
+        >
+          <Input
+            label="Name"
+            name="name"
+            value={spaceName}
+            onChange={(event) => onNameChange(event.target.value)}
+          />
+          <div>
+            <Button type="submit" size="sm">
+              Create space
+            </Button>
+          </div>
+          {createdAgain ? (
+            <p role="status" className="text-tc-label text-tc-text">
+              {ALREADY_CREATED}
+            </p>
+          ) : null}
+          {createError ? (
+            <p role="alert" className="text-tc-label text-tc-danger">
+              {createError}
+            </p>
+          ) : null}
+        </form>
+      )}
 
       {loading && (
         <LoadingState
