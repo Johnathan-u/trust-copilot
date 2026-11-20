@@ -17,6 +17,7 @@ import subprocess
 import sys
 import uuid
 from datetime import datetime, timedelta, timezone
+from urllib.parse import quote
 
 from sqlalchemy import text
 
@@ -253,9 +254,9 @@ def _key(bag):
 
 
 def _replay_in_new_process(payload: dict, key: str) -> dict:
-    """POST the same create from a new Python process and return its id and digest."""
+    """POST the same create from a new Python process and return the replay flags."""
     code = """
-import hashlib, json, os
+import json, os
 from fastapi.testclient import TestClient
 from app.main import app
 client = TestClient(
@@ -277,10 +278,10 @@ response = client.post(
 if response.status_code != 200:
     raise SystemExit("create failed")
 body = response.json()
-presented = body.get("access_token") or ""
 print("TC17005C_REPLAY " + json.dumps({
     "id": body["id"],
-    "digest": hashlib.sha256(presented.encode()).hexdigest(),
+    "token_null": body.get("access_token") is None,
+    "token_available": body.get("token_available"),
 }))
 """
     env = os.environ.copy()
@@ -607,11 +608,15 @@ def test_retried_create_returns_the_original_space(client, db_session):
         first = client.post("/api/shareable-spaces", json=payload, headers=headers)
         assert first.status_code == 200, first.text
         assert "_request_hash" not in first.json()
+        raw = first.json()["access_token"]
+        assert isinstance(raw, str) and raw
         second = client.post("/api/shareable-spaces", json=payload, headers=headers)
         assert second.status_code == 200, second.text
         assert second.json()["id"] == first.json()["id"]
-        assert second.json()["access_token"] == first.json()["access_token"]
         assert second.json()["name"] == name
+        assert second.json()["access_token"] is None
+        assert second.json()["token_available"] is False
+        assert raw not in second.text
         assert _count(bag, name) == 1
         _see(db_session)
         stored = db_session.get(ShareableSpace, first.json()["id"])
@@ -631,14 +636,19 @@ def test_retried_create_returns_the_original_space(client, db_session):
             fresh.close()
         assert fresh_count == 1
         assert saved[0] == 200
-        assert str(first.json()["id"]) in saved[1]
+        recorded = saved[1]
+        assert str(first.json()["id"]) in recorded
+        assert raw not in recorded
+        assert quote(raw, safe="") not in recorded
+        assert f"token={raw}" not in recorded
+        assert "/share?" not in recorded
 
         # A new interpreter is a restarted API process. It has no memory of the
         # first request and reads the stored response from PostgreSQL.
         replayed = _replay_in_new_process(payload, key)
         assert replayed["id"] == first.json()["id"]
-        raw = first.json()["access_token"]
-        assert replayed["digest"] == hashlib.sha256(raw.encode()).hexdigest()
+        assert replayed["token_null"] is True
+        assert replayed["token_available"] is False
         assert _count(bag, name) == 1
 
         changed = dict(payload)
@@ -692,6 +702,8 @@ def test_partial_failure_writes_nothing_and_the_key_can_be_retried(client, db_se
         replay = client.post("/api/shareable-spaces", json=good, headers=headers)
         assert replay.status_code == 200, replay.text
         assert replay.json()["id"] == created.json()["id"]
+        assert replay.json()["access_token"] is None
+        assert replay.json()["token_available"] is False
         assert _count(bag, name) == 1
     finally:
         client.cookies.clear()

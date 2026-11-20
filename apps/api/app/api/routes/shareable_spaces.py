@@ -2,6 +2,7 @@
 
 import hashlib
 import json
+from urllib.parse import quote
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from fastapi.responses import JSONResponse
@@ -85,6 +86,38 @@ def _public_payload(stored: dict) -> dict:
     return payload
 
 
+def _credential_needles(raw: str) -> tuple[str, ...]:
+    """The one-time value and the same value as it would appear in a URL."""
+    encoded = quote(raw, safe="")
+    if encoded == raw:
+        return (raw,)
+    return (raw, encoded)
+
+
+def _drop_credential(value, needles: tuple[str, ...]):
+    """Replace any string that still contains the one-time value."""
+    if isinstance(value, str):
+        if any(needle and needle in value for needle in needles):
+            return None
+        return value
+    if isinstance(value, dict):
+        return {key: _drop_credential(item, needles) for key, item in value.items()}
+    if isinstance(value, list):
+        return [_drop_credential(item, needles) for item in value]
+    return value
+
+
+def _stored_create_result(result: dict, body_hash: str) -> dict:
+    """What may be written for a retry. The one-time credential is not included."""
+    raw = result.get("access_token")
+    stored = {key: value for key, value in result.items() if key != "access_token"}
+    if isinstance(raw, str) and raw:
+        stored = _drop_credential(stored, _credential_needles(raw))
+    stored["access_token"] = None
+    stored[_REQUEST_HASH] = body_hash
+    return stored
+
+
 def _replay(stored: dict, body_hash: str) -> JSONResponse:
     recorded = stored.get(_REQUEST_HASH)
     if isinstance(recorded, str) and recorded != body_hash:
@@ -92,7 +125,10 @@ def _replay(stored: dict, body_hash: str) -> JSONResponse:
             status_code=422,
             detail="Idempotency-Key was already used with a different request body",
         )
-    return JSONResponse(content=_public_payload(stored), status_code=200)
+    payload = _public_payload(stored)
+    payload["access_token"] = None
+    payload["token_available"] = False
+    return JSONResponse(content=payload, status_code=200)
 
 
 def _claim_or_replay(
@@ -128,9 +164,10 @@ async def create_space(
 ):
     """Create one space. The same Idempotency-Key returns that space.
 
-    The response is stored with the key. A later retry, including one from a
-    new API process, returns it and does not insert another row. A failed
-    create releases the key. The raw value is not written to the space row.
+    The stored retry record omits the one-time credential and any URL built
+    from it. A later retry, including one from a new API process, returns the
+    space with that field null and ``token_available`` false. It does not
+    insert another row. A failed create releases the key.
     """
     workspace_id = session["workspace_id"]
     body_hash = _create_hash(body)
@@ -158,7 +195,7 @@ async def create_space(
                 db,
                 key,
                 200,
-                {**result, _REQUEST_HASH: body_hash},
+                _stored_create_result(result, body_hash),
                 owner=owner,
                 commit=False,
             )
