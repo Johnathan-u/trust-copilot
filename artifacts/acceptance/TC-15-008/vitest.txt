@@ -1,0 +1,15 @@
+# SHA 2647b2e2ad5ef575ee354a3c9c92a8bd16680dbc
+# cwd apps/web
+# Node v24.11.1, npm 11.6.2, Vitest 5.0.5
+npx vitest run lib/render-state.test.ts --reporter=dot
+
+ RUN  v5.0.5 /agent/repos/trust-copilot/apps/web
+
+··············
+
+ Test Files  1 passed (1)
+      Tests  14 passed (14)
+   Start at  21:07:41
+   Duration  196ms (import 38%, transform 27%, tests 22%, worker 12%)
+
+exit 0

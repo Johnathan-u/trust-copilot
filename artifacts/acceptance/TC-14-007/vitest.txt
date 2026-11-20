@@ -1,0 +1,15 @@
+# SHA 2647b2e2ad5ef575ee354a3c9c92a8bd16680dbc
+# cwd apps/web
+# Node v24.11.1, npm 11.6.2, Vitest 5.0.5
+npx vitest run lib/app-navigation.test.ts tests/unit/job-history-consumer.test.ts tests/unit/jobs-page.test.ts --reporter=dot
+
+ RUN  v5.0.5 /agent/repos/trust-copilot/apps/web
+
+······························································
+
+ Test Files  3 passed (3)
+      Tests  62 passed (62)
+   Start at  21:07:42
+   Duration  1.60s (tests 79%, environment 9%, import 8%, transform 3%, worker 1%)
+
+exit 0
