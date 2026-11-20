@@ -1,0 +1,21 @@
+F                                                                        [100%]
+=================================== FAILURES ===================================
+____________ test_revoke_acknowledgments_revokes_a_null_version_id _____________
+tests/release/test_domain_trust_articles.py:682: in test_revoke_acknowledgments_revokes_a_null_version_id
+    assert ack.revoked_at is not None
+E   assert None is not None
+E    +  where None = <app.models.policy_acknowledgment.PolicyAcknowledgment object at 0x7f8433a42540>.revoked_at
+=============================== warnings summary ===============================
+tests/release/test_domain_trust_articles.py::test_revoke_acknowledgments_revokes_a_null_version_id
+tests/release/test_domain_trust_articles.py::test_revoke_acknowledgments_revokes_a_null_version_id
+tests/release/test_domain_trust_articles.py::test_revoke_acknowledgments_revokes_a_null_version_id
+tests/release/test_domain_trust_articles.py::test_revoke_acknowledgments_revokes_a_null_version_id
+tests/release/test_domain_trust_articles.py::test_revoke_acknowledgments_revokes_a_null_version_id
+tests/release/test_domain_trust_articles.py::test_revoke_acknowledgments_revokes_a_null_version_id
+  /tmp/tc-venv/lib/python3.12/site-packages/sqlalchemy/sql/schema.py:3627: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    return util.wrap_callable(lambda ctx: fn(), fn)  # type: ignore
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/release/test_domain_trust_articles.py::test_revoke_acknowledgments_revokes_a_null_version_id
+1 failed, 6 warnings in 1.63s

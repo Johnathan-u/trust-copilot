@@ -1,0 +1,13 @@
+.                                                                        [100%]
+=============================== warnings summary ===============================
+tests/release/test_domain_trust_articles.py::test_revoke_acknowledgments_revokes_a_null_version_id
+tests/release/test_domain_trust_articles.py::test_revoke_acknowledgments_revokes_a_null_version_id
+tests/release/test_domain_trust_articles.py::test_revoke_acknowledgments_revokes_a_null_version_id
+tests/release/test_domain_trust_articles.py::test_revoke_acknowledgments_revokes_a_null_version_id
+tests/release/test_domain_trust_articles.py::test_revoke_acknowledgments_revokes_a_null_version_id
+tests/release/test_domain_trust_articles.py::test_revoke_acknowledgments_revokes_a_null_version_id
+  /tmp/tc-venv/lib/python3.12/site-packages/sqlalchemy/sql/schema.py:3627: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    return util.wrap_callable(lambda ctx: fn(), fn)  # type: ignore
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+1 passed, 6 warnings in 1.01s
