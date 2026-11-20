@@ -1,5 +1,8 @@
 """TC-17-001: workspace on create, versioned publish, acknowledgment, retry.
 
+TC-17-001b: acknowledging a policy that has no published version returns 400
+and does not insert or approve a trust_article_versions row.
+
 Gap 1: create stores the session workspace. A null, omitted, or different body
 workspace_id is rejected. A public read does not return a null workspace.
 
@@ -17,9 +20,10 @@ from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from app.core.database import SessionLocal
-from app.models import PolicyAcknowledgment, TrustArticle, User
+from app.models import PolicyAcknowledgment, TrustArticle, TrustArticleVersion, User
 
 _WORKSPACE_DETAIL = "workspace_id must match the current workspace"
+_NO_PUBLISHED_POLICY = "Article has no published policy version"
 
 
 def _slug(prefix: str) -> str:
@@ -283,6 +287,55 @@ def _acknowledge(client: TestClient, article_id: int, version_id: int):
         f"/api/trust-articles/{article_id}/acknowledge",
         json={"article_version_id": version_id},
     )
+
+
+def _login(client: TestClient, email: str, password: str) -> None:
+    client.post("/api/auth/logout")
+    response = client.post("/api/auth/login", json={"email": email, "password": password})
+    assert response.status_code == 200, response.text
+
+
+def _version_count(db: Session, article_id: int) -> int:
+    db.expire_all()
+    return (
+        db.query(TrustArticleVersion)
+        .filter(TrustArticleVersion.trust_article_id == article_id)
+        .count()
+    )
+
+
+def _next_version_id() -> int:
+    """The id the next trust_article_versions insert would receive.
+
+    A member who sends this id must still be refused. On the unfixed path,
+    approve_current_draft assigns it and the acknowledge then commits.
+    """
+    fresh = SessionLocal()
+    try:
+        row = fresh.execute(
+            text("SELECT last_value, is_called FROM trust_article_versions_id_seq")
+        ).one()
+    finally:
+        fresh.rollback()
+        fresh.close()
+    last = int(row.last_value)
+    return last if not row.is_called else last + 1
+
+
+def _legacy_policy(db: Session, slug: str, *, published_version_id: int | None) -> int:
+    article = TrustArticle(
+        workspace_id=1,
+        slug=slug,
+        title="Legacy policy",
+        content="draft that must not become a version",
+        published=1,
+        is_policy=True,
+        published_version_id=published_version_id,
+    )
+    db.add(article)
+    db.commit()
+    db.refresh(article)
+    return int(article.id)
 
 
 def _delete_idempotency(db: Session, *keys: str) -> None:
@@ -741,3 +794,147 @@ def test_first_upgrade_binds_a_legacy_acknowledgment_without_revoking_it() -> No
                 conn.execute(text("DELETE FROM trust_articles WHERE id = :id"), {"id": article_id})
             conn.execute(text("DELETE FROM trust_articles WHERE slug = :slug"), {"slug": slug})
         raw.dispose()
+
+
+def test_member_acknowledge_without_published_version_returns_400(
+    client: TestClient, db_session: Session
+) -> None:
+    """A non-admin member cannot publish a policy by acknowledging it.
+
+    The id sent is the one approve_current_draft would assign. The response
+    is 400, published_version_id stays null, and no version row is inserted.
+    """
+    slug = _slug("ack-no-version")
+    article_id = _legacy_policy(db_session, slug, published_version_id=None)
+    try:
+        _login(client, "editor@trust.local", "e")
+        denied = client.patch(f"/api/trust-articles/{article_id}", json={"published": 1})
+        assert denied.status_code == 403, denied.text
+
+        predicted = _next_version_id()
+        refused = _acknowledge(client, article_id, predicted)
+        assert refused.status_code == 400, refused.text
+        assert refused.json()["detail"] == _NO_PUBLISHED_POLICY
+
+        db_session.expire_all()
+        stored = db_session.get(TrustArticle, article_id)
+        assert stored is not None
+        assert stored.published_version_id is None
+        assert _version_count(db_session, article_id) == 0
+        assert (
+            db_session.query(PolicyAcknowledgment)
+            .filter(PolicyAcknowledgment.trust_article_id == article_id)
+            .count()
+            == 0
+        )
+    finally:
+        db_session.rollback()
+        _delete_slugs(db_session, slug)
+
+
+def test_member_acknowledge_missing_version_row_leaves_published_id(
+    client: TestClient, db_session: Session
+) -> None:
+    """A published_version_id that points at no row is not replaced by a publish."""
+    slug = _slug("ack-dangling")
+    dangling_id = 2_000_000_001
+    article_id = _legacy_policy(db_session, slug, published_version_id=dangling_id)
+    try:
+        _login(client, "editor@trust.local", "e")
+        refused = _acknowledge(client, article_id, _next_version_id())
+        assert refused.status_code == 400, refused.text
+        assert refused.json()["detail"] == _NO_PUBLISHED_POLICY
+
+        db_session.expire_all()
+        stored = db_session.get(TrustArticle, article_id)
+        assert stored is not None
+        assert stored.published_version_id == dangling_id
+        assert _version_count(db_session, article_id) == 0
+    finally:
+        db_session.rollback()
+        _delete_slugs(db_session, slug)
+
+
+def test_member_acknowledge_current_version_returns_200(
+    client: TestClient, db_session: Session
+) -> None:
+    """A member acknowledge of the current published version still returns 200."""
+    _login_admin(client)
+    slug = _slug("ack-current")
+    try:
+        created = client.post(
+            "/api/trust-articles/",
+            json={
+                "slug": slug,
+                "title": "Current policy",
+                "content": "published text",
+                "workspace_id": 1,
+                "is_policy": True,
+            },
+        )
+        assert created.status_code == 200, created.text
+        article_id = created.json()["id"]
+        version_id = created.json()["published_version_id"]
+        assert isinstance(version_id, int)
+        assert _version_count(db_session, article_id) == 1
+
+        _login(client, "editor@trust.local", "e")
+        acknowledged = _acknowledge(client, article_id, version_id)
+        assert acknowledged.status_code == 200, acknowledged.text
+        body = acknowledged.json()
+        assert body["ok"] is True
+        assert body["article_version_id"] == version_id
+        assert body["workspace_id"] == 1
+
+        db_session.expire_all()
+        stored = db_session.get(TrustArticle, article_id)
+        assert stored is not None
+        assert stored.published_version_id == version_id
+        assert _version_count(db_session, article_id) == 1
+    finally:
+        db_session.rollback()
+        _delete_slugs(db_session, slug)
+
+
+def test_admin_publish_still_approves_the_current_draft(
+    client: TestClient, db_session: Session
+) -> None:
+    """An administrator publish still stores version 1 of the current draft."""
+    _login_admin(client)
+    slug = _slug("admin-publish")
+    try:
+        created = client.post(
+            "/api/trust-articles/",
+            json={
+                "slug": slug,
+                "title": "Draft policy",
+                "content": "not yet approved",
+                "workspace_id": 1,
+                "published": 0,
+                "is_policy": True,
+            },
+        )
+        assert created.status_code == 200, created.text
+        article_id = created.json()["id"]
+        assert created.json()["published"] == 0
+        assert created.json()["published_version_id"] is None
+        assert _version_count(db_session, article_id) == 0
+
+        published = client.patch(f"/api/trust-articles/{article_id}", json={"published": 1})
+        assert published.status_code == 200, published.text
+        body = published.json()
+        assert body["published"] == 1
+        assert body["published_version"] == 1
+        version_id = body["published_version_id"]
+        assert isinstance(version_id, int)
+        assert body["published_title"] == "Draft policy"
+        assert body["published_content"] == "not yet approved"
+
+        db_session.expire_all()
+        stored = db_session.get(TrustArticle, article_id)
+        assert stored is not None
+        assert stored.published_version_id == version_id
+        assert _version_count(db_session, article_id) == 1
+    finally:
+        db_session.rollback()
+        _delete_slugs(db_session, slug)

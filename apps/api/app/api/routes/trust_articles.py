@@ -460,13 +460,14 @@ def delete_trust_article(
 
 
 def _viewable_version(db: Session, article: TrustArticle) -> TrustArticleVersion | None:
-    """The published snapshot, or a snapshot taken now for a legacy published policy."""
+    """The published snapshot a reader may acknowledge.
+
+    Acknowledging never publishes. A missing published version is a 400 from
+    the caller. Only an administrator publish calls approve_current_draft.
+    """
     if article.published != 1:
         return None
-    version = _load_version(db, article)
-    if version is None and article.is_policy:
-        version = approve_current_draft(db, article)
-    return version
+    return _load_version(db, article)
 
 
 @router.post("/{article_id}/acknowledge")
