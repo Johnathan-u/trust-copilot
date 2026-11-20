@@ -5,6 +5,7 @@ from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from app.api.routes.documents import stream_stored_document
+from app.api.routes.trust_articles import _load_version
 from app.core.auth_deps import _resolve_permission, require_can_admin, require_session
 from app.core.database import get_db
 from app.services import shareable_space_service as ss
@@ -195,12 +196,23 @@ async def access_article(
     token: str = Query(...),
     db: Session = Depends(get_db),
 ):
-    """Read one article listed on this live space."""
+    """Read the published snapshot of one article listed on this live space.
+
+    The live draft columns are not returned. ``published`` other than 1, or a
+    missing version, is the same 404 as an unlisted id.
+    """
     space = _live_space(db, token)
     article = ss.granted_article(db, space, article_id)
-    if article is None:
+    if article is None or article.published != 1:
         raise HTTPException(status_code=404, detail=LISTED_OBJECT_MISSING)
-    return {"id": article.id, "title": article.title, "content": article.content}
+    version = _load_version(db, article)
+    if (
+        version is None
+        or version.trust_article_id != article.id
+        or version.workspace_id != space.workspace_id
+    ):
+        raise HTTPException(status_code=404, detail=LISTED_OBJECT_MISSING)
+    return {"id": article.id, "title": version.title, "content": version.content}
 
 
 @router.get("/access/answers/{answer_id}")
@@ -209,7 +221,7 @@ async def access_answer(
     token: str = Query(...),
     db: Session = Depends(get_db),
 ):
-    """Read one answer listed on this live space. Citations are not included."""
+    """Read one approved answer listed on this live space. Citations are not included."""
     space = _live_space(db, token)
     answer = ss.granted_answer(db, space, answer_id)
     if answer is None:

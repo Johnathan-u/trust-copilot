@@ -34,7 +34,7 @@ from app.models import (
 from app.models.answer import Answer
 from app.models.document import Document
 from app.models.questionnaire import Question, Questionnaire
-from app.models.trust_article import TrustArticle
+from app.models.trust_article import TrustArticle, TrustArticleVersion
 
 MODELS = (
     NdaAccessRequest,
@@ -86,7 +86,14 @@ def store(request):
         with engine.begin() as connection:
             connection.exec_driver_sql("PRAGMA foreign_keys=ON")
             assert connection.exec_driver_sql("PRAGMA foreign_keys").scalar() == 1
-        asset_models = (TrustArticle, Document, Questionnaire, Question, Answer)
+        asset_models = (
+            TrustArticle,
+            TrustArticleVersion,
+            Document,
+            Questionnaire,
+            Question,
+            Answer,
+        )
         Base.metadata.create_all(
             engine, tables=[model.__table__ for model in (*MODELS, *asset_models)]
         )

@@ -17,7 +17,7 @@ from app.models.audit_event import AuditEvent
 from app.models.document import Document
 from app.models.questionnaire import Question, Questionnaire
 from app.models.shareable_space import ShareableSpace
-from app.models.trust_article import TrustArticle
+from app.models.trust_article import TrustArticle, TrustArticleVersion
 
 _LISTED = b"%PDF-1.4 LISTED-WORKSPACE-BYTES"
 _UNLISTED = b"%PDF-1.4 UNLISTED-WORKSPACE-BYTES"
@@ -72,6 +72,7 @@ def world(client, db_session):
     prefix = f"tc17005b-{suffix}"
     owned = {
         "articles": [],
+        "versions": [],
         "documents": [],
         "questionnaires": [],
         "questions": [],
@@ -90,6 +91,24 @@ def world(client, db_session):
         db_session.flush()
         owned["articles"].append(row.id)
         return row
+
+    def publish(article):
+        version = TrustArticleVersion(
+            trust_article_id=article.id,
+            workspace_id=article.workspace_id,
+            version_number=1,
+            slug=article.slug,
+            title=article.title,
+            content=article.content or "",
+            category=article.category,
+            is_policy=bool(article.is_policy),
+        )
+        db_session.add(version)
+        db_session.flush()
+        article.published = 1
+        article.published_version_id = version.id
+        owned["versions"].append(version.id)
+        return version
 
     def add_document(workspace_id, label, *, deleted=False):
         row = Document(
@@ -125,6 +144,7 @@ def world(client, db_session):
         return answer, questionnaire
 
     article = add_article(1, "owned-article", "owned-article-body")
+    publish(article)
     foreign_article = add_article(2, "foreign-article", "foreign-article-body")
     listed = add_document(1, "listed")
     unlisted = add_document(1, "unlisted")
@@ -187,7 +207,14 @@ def world(client, db_session):
             db_session.query(Document).filter(Document.id.in_(owned["documents"])).delete(
                 synchronize_session=False
             )
+        if owned["versions"]:
+            db_session.query(TrustArticleVersion).filter(
+                TrustArticleVersion.id.in_(owned["versions"])
+            ).delete(synchronize_session=False)
         if owned["articles"]:
+            db_session.query(TrustArticleVersion).filter(
+                TrustArticleVersion.trust_article_id.in_(owned["articles"])
+            ).delete(synchronize_session=False)
             db_session.query(TrustArticle).filter(TrustArticle.id.in_(owned["articles"])).delete(
                 synchronize_session=False
             )
@@ -542,3 +569,156 @@ def test_share_token_does_not_unlock_the_reviewer_download(world, stored_files):
     )
     assert response.status_code == 401
     assert _LISTED not in response.content
+
+
+def test_token_article_read_serves_the_published_text_not_the_draft(world):
+    raw, _space_id = _legacy(
+        world,
+        name=_name(world, "published-text"),
+        article_ids=[world["article_id"]],
+    )
+    article = world["db"].get(TrustArticle, world["article_id"])
+    article.title = "Draft title"
+    article.content = "DRAFT-ARTICLE-BODY"
+    world["db"].commit()
+    world["client"].cookies.clear()
+    opened = world["client"].get("/api/shareable-spaces/access", params={"token": raw})
+    assert opened.json()["article_ids"] == [world["article_id"]]
+    read = world["client"].get(
+        f"/api/shareable-spaces/access/articles/{world['article_id']}",
+        params={"token": raw},
+    )
+    assert read.status_code == 200
+    assert read.json() == {
+        "id": world["article_id"],
+        "title": world["article_title"],
+        "content": "owned-article-body",
+    }
+    assert "DRAFT-ARTICLE-BODY" not in read.text
+    assert "Draft title" not in read.text
+
+
+def _extra_answer(db, workspace_id, label, text, status):
+    questionnaire = Questionnaire(
+        workspace_id=workspace_id,
+        filename=f"{label}.xlsx",
+        status="parsed",
+    )
+    db.add(questionnaire)
+    db.flush()
+    question = Question(questionnaire_id=questionnaire.id, text=label)
+    db.add(question)
+    db.flush()
+    answer = Answer(question_id=question.id, text=text, status=status)
+    db.add(answer)
+    db.flush()
+    return questionnaire, question, answer
+
+
+def test_token_hides_unpublished_articles_and_unapproved_answers(world):
+    db = world["db"]
+    prefix = world["prefix"]
+    unpublished = TrustArticle(
+        workspace_id=1,
+        slug=f"{prefix}-unpublished",
+        title=f"unpublished-{prefix}",
+        content="UNPUBLISHED-ARTICLE-BODY",
+        published=0,
+    )
+    versionless = TrustArticle(
+        workspace_id=1,
+        slug=f"{prefix}-versionless",
+        title=f"versionless-{prefix}",
+        content="VERSIONLESS-ARTICLE-BODY",
+        published=1,
+    )
+    db.add_all([unpublished, versionless])
+    db.flush()
+    hidden_version = TrustArticleVersion(
+        trust_article_id=unpublished.id,
+        workspace_id=1,
+        version_number=1,
+        slug=unpublished.slug,
+        title="Published title that must stay hidden",
+        content="UNPUBLISHED-VERSION-BODY",
+        is_policy=False,
+    )
+    db.add(hidden_version)
+    db.flush()
+    unpublished.published_version_id = hidden_version.id
+    unpublished.published = 0
+    draft_qnr, draft_question, draft = _extra_answer(
+        db, 1, f"{prefix}-draft", "DRAFT-ANSWER-TEXT", "draft"
+    )
+    rejected_qnr, rejected_question, rejected = _extra_answer(
+        db, 1, f"{prefix}-rejected", "REJECTED-ANSWER-TEXT", "rejected"
+    )
+    db.commit()
+    try:
+        raw, _space_id = _legacy(
+            world,
+            name=_name(world, "approval-gate"),
+            article_ids=[world["article_id"], unpublished.id, versionless.id],
+            answer_ids=[world["answer_id"], draft.id, rejected.id],
+        )
+        world["client"].cookies.clear()
+        opened = world["client"].get("/api/shareable-spaces/access", params={"token": raw})
+        assert opened.status_code == 200
+        assert opened.json()["article_ids"] == [world["article_id"]]
+        assert unpublished.id not in opened.json()["article_ids"]
+        assert versionless.id not in opened.json()["article_ids"]
+        assert opened.json()["answer_ids"] == [world["answer_id"]]
+        assert draft.id not in opened.json()["answer_ids"]
+        assert rejected.id not in opened.json()["answer_ids"]
+        hidden = world["client"].get(
+            f"/api/shareable-spaces/access/articles/{unpublished.id}",
+            params={"token": raw},
+        )
+        missing_version = world["client"].get(
+            f"/api/shareable-spaces/access/articles/{versionless.id}",
+            params={"token": raw},
+        )
+        draft_read = world["client"].get(
+            f"/api/shareable-spaces/access/answers/{draft.id}",
+            params={"token": raw},
+        )
+        rejected_read = world["client"].get(
+            f"/api/shareable-spaces/access/answers/{rejected.id}",
+            params={"token": raw},
+        )
+        approved = world["client"].get(
+            f"/api/shareable-spaces/access/answers/{world['answer_id']}",
+            params={"token": raw},
+        )
+        for denied in (hidden, missing_version, draft_read, rejected_read):
+            assert denied.status_code == 404
+            assert denied.json()["detail"] == "Not found"
+            assert "UNPUBLISHED-ARTICLE-BODY" not in denied.text
+            assert "UNPUBLISHED-VERSION-BODY" not in denied.text
+            assert "VERSIONLESS-ARTICLE-BODY" not in denied.text
+            assert "DRAFT-ANSWER-TEXT" not in denied.text
+            assert "REJECTED-ANSWER-TEXT" not in denied.text
+        assert approved.status_code == 200
+        assert approved.json() == {
+            "id": world["answer_id"],
+            "text": "owned-answer-text",
+            "status": "approved",
+        }
+    finally:
+        _see(db)
+        db.query(Answer).filter(Answer.id.in_([draft.id, rejected.id])).delete(
+            synchronize_session=False
+        )
+        db.query(Question).filter(
+            Question.id.in_([draft_question.id, rejected_question.id])
+        ).delete(synchronize_session=False)
+        db.query(Questionnaire).filter(
+            Questionnaire.id.in_([draft_qnr.id, rejected_qnr.id])
+        ).delete(synchronize_session=False)
+        db.query(TrustArticleVersion).filter(TrustArticleVersion.id == hidden_version.id).delete(
+            synchronize_session=False
+        )
+        db.query(TrustArticle).filter(TrustArticle.id.in_([unpublished.id, versionless.id])).delete(
+            synchronize_session=False
+        )
+        db.commit()

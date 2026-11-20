@@ -14,7 +14,7 @@ from app.models.answer import Answer
 from app.models.document import Document
 from app.models.questionnaire import Question, Questionnaire
 from app.models.shareable_space import ShareableSpace
-from app.models.trust_article import TrustArticle
+from app.models.trust_article import TrustArticle, TrustArticleVersion
 
 logger = logging.getLogger(__name__)
 
@@ -146,12 +146,50 @@ def _require_ids(db: Session, workspace_id: int, ids: list[int] | None, kind: st
     return cleaned
 
 
+def _token_visible_ids(db: Session, workspace_id: int, ids: set[int], kind: str) -> set[int]:
+    """Ids a share token may list or read.
+
+    Articles must be published and point at a version in this workspace.
+    Answers must be approved. Documents stay on the workspace ownership check.
+    """
+    if kind == "article":
+        query = (
+            db.query(TrustArticle.id)
+            .join(
+                TrustArticleVersion,
+                TrustArticleVersion.id == TrustArticle.published_version_id,
+            )
+            .filter(
+                TrustArticle.id.in_(ids),
+                TrustArticle.workspace_id == workspace_id,
+                TrustArticle.published == 1,
+                TrustArticleVersion.trust_article_id == TrustArticle.id,
+                TrustArticleVersion.workspace_id == workspace_id,
+            )
+        )
+        return {row[0] for row in query.all()}
+    if kind == "answer":
+        query = (
+            db.query(Answer.id)
+            .join(Question, Answer.question_id == Question.id)
+            .join(Questionnaire, Question.questionnaire_id == Questionnaire.id)
+            .filter(
+                Answer.id.in_(ids),
+                Questionnaire.workspace_id == workspace_id,
+                Questionnaire.deleted_at.is_(None),
+                Answer.status == "approved",
+            )
+        )
+        return {row[0] for row in query.all()}
+    return _owned_ids(db, workspace_id, ids, kind)
+
+
 def _visible_ids(db: Session, workspace_id: int, raw: str | None, kind: str) -> list[int]:
-    """Stored ids that still belong to the workspace, in stored order."""
+    """Stored ids a token may see, in stored order."""
     ids = _parse_stored_ids(raw)
     if not ids:
         return []
-    found = _owned_ids(db, workspace_id, set(ids), kind)
+    found = _token_visible_ids(db, workspace_id, set(ids), kind)
     return [item for item in ids if item in found]
 
 
@@ -383,6 +421,7 @@ def granted_answer(db: Session, space: ShareableSpace, answer_id: int) -> Answer
             Answer.id == answer_id,
             Questionnaire.workspace_id == space.workspace_id,
             Questionnaire.deleted_at.is_(None),
+            Answer.status == "approved",
         )
         .first()
     )

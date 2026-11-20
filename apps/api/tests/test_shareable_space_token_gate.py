@@ -22,7 +22,7 @@ from app.models.deal import Deal
 from app.models.document import Document
 from app.models.questionnaire import Question, Questionnaire
 from app.models.shareable_space import ShareableSpace
-from app.models.trust_article import TrustArticle
+from app.models.trust_article import TrustArticle, TrustArticleVersion
 from app.models.user import User, WorkspaceMember
 from app.models.user_session import UserSession
 from app.services import shareable_space_service as ss
@@ -148,10 +148,23 @@ def gate(client, db_session):
     questionnaire = Questionnaire(workspace_id=1, filename=f"gate-{suffix}.xlsx", status="parsed")
     db_session.add_all([article, document, questionnaire])
     db_session.flush()
+    version = TrustArticleVersion(
+        trust_article_id=article.id,
+        workspace_id=1,
+        version_number=1,
+        slug=article.slug,
+        title=article.title,
+        content=article.content or "",
+        is_policy=False,
+    )
+    db_session.add(version)
+    db_session.flush()
+    article.published = 1
+    article.published_version_id = version.id
     question = Question(questionnaire_id=questionnaire.id, text=f"Gate {suffix}")
     db_session.add(question)
     db_session.flush()
-    answer = Answer(question_id=question.id, text="synthetic", status="draft")
+    answer = Answer(question_id=question.id, text="synthetic", status="approved")
     db_session.add(answer)
     db_session.commit()
     article_ids = [article.id]
@@ -247,6 +260,9 @@ def gate(client, db_session):
                 synchronize_session=False
             )
         if asset_ids["articles"]:
+            db_session.query(TrustArticleVersion).filter(
+                TrustArticleVersion.trust_article_id.in_(asset_ids["articles"])
+            ).delete(synchronize_session=False)
             db_session.query(TrustArticle).filter(
                 TrustArticle.id.in_(asset_ids["articles"])
             ).delete(synchronize_session=False)

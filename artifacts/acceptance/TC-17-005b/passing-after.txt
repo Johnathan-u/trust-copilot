@@ -1,6 +1,6 @@
 # TC-17-005b passing-after
-# Same interpreter and database, after the fix, still based on master
-# 05ca009fbca03a0993997a429e5a697cf3879065.
+# After the published-version and approved-answer gate, rebased on master
+# b443e08d. The failing-before log is unchanged.
 # From apps/api, TC_REQUIRE_DB=1, local database trustcopilot_test:
 #   python -m pytest tests/release/test_tc17005b_space_scoping.py \
 #     tests/test_shareable_spaces.py tests/test_shareable_space_token_gate.py \
@@ -10,17 +10,17 @@
 #     tests/release/test_tc_15_016a_documents_list.py -q --tb=line
 # Python 3.12.3, pytest 9.1.1, SQLAlchemy 2.0.55, Alembic 1.20.1,
 # PostgreSQL 16.15, database trustcopilot_test.
-# Result: 218 passed.
+# Result: 220 passed.
 # alembic heads: tc04007b_rate_buckets. This change adds no revision.
 
-........................................................................ [ 33%]
-........................................................................ [ 66%]
-........................................................................ [ 99%]
-..                                                                       [100%]
+........................................................................ [ 32%]
+........................................................................ [ 65%]
+........................................................................ [ 98%]
+....                                                                     [100%]
 =============================== warnings summary ===============================
-tests/release/test_tc17005b_space_scoping.py: 107 warnings
+tests/release/test_tc17005b_space_scoping.py: 164 warnings
 tests/test_shareable_spaces.py: 19 warnings
-tests/test_shareable_space_token_gate.py: 623 warnings
+tests/test_shareable_space_token_gate.py: 687 warnings
 tests/test_deal_room_token_gate.py: 169 warnings
 tests/release/test_authorization_nda_shares.py: 842 warnings
 tests/release/test_tc_15_016a_documents_list.py: 7 warnings
@@ -36,4 +36,4 @@ tests/release/test_shareable_space_token_migration.py::test_upgrade_hashes_plain
     util.warn_deprecated(
 
 -- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
-218 passed, 1772 warnings in 27.55s
+220 passed, 1893 warnings in 24.75s
