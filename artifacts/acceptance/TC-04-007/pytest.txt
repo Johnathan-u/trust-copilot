@@ -1,0 +1,17 @@
+# SHA 2647b2e2ad5ef575ee354a3c9c92a8bd16680dbc
+# cwd apps/api
+# Python 3.12.3, pytest 9.1.1, PostgreSQL 16.15
+# database postgresql://postgres:postgres@127.0.0.1:5432/trustcopilot_test
+# The production-warning and in-memory backend tests open no database.
+# The resend and invite tests use trustcopilot_test.
+python -m pytest tests/release/test_config_contract.py::test_rate_limit_production_warning_follows_settings_only_production tests/release/test_config_contract.py::test_security_paths_use_the_shared_production_detector tests/test_security_remediation.py::TestRateLimitBackendSelection tests/release/test_registration.py::test_resend_verification_is_rate_limited tests/test_invite_flow_p14.py::TestInviteP14Backend::test_verify_invite_code_rate_limit_429 -q --tb=line
+.........                                                                [100%]
+=============================== warnings summary ===============================
+tests/release/test_registration.py: 9 warnings
+tests/test_invite_flow_p14.py: 5 warnings
+  /tmp/tc-venv/lib/python3.12/site-packages/sqlalchemy/sql/schema.py:3627: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    return util.wrap_callable(lambda ctx: fn(), fn)  # type: ignore
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+9 passed, 14 warnings in 2.98s
+exit 0

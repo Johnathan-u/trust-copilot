@@ -1,0 +1,8 @@
+# SHA 2647b2e2ad5ef575ee354a3c9c92a8bd16680dbc
+# cwd apps/api
+# Python 3.12.3, pytest 9.1.1
+# PostgreSQL: not used (this test opens no database)
+python -m pytest tests/release/test_secret_inventory.py::test_log_redaction_masks_cookies_tokens_and_url_credentials -q --tb=line
+.                                                                        [100%]
+1 passed in 0.36s
+exit 0

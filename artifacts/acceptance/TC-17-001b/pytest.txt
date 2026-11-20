@@ -1,0 +1,13 @@
+Fixed code. Full release file. PostgreSQL 16.15 on localhost, database trustcopilot_test.
+
+Command (apps/api):
+TC_REQUIRE_DB=1 python -m pytest tests/release/test_domain_trust_articles.py --tb=line -q
+
+..................                                                       [100%]
+=============================== warnings summary ===============================
+tests/release/test_domain_trust_articles.py: 82 warnings
+  /tmp/tc-api-venv/lib/python3.12/site-packages/sqlalchemy/sql/schema.py:3627: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    return util.wrap_callable(lambda ctx: fn(), fn)  # type: ignore
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+18 passed, 82 warnings in 4.55s

@@ -769,9 +769,11 @@ def forgot_password(req: ForgotPasswordRequest, request: Request, db: Session = 
     """Request a password reset. The response does not say whether the address exists.
 
     Every address returns before the provider is called, so a known address is
-    not slower than an unknown one. A background session then inserts the new
-    row, sends, and commits it only if the provider accepts. A false or raised
-    send deletes that row and leaves a previously delivered link in place.
+    not slower than an unknown one. The IP attempt is recorded before the user
+    lookup, so a missing row cannot skip the limit. A background session then
+    inserts the new row, sends, and commits it only if the provider accepts. A
+    false or raised send deletes that row and leaves a previously delivered link
+    in place.
     Older unused rows are deleted only after acceptance, and only when their id
     is lower than the new row. The failure is logged without the reset URL and
     stored as ``auth.reset_send_failed``.
@@ -780,10 +782,11 @@ def forgot_password(req: ForgotPasswordRequest, request: Request, db: Session = 
     ip_key = f"reset:ip:{get_client_ip(request)}"
     if is_rate_limited(ip_key):
         raise HTTPException(status_code=429, detail="Too many requests. Try again later.")
+    # Count before the lookup. A missing row used to return here and leave reset:ip unchanged.
+    record_attempt(ip_key)
     user = db.query(User).filter(User.email == email).first()
     if not user:
         return _generic_reset_message()
-    record_attempt(ip_key)
     token_raw = secrets.token_urlsafe(32)
     _spawn_identity_mail(_deliver_password_reset, (user.id, email, token_raw))
     msg = _generic_reset_message()
