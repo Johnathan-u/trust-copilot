@@ -25,7 +25,7 @@ class TestShareableSpaceService:
     def test_create_space(self, db_session):
         ws = db_session.query(Workspace).first()
         result = ss.create_space(
-            db_session, ws.id, "Acme Deal Room", 1, buyer_company="Acme Corp", article_ids=[1, 2]
+            db_session, ws.id, "Acme Deal Room", 1, buyer_company="Acme Corp"
         )
         db_session.commit()
         assert result["name"] == "Acme Deal Room"

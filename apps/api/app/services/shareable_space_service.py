@@ -1,4 +1,4 @@
-"""Shareable space service (P1-66, TC-17-005a)."""
+"""Shareable space service (P1-66, TC-17-005a, TC-17-005b)."""
 
 import hashlib
 import hmac
@@ -10,7 +10,11 @@ from datetime import datetime, timedelta, timezone
 from sqlalchemy.orm import Session
 
 from app.core.audit import persist_audit
+from app.models.answer import Answer
+from app.models.document import Document
+from app.models.questionnaire import Question, Questionnaire
 from app.models.shareable_space import ShareableSpace
+from app.models.trust_article import TrustArticle
 
 logger = logging.getLogger(__name__)
 
@@ -18,7 +22,26 @@ ACCESS_AUDIT_ACTION = "shareable_space.accessed"
 ROTATE_AUDIT_ACTION = "shareable_space.rotated"
 ROTATION_INACTIVE = "This space is inactive and cannot be rotated."
 ROTATION_EXPIRED = "This space has expired and cannot be rotated."
+ARTICLE_NOT_FOUND = "Article not found"
+ANSWER_NOT_FOUND = "Answer not found"
+DOCUMENT_NOT_FOUND = "Document not found"
 _MAX_TOKEN_LENGTH = 512
+_ASSET_DETAILS = {
+    "article": ARTICLE_NOT_FOUND,
+    "answer": ANSWER_NOT_FOUND,
+    "document": DOCUMENT_NOT_FOUND,
+}
+
+
+class ListedAssetNotFound(Exception):
+    """An article, answer, or document id is missing or outside this workspace.
+
+    The same detail is used for both cases so a caller cannot tell them apart.
+    """
+
+    def __init__(self, detail: str) -> None:
+        super().__init__(detail)
+        self.detail = detail
 
 
 class RotationRefused(Exception):
@@ -56,6 +79,92 @@ def _is_expired(space: ShareableSpace, *, now: datetime | None = None) -> bool:
     return exp < (now or datetime.now(timezone.utc))
 
 
+def _parse_stored_ids(raw: str | None) -> list[int]:
+    """Ids from a stored JSON list. Malformed values and non-ids are dropped."""
+    try:
+        loaded = json.loads(raw) if raw else []
+    except (TypeError, ValueError):
+        return []
+    if not isinstance(loaded, list):
+        return []
+    ids: list[int] = []
+    for item in loaded:
+        if isinstance(item, bool) or not isinstance(item, int) or item < 1:
+            continue
+        ids.append(item)
+    return ids
+
+
+def _owned_ids(db: Session, workspace_id: int, ids: set[int], kind: str) -> set[int]:
+    """Ids in ``ids`` that are live rows in ``workspace_id``."""
+    if not ids:
+        return set()
+    if kind == "article":
+        query = db.query(TrustArticle.id).filter(
+            TrustArticle.id.in_(ids),
+            TrustArticle.workspace_id == workspace_id,
+        )
+    elif kind == "answer":
+        query = (
+            db.query(Answer.id)
+            .join(Question, Answer.question_id == Question.id)
+            .join(Questionnaire, Question.questionnaire_id == Questionnaire.id)
+            .filter(
+                Answer.id.in_(ids),
+                Questionnaire.workspace_id == workspace_id,
+                Questionnaire.deleted_at.is_(None),
+            )
+        )
+    elif kind == "document":
+        query = db.query(Document.id).filter(
+            Document.id.in_(ids),
+            Document.workspace_id == workspace_id,
+            Document.deleted_at.is_(None),
+        )
+    else:
+        raise ValueError(kind)
+    return {row[0] for row in query.all()}
+
+
+def _require_ids(db: Session, workspace_id: int, ids: list[int] | None, kind: str) -> list[int]:
+    """Return ``ids`` when every one belongs to the workspace. Otherwise raise.
+
+    A missing id and an id from another workspace use the same detail. Nothing
+    is written by this check.
+    """
+    if not ids:
+        return []
+    detail = _ASSET_DETAILS[kind]
+    cleaned: list[int] = []
+    for item in ids:
+        if isinstance(item, bool) or not isinstance(item, int) or item < 1:
+            raise ListedAssetNotFound(detail)
+        cleaned.append(item)
+    found = _owned_ids(db, workspace_id, set(cleaned), kind)
+    if any(item not in found for item in cleaned):
+        raise ListedAssetNotFound(detail)
+    return cleaned
+
+
+def _visible_ids(db: Session, workspace_id: int, raw: str | None, kind: str) -> list[int]:
+    """Stored ids that still belong to the workspace, in stored order."""
+    ids = _parse_stored_ids(raw)
+    if not ids:
+        return []
+    found = _owned_ids(db, workspace_id, set(ids), kind)
+    return [item for item in ids if item in found]
+
+
+def _space_for_token(db: Session, token: str) -> ShareableSpace | None:
+    digest = _digest(token)
+    if digest is None:
+        return None
+    space = db.query(ShareableSpace).filter(ShareableSpace.token_hash == digest).first()
+    if space is None or not _same_hash(space.token_hash, digest):
+        return None
+    return space
+
+
 def create_space(
     db: Session,
     workspace_id: int,
@@ -70,6 +179,10 @@ def create_space(
     document_ids: list[int] | None = None,
     expires_days: int = 30,
 ) -> dict:
+    # Reject before insert. A foreign or missing id leaves no row.
+    articles = _require_ids(db, workspace_id, article_ids, "article")
+    answers = _require_ids(db, workspace_id, answer_ids, "answer")
+    documents = _require_ids(db, workspace_id, document_ids, "document")
     raw = _new_raw_token()
     space = ShareableSpace(
         workspace_id=workspace_id,
@@ -78,9 +191,9 @@ def create_space(
         buyer_email=buyer_email,
         opportunity_id=opportunity_id,
         description=description,
-        article_ids_json=json.dumps(article_ids or []),
-        answer_ids_json=json.dumps(answer_ids or []),
-        document_ids_json=json.dumps(document_ids or []),
+        article_ids_json=json.dumps(articles),
+        answer_ids_json=json.dumps(answers),
+        document_ids_json=json.dumps(documents),
         access_token=None,
         token_hash=_digest(raw),
         expires_at=datetime.now(timezone.utc) + timedelta(days=expires_days),
@@ -126,23 +239,61 @@ def deactivate_space(db: Session, space_id: int, *, workspace_id: int) -> dict |
     return _serialize(s, include_admin_indicator=True)
 
 
+def update_space_lists(
+    db: Session,
+    space_id: int,
+    *,
+    workspace_id: int,
+    lists: dict[str, list[int]],
+) -> dict | None:
+    """Replace the asset lists named in ``lists``. Other columns stay put.
+
+    Validation finishes before any column is assigned. ``None`` means this
+    workspace has no space with that id. A bad id raises and leaves the row
+    unchanged.
+    """
+    space = (
+        db.query(ShareableSpace)
+        .filter(ShareableSpace.id == space_id, ShareableSpace.workspace_id == workspace_id)
+        .first()
+    )
+    if space is None:
+        return None
+    validated: dict[str, str] = {}
+    if "article_ids" in lists:
+        validated["article_ids_json"] = json.dumps(
+            _require_ids(db, workspace_id, lists["article_ids"], "article")
+        )
+    if "answer_ids" in lists:
+        validated["answer_ids_json"] = json.dumps(
+            _require_ids(db, workspace_id, lists["answer_ids"], "answer")
+        )
+    if "document_ids" in lists:
+        validated["document_ids_json"] = json.dumps(
+            _require_ids(db, workspace_id, lists["document_ids"], "document")
+        )
+    for column, value in validated.items():
+        setattr(space, column, value)
+    if validated:
+        db.flush()
+    return _serialize(space, include_admin_indicator=True)
+
+
 def access_space_by_token(db: Session, token: str) -> dict:
-    digest = _digest(token)
-    if digest is None:
-        return {"valid": False, "reason": "Space not found"}
-    s = db.query(ShareableSpace).filter(ShareableSpace.token_hash == digest).first()
-    if s is None or not _same_hash(s.token_hash, digest):
+    s = _space_for_token(db, token)
+    if s is None:
         return {"valid": False, "reason": "Space not found"}
     if not s.is_active:
         return {"valid": False, "reason": "Space deactivated"}
     if _is_expired(s):
         return {"valid": False, "reason": "Space expired"}
+    # Drop ids that are missing, deleted, or no longer in this workspace.
     payload = {
         "valid": True,
         "space": _serialize(s),
-        "article_ids": json.loads(s.article_ids_json or "[]"),
-        "answer_ids": json.loads(s.answer_ids_json or "[]"),
-        "document_ids": json.loads(s.document_ids_json or "[]"),
+        "article_ids": _visible_ids(db, s.workspace_id, s.article_ids_json, "article"),
+        "answer_ids": _visible_ids(db, s.workspace_id, s.answer_ids_json, "answer"),
+        "document_ids": _visible_ids(db, s.workspace_id, s.document_ids_json, "document"),
     }
     # Space id only. Never the presented token or the stored hash.
     logger.info("shareable_space.accessed space_id=%s", s.id)
@@ -197,6 +348,58 @@ def rotate_space(db: Session, space_id: int, *, workspace_id: int) -> dict | Non
     )
     logger.info("shareable_space.rotated space_id=%s", space.id)
     return payload
+
+
+def live_space_for_token(db: Session, token: str) -> ShareableSpace | None:
+    """The space a token may read, or None when the token is not live.
+
+    Unknown, inactive, and expired tokens are the same result. This does not
+    write an audit row.
+    """
+    space = _space_for_token(db, token)
+    if space is None or not space.is_active or _is_expired(space):
+        return None
+    return space
+
+
+def granted_article(db: Session, space: ShareableSpace, article_id: int) -> TrustArticle | None:
+    if article_id not in _parse_stored_ids(space.article_ids_json):
+        return None
+    return (
+        db.query(TrustArticle)
+        .filter(TrustArticle.id == article_id, TrustArticle.workspace_id == space.workspace_id)
+        .first()
+    )
+
+
+def granted_answer(db: Session, space: ShareableSpace, answer_id: int) -> Answer | None:
+    if answer_id not in _parse_stored_ids(space.answer_ids_json):
+        return None
+    return (
+        db.query(Answer)
+        .join(Question, Answer.question_id == Question.id)
+        .join(Questionnaire, Question.questionnaire_id == Questionnaire.id)
+        .filter(
+            Answer.id == answer_id,
+            Questionnaire.workspace_id == space.workspace_id,
+            Questionnaire.deleted_at.is_(None),
+        )
+        .first()
+    )
+
+
+def granted_document(db: Session, space: ShareableSpace, document_id: int) -> Document | None:
+    if document_id not in _parse_stored_ids(space.document_ids_json):
+        return None
+    return (
+        db.query(Document)
+        .filter(
+            Document.id == document_id,
+            Document.workspace_id == space.workspace_id,
+            Document.deleted_at.is_(None),
+        )
+        .first()
+    )
 
 
 def _serialize(
