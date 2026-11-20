@@ -1,0 +1,15 @@
+# fixed review page. cwd apps/web
+npx vitest run tests/unit/review-approved-draft.test.ts tests/unit/action-confirmation.test.ts
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - ESM syntax in a file loaded as CommonJS (vitest.config.ts:1:1). Use a `.mjs` extension or set `"type": "module"` in the closest package.json
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+
+ RUN  v5.0.5 /agent/repos/trust-copilot/apps/web
+
+
+ Test Files  2 passed (2)
+      Tests  10 passed (10)
+   Start at  16:12:02
+   Duration  762ms (tests 39%, environment 32%, import 21%, transform 9%, worker 1%)
+
+exit 0

@@ -14,6 +14,14 @@ from app.core.database import get_db
 from app.core.workspace_refs import require_in_workspace
 from app.models import Answer, Question, Questionnaire
 from app.services.answer_generation import _lock_answer_write
+from app.services.answer_revisions import (
+    RevisionRejected,
+    approve_draft_revision,
+    generate_explicit_draft,
+    insert_draft_revision,
+    revision_payload,
+)
+from app.services.model_outcomes import ModelCallError
 
 router = APIRouter(prefix="/answers", tags=["answers"])
 
@@ -155,3 +163,79 @@ def update_answer(
     db.commit()
     db.refresh(a)
     return {"id": a.id, "question_id": a.question_id, "text": a.text, "status": a.status}
+
+
+def _approved_answer_for_regenerate(
+    db: Session, session: dict, answer_id: int
+) -> tuple[Answer, Question, Questionnaire]:
+    """Load an answer the caller can review. Another workspace is access denied."""
+    answer = db.query(Answer).filter(Answer.id == answer_id).first()
+    if not answer:
+        raise HTTPException(status_code=404, detail="Answer not found")
+    question = db.query(Question).filter(Question.id == answer.question_id).first()
+    if not question:
+        raise HTTPException(status_code=404, detail="Question not found")
+    questionnaire = (
+        db.query(Questionnaire).filter(Questionnaire.id == question.questionnaire_id).first()
+    )
+    if questionnaire is None or questionnaire.workspace_id != session.get("workspace_id"):
+        raise HTTPException(status_code=403, detail="Access denied")
+    require_in_workspace(db, session.get("workspace_id"), "answer", answer_id)
+    return answer, question, questionnaire
+
+
+def _answer_body(answer: Answer, draft: dict | None) -> dict:
+    return {
+        "id": answer.id,
+        "question_id": answer.question_id,
+        "text": answer.text,
+        "status": answer.status,
+        "citations": answer.citations,
+        "draft_revision": draft,
+    }
+
+
+@router.post("/{answer_id}/regenerate")
+def regenerate_answer(
+    answer_id: int,
+    session: dict = Depends(require_can_review),
+    db: Session = Depends(get_db),
+):
+    """Insert a draft revision. The approved answer row is not updated."""
+    answer, question, questionnaire = _approved_answer_for_regenerate(db, session, answer_id)
+    if answer.status != "approved":
+        raise HTTPException(
+            status_code=409,
+            detail="Only an approved answer can be regenerated into a new draft.",
+        )
+    try:
+        produced = generate_explicit_draft(db, question, questionnaire.workspace_id, questionnaire)
+        revision = insert_draft_revision(db, answer, produced)
+        db.commit()
+    except ModelCallError as exc:
+        db.rollback()
+        raise HTTPException(status_code=503, detail=str(exc)) from None
+    except RevisionRejected as exc:
+        db.rollback()
+        raise HTTPException(status_code=exc.status_code, detail=exc.detail) from None
+    db.refresh(answer)
+    return _answer_body(answer, revision_payload(revision))
+
+
+@router.post("/{answer_id}/revisions/{revision_id}/approve")
+def approve_answer_revision(
+    answer_id: int,
+    revision_id: int,
+    session: dict = Depends(require_can_review),
+    db: Session = Depends(get_db),
+):
+    """Make the draft the approved answer and keep the previous text as superseded."""
+    answer, _question, _questionnaire = _approved_answer_for_regenerate(db, session, answer_id)
+    try:
+        current, _previous = approve_draft_revision(db, answer, revision_id)
+        db.commit()
+    except RevisionRejected as exc:
+        db.rollback()
+        raise HTTPException(status_code=exc.status_code, detail=exc.detail) from None
+    db.refresh(current)
+    return _answer_body(current, None)

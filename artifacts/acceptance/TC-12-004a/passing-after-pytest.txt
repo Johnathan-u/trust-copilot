@@ -1,0 +1,48 @@
+# fixed tree. cwd apps/api
+# Python 3.12.3
+TC_REQUIRE_DB=1 TC_TEST_DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:5432/trustcopilot_test python -m pytest tests/release/test_tc12004a_regenerate_keeps_approved.py -q --tb=line
+.........                                                                [100%]
+=============================== warnings summary ===============================
+tests/release/test_tc12004a_regenerate_keeps_approved.py: 64 warnings
+  /tmp/tc-venv/lib/python3.12/site-packages/sqlalchemy/sql/schema.py:3627: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    return util.wrap_callable(lambda ctx: fn(), fn)  # type: ignore
+
+tests/release/test_tc12004a_regenerate_keeps_approved.py::test_regenerate_leaves_the_approved_row_byte_identical_and_inserts_a_draft
+tests/release/test_tc12004a_regenerate_keeps_approved.py::test_a_second_regenerate_keeps_the_approved_row_and_opens_a_new_draft
+tests/release/test_tc12004a_regenerate_keeps_approved.py::test_a_second_regenerate_keeps_the_approved_row_and_opens_a_new_draft
+tests/release/test_tc12004a_regenerate_keeps_approved.py::test_read_and_export_keep_the_approved_revision_until_the_draft_is_approved
+tests/release/test_tc12004a_regenerate_keeps_approved.py::test_approving_the_draft_supersedes_the_previous_approved_text
+  /agent/repos/trust-copilot/apps/api/app/services/answer_revisions.py:64: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    now = datetime.utcnow()
+
+tests/release/test_tc12004a_regenerate_keeps_approved.py::test_regenerate_leaves_the_approved_row_byte_identical_and_inserts_a_draft
+tests/release/test_tc12004a_regenerate_keeps_approved.py::test_a_second_regenerate_keeps_the_approved_row_and_opens_a_new_draft
+tests/release/test_tc12004a_regenerate_keeps_approved.py::test_a_second_regenerate_keeps_the_approved_row_and_opens_a_new_draft
+tests/release/test_tc12004a_regenerate_keeps_approved.py::test_read_and_export_keep_the_approved_revision_until_the_draft_is_approved
+tests/release/test_tc12004a_regenerate_keeps_approved.py::test_approving_the_draft_supersedes_the_previous_approved_text
+  /agent/repos/trust-copilot/apps/api/app/services/answer_revisions.py:221: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    created_at=datetime.utcnow(),
+
+tests/release/test_tc12004a_regenerate_keeps_approved.py::test_regenerate_leaves_the_approved_row_byte_identical_and_inserts_a_draft
+tests/release/test_tc12004a_regenerate_keeps_approved.py::test_a_second_regenerate_keeps_the_approved_row_and_opens_a_new_draft
+tests/release/test_tc12004a_regenerate_keeps_approved.py::test_a_second_regenerate_keeps_the_approved_row_and_opens_a_new_draft
+tests/release/test_tc12004a_regenerate_keeps_approved.py::test_read_and_export_keep_the_approved_revision_until_the_draft_is_approved
+tests/release/test_tc12004a_regenerate_keeps_approved.py::test_approving_the_draft_supersedes_the_previous_approved_text
+  /agent/repos/trust-copilot/apps/api/app/services/answer_revisions.py:222: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    updated_at=datetime.utcnow(),
+
+tests/release/test_tc12004a_regenerate_keeps_approved.py::test_approving_the_draft_supersedes_the_previous_approved_text
+  /agent/repos/trust-copilot/apps/api/app/services/answer_revisions.py:267: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    created_at=datetime.utcnow(),
+
+tests/release/test_tc12004a_regenerate_keeps_approved.py::test_approving_the_draft_supersedes_the_previous_approved_text
+  /agent/repos/trust-copilot/apps/api/app/services/answer_revisions.py:268: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    updated_at=datetime.utcnow(),
+
+tests/release/test_tc12004a_regenerate_keeps_approved.py::test_approving_the_draft_supersedes_the_previous_approved_text
+  /agent/repos/trust-copilot/apps/api/app/services/answer_revisions.py:281: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    revision.updated_at = datetime.utcnow()
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+9 passed, 82 warnings in 1.02s
+exit 0

@@ -19,6 +19,7 @@ from app.core.config import get_settings
 from app.core.database import Base
 from app.models import (
     Answer,  # noqa: F401
+    AnswerRevision,  # noqa: F401
     AuditEvent,  # noqa: F401
     Chunk,  # noqa: F401
     Document,  # noqa: F401

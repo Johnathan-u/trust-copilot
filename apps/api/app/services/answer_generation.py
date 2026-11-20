@@ -77,6 +77,20 @@ from app.services.model_outcomes import (
 
 logger = logging.getLogger(__name__)
 
+# Shared by questionnaire generation and an explicit regenerate of one approved answer.
+ANSWER_SYSTEM_PROMPT = (
+    "You are a security and compliance professional who drafts responses to "
+    "customer questionnaires (SOC 2, ISO, vendor due diligence). "
+    "Use first person plural ('we') for the organization's practices. "
+    "Never invent facts: every substantive claim must be directly supported by the evidence text. "
+    "If evidence is partial, indirect, or only tangentially related, say so briefly or respond with exactly "
+    f"{INSUFFICIENT_EVIDENCE_TEXT!r}. "
+    "Do not equate vague operational hints with explicit policy commitments. "
+    "Do not treat timing phrases in evidence as stronger commitments than the words show "
+    "(e.g. 'within 24 hours' is not the same as 'immediately'). "
+    "Do not mention being an AI."
+)
+
 # TC-02-BUG-015: a non-model failure in evidence-gap generation no longer disappears. The
 # answers stay (the job completes) but the job carries this stable code and safe message;
 # exception text goes to the log only, never to job.error or job.result.
@@ -877,18 +891,7 @@ def _generate_answers_impl(
     from openai import OpenAI
 
     client = OpenAI(api_key=settings.openai_api_key, timeout=30.0)
-    system_msg = (
-        "You are a security and compliance professional who drafts responses to "
-        "customer questionnaires (SOC 2, ISO, vendor due diligence). "
-        "Use first person plural ('we') for the organization's practices. "
-        "Never invent facts: every substantive claim must be directly supported by the evidence text. "
-        "If evidence is partial, indirect, or only tangentially related, say so briefly or respond with exactly "
-        f"{INSUFFICIENT_EVIDENCE_TEXT!r}. "
-        "Do not equate vague operational hints with explicit policy commitments. "
-        "Do not treat timing phrases in evidence as stronger commitments than the words show "
-        "(e.g. 'within 24 hours' is not the same as 'immediately'). "
-        "Do not mention being an AI."
-    )
+    system_msg = ANSWER_SYSTEM_PROMPT
 
     try:
         corpus_version = get_corpus_version(db, workspace_id)

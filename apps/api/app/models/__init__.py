@@ -2,6 +2,7 @@
 
 from app.core.database import Base
 from app.models.answer import Answer
+from app.models.answer_revision import AnswerRevision
 from app.models.audit_event import AuditEvent
 from app.models.chunk import Chunk
 from app.models.document import Document
@@ -143,6 +144,7 @@ __all__ = [
     "UserMfa",
     "UserSession",
     "Answer",
+    "AnswerRevision",
     "AuditEvent",
     "Base",
     "Chunk",
