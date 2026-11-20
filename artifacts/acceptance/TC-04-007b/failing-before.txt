@@ -1,0 +1,63 @@
+============================= test session starts ==============================
+platform linux -- Python 3.12.3, pytest-9.1.1, pluggy-1.7.0
+rootdir: /agent/repos/trust-copilot/apps/api
+configfile: pyproject.toml
+plugins: anyio-4.15.1
+collected 7 items
+
+tests/release/test_auth_rate_limits.py FFFFFFF                           [100%]
+
+=================================== FAILURES ===================================
+_________________ test_auth_rate_limit_holds_across_processes __________________
+tests/release/test_auth_rate_limits.py:105: in test_auth_rate_limit_holds_across_processes
+    assert seen is True, f"parent did not see the other process; backend={type(backend).__name__}"
+E   AssertionError: parent did not see the other process; backend=_InMemoryBackend
+E   assert False is True
+_______________________ test_login_429_sends_retry_after _______________________
+tests/release/test_auth_rate_limits.py:117: in test_login_429_sends_retry_after
+    _assert_retry_after(limited, DEFAULT_WINDOW_SECONDS)
+tests/release/test_auth_rate_limits.py:39: in _assert_retry_after
+    assert raw is not None and raw.strip() != "", response.headers
+E   AssertionError: Headers({'content-length': '54', 'content-type': 'application/json', 'x-request-id': '31ff6344-c4a2-49d3-b141-ded451c3ec3f', 'access-control-allow-credentials': 'true', 'access-control-allow-origin': 'http://localhost', 'vary': 'Origin'})
+E   assert (None is not None)
+__________________ test_forgot_password_429_sends_retry_after __________________
+tests/release/test_auth_rate_limits.py:132: in test_forgot_password_429_sends_retry_after
+    _assert_retry_after(limited, DEFAULT_WINDOW_SECONDS)
+tests/release/test_auth_rate_limits.py:39: in _assert_retry_after
+    assert raw is not None and raw.strip() != "", response.headers
+E   AssertionError: Headers({'content-length': '48', 'content-type': 'application/json', 'x-request-id': 'c0031f89-d413-4504-90dc-c03bf3ca2965', 'access-control-allow-credentials': 'true', 'access-control-allow-origin': 'http://localhost', 'vary': 'Origin'})
+E   assert (None is not None)
+__________________ test_reset_password_429_sends_retry_after ___________________
+tests/release/test_auth_rate_limits.py:143: in test_reset_password_429_sends_retry_after
+    _assert_retry_after(limited, DEFAULT_WINDOW_SECONDS)
+tests/release/test_auth_rate_limits.py:39: in _assert_retry_after
+    assert raw is not None and raw.strip() != "", response.headers
+E   AssertionError: Headers({'content-length': '48', 'content-type': 'application/json', 'x-request-id': '6bd68aff-7e0a-434b-8294-e2757cf94c99', 'access-control-allow-credentials': 'true', 'access-control-allow-origin': 'http://localhost', 'vary': 'Origin'})
+E   assert (None is not None)
+________________ test_resend_verification_429_sends_retry_after ________________
+tests/release/test_auth_rate_limits.py:155: in test_resend_verification_429_sends_retry_after
+    _assert_retry_after(limited, 900)
+tests/release/test_auth_rate_limits.py:39: in _assert_retry_after
+    assert raw is not None and raw.strip() != "", response.headers
+E   AssertionError: Headers({'content-length': '48', 'content-type': 'application/json', 'x-request-id': '183663b8-0cca-44eb-8c17-c7f6c9cfcfa5', 'access-control-allow-credentials': 'true', 'access-control-allow-origin': 'http://localhost', 'vary': 'Origin'})
+E   assert (None is not None)
+___________________ test_invite_verify_429_sends_retry_after ___________________
+tests/release/test_auth_rate_limits.py:167: in test_invite_verify_429_sends_retry_after
+    _assert_retry_after(limited, _INVITE_VERIFY_WINDOW)
+tests/release/test_auth_rate_limits.py:39: in _assert_retry_after
+    assert raw is not None and raw.strip() != "", response.headers
+E   AssertionError: Headers({'content-length': '48', 'content-type': 'application/json', 'x-request-id': '53726fcf-5c70-4672-8a47-02d68288ac30', 'access-control-allow-credentials': 'true', 'access-control-allow-origin': 'http://localhost', 'vary': 'Origin'})
+E   assert (None is not None)
+_____________________ test_invite_creation_is_rate_limited _____________________
+tests/release/test_auth_rate_limits.py:189: in test_invite_creation_is_rate_limited
+    assert blocked.status_code == 429, blocked.text
+E   AssertionError: {"id":22,"email":"tc04007b-invite-10-2684af63@example.test","role":"editor","expires_at":"2026-11-27T15:05:58.100766"}
+E   assert 200 == 429
+E    +  where 200 = <Response [200 OK]>.status_code
+=============================== warnings summary ===============================
+tests/release/test_auth_rate_limits.py: 55 warnings
+  /tmp/tc-venv/lib/python3.12/site-packages/sqlalchemy/sql/schema.py:3627: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    return util.wrap_callable(lambda ctx: fn(), fn)  # type: ignore
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+======================== 7 failed, 55 warnings in 1.66s ========================

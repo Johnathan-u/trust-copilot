@@ -88,12 +88,21 @@ def _revisions() -> dict[str, str | None]:
 
 
 @pytest.mark.unit
-def test_answer_revision_migration_is_the_only_head():
+def test_answer_revision_migration_stays_on_the_single_head():
+    """Parent link stays put. A later revision may be the single head."""
     revisions = _revisions()
     assert revisions[REVISION] == PARENT
-    heads = [item for item in revisions if item not in set(revisions.values())]
-    assert heads == [REVISION]
     assert len(REVISION) <= 32
+    heads = [item for item in revisions if item not in set(revisions.values())]
+    assert len(heads) == 1
+    current: str | None = heads[0]
+    seen: set[str] = set()
+    while current and current not in seen:
+        if current == REVISION:
+            return
+        seen.add(current)
+        current = revisions.get(current)
+    raise AssertionError(f"{REVISION} is not on the single head chain")
 
 
 @pytest.fixture

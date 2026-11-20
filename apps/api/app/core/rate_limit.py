@@ -1,5 +1,11 @@
-"""AUTH-210: Login abuse controls. In-memory (default) or Redis rate limiting."""
+"""AUTH-210 / TC-04-007b: shared login abuse controls.
 
+Redis is used when ``REDIS_URL`` is set. Otherwise counters live in the
+``rate_limit_buckets`` table, one fixed window per key, shared across processes.
+The in-memory class is not selected.
+"""
+
+import hashlib
 import logging
 import math
 import os
@@ -13,9 +19,21 @@ _rl_logger = logging.getLogger(__name__)
 DEFAULT_MAX_ATTEMPTS = 10
 DEFAULT_WINDOW_SECONDS = 60
 
-# In-memory store for when Redis is not configured
-_store: dict[str, tuple[int, float]] = defaultdict(lambda: (0, 0.0))
+
+# The in-memory class below still reads this dict. Tests call ``_store.clear()`` to
+# drop it and, when the database backend is installed, the shared rows as well.
+class _SharedStore(defaultdict):
+    def clear(self) -> None:
+        super().clear()
+        if _database_selected or isinstance(_backend, _DatabaseBackend):
+            _DatabaseBackend().clear_shared()
+
+
+_store: dict[str, tuple[int, float]] = _SharedStore(lambda: (0, 0.0))
 _lock = Lock()
+# Set once the database backend is selected, so a later ``_store.clear()`` still
+# deletes shared rows if the installed backend object was replaced.
+_database_selected = False
 
 
 def _now() -> float:
@@ -23,7 +41,7 @@ def _now() -> float:
 
 
 class _InMemoryBackend:
-    """In-memory rate limit backend (per-process)."""
+    """Fixed-window counter kept in this process. ``_get_backend`` does not return it."""
 
     def check(self, key: str, max_attempts: int, window_sec: float) -> bool:
         with _lock:
@@ -84,7 +102,109 @@ class _RedisBackend:
         return float(ttl) if ttl and ttl > 0 else float(window_sec)
 
 
+_BUCKET_KEY_MAX = 512
+
+
+def _bucket_key(key: str) -> str:
+    """Store the limiter key as-is, or a digest when it would not fit the column."""
+    raw = str(key)
+    if len(raw) <= _BUCKET_KEY_MAX:
+        return raw
+    return "sha256:" + hashlib.sha256(raw.encode()).hexdigest()
+
+
+class _DatabaseBackend:
+    """Fixed window in ``rate_limit_buckets``. Each call commits on its own connection.
+
+    A request that later rolls back still keeps the attempt. Two processes increment
+    the same row; the window start stays until ``window_sec`` has passed.
+    """
+
+    def _connect(self):
+        from app.core.database import engine
+
+        return engine.begin()
+
+    def _age_and_count(self, key: str) -> tuple[int, float] | None:
+        from sqlalchemy import text
+
+        with self._connect() as conn:
+            row = conn.execute(
+                text(
+                    """
+                    SELECT attempt_count,
+                           EXTRACT(EPOCH FROM (clock_timestamp() - window_started)) AS age
+                    FROM rate_limit_buckets
+                    WHERE bucket_key = :key
+                    """
+                ),
+                {"key": _bucket_key(key)},
+            ).fetchone()
+        if row is None:
+            return None
+        return int(row[0]), float(row[1])
+
+    def check(self, key: str, max_attempts: int, window_sec: float) -> bool:
+        found = self._age_and_count(key)
+        if found is None:
+            return False
+        count, age = found
+        if age >= window_sec:
+            return False
+        return count >= max_attempts
+
+    def record(self, key: str, max_attempts: int, window_sec: float) -> None:
+        from sqlalchemy import text
+
+        stored = _bucket_key(key)
+        with self._connect() as conn:
+            now = conn.execute(text("SELECT clock_timestamp()")).scalar()
+            conn.execute(
+                text(
+                    """
+                    INSERT INTO rate_limit_buckets (bucket_key, attempt_count, window_started)
+                    VALUES (:key, 1, :now)
+                    ON CONFLICT (bucket_key) DO UPDATE SET
+                      attempt_count = CASE
+                        WHEN EXTRACT(EPOCH FROM (:now - rate_limit_buckets.window_started))
+                             >= :window
+                        THEN 1
+                        ELSE rate_limit_buckets.attempt_count + 1
+                      END,
+                      window_started = CASE
+                        WHEN EXTRACT(EPOCH FROM (:now - rate_limit_buckets.window_started))
+                             >= :window
+                        THEN :now
+                        ELSE rate_limit_buckets.window_started
+                      END
+                    """
+                ),
+                {"key": stored, "now": now, "window": float(window_sec)},
+            )
+
+    def retry_after(self, key: str, window_sec: float) -> float:
+        found = self._age_and_count(key)
+        if found is None:
+            return 0.0
+        _count, age = found
+        if age >= window_sec:
+            return 0.0
+        return max(0.0, float(window_sec) - age)
+
+    def clear_shared(self) -> None:
+        """Drop every bucket. Test resets call this. A missing table is not an error."""
+        from sqlalchemy import text
+        from sqlalchemy.exc import ProgrammingError
+
+        try:
+            with self._connect() as conn:
+                conn.execute(text("DELETE FROM rate_limit_buckets"))
+        except ProgrammingError:
+            _rl_logger.warning("rate_limit_buckets is missing; counters were not reset")
+
+
 def _get_backend():
+    global _database_selected
     redis_url = (os.getenv("REDIS_URL") or "").strip()
     if redis_url:
         try:
@@ -96,19 +216,17 @@ def _get_backend():
             return backend
         except ImportError:
             _rl_logger.warning(
-                "REDIS_URL is set but redis package is not installed; falling back to in-memory rate limiting"
+                "REDIS_URL is set but redis package is not installed; "
+                "using the database rate-limit store"
             )
     from app.core.session import is_production_env  # local: session imports nothing from here
 
+    _database_selected = True
     if is_production_env():
-        _rl_logger.warning(
-            "Rate limiting is using in-memory backend in production. "
-            "This is per-process only and will not protect against distributed attacks. "
-            "Set REDIS_URL for production-grade rate limiting."
-        )
+        _rl_logger.info("Rate-limit backend: database (shared across processes in production)")
     else:
-        _rl_logger.info("Rate-limit backend: in-memory (dev/test)")
-    return _InMemoryBackend()
+        _rl_logger.info("Rate-limit backend: database (shared across processes)")
+    return _DatabaseBackend()
 
 
 _backend = None

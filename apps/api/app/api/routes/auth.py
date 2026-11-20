@@ -49,10 +49,13 @@ from app.core.mfa import (  # noqa: E402
 )
 from app.core.password import hash_password, verify_password  # noqa: E402
 from app.core.rate_limit import (  # noqa: E402
+    DEFAULT_MAX_ATTEMPTS,
+    DEFAULT_WINDOW_SECONDS,
     RateLimitBackendError,
     get_client_ip,
     is_rate_limited,
     record_attempt,
+    retry_after_seconds,
 )
 from app.core.keys import purpose_macs  # noqa: E402
 from app.core.session import (  # noqa: E402
@@ -341,6 +344,28 @@ def _code_macs(code: str) -> tuple[str, ...]:
     return purpose_macs("session", f"{_CODE_MAC_LABEL}{code}")
 
 
+def _too_many(
+    detail: str,
+    *keys: str,
+    max_attempts: int = DEFAULT_MAX_ATTEMPTS,
+    window_sec: float = DEFAULT_WINDOW_SECONDS,
+) -> None:
+    """Raise 429 with Retry-After when a key is already at its cap. Does not record."""
+    hit = [
+        key
+        for key in keys
+        if is_rate_limited(key, max_attempts=max_attempts, window_sec=window_sec)
+    ]
+    if not hit:
+        return
+    wait = max(retry_after_seconds(key, window_sec) for key in hit)
+    raise HTTPException(
+        status_code=429,
+        detail=detail,
+        headers={"Retry-After": str(wait)},
+    )
+
+
 def _rate_limited(*keys: str, max_attempts: int, window_sec: float) -> bool:
     try:
         return any(
@@ -544,7 +569,15 @@ def resend_verification(
     if _rate_limited(
         ip_key, email_key, max_attempts=_RESEND_RECORDED_LIMIT, window_sec=_RESEND_WINDOW_SECONDS
     ):
-        raise HTTPException(status_code=429, detail="Too many requests. Try again later.")
+        wait = max(
+            retry_after_seconds(ip_key, _RESEND_WINDOW_SECONDS),
+            retry_after_seconds(email_key, _RESEND_WINDOW_SECONDS),
+        )
+        raise HTTPException(
+            status_code=429,
+            detail="Too many requests. Try again later.",
+            headers={"Retry-After": str(wait)},
+        )
     user = db.query(User).filter(User.email == email).first()
     if user is not None and not user.email_verified:
         # Do not delete the delivered code here. The background send removes
@@ -780,8 +813,7 @@ def forgot_password(req: ForgotPasswordRequest, request: Request, db: Session = 
     """
     email = (req.email or "").strip().lower()
     ip_key = f"reset:ip:{get_client_ip(request)}"
-    if is_rate_limited(ip_key):
-        raise HTTPException(status_code=429, detail="Too many requests. Try again later.")
+    _too_many("Too many requests. Try again later.", ip_key)
     # Count before the lookup. A missing row used to return here and leave reset:ip unchanged.
     record_attempt(ip_key)
     user = db.query(User).filter(User.email == email).first()
@@ -807,8 +839,7 @@ def reset_password(req: ResetPasswordRequest, request: Request, db: Session = De
     row. SQLite compiles the lock clause away; PostgreSQL holds it until commit.
     """
     ip_key = f"reset_password:ip:{get_client_ip(request)}"
-    if is_rate_limited(ip_key):
-        raise HTTPException(status_code=429, detail="Too many attempts. Try again later.")
+    _too_many("Too many attempts. Try again later.", ip_key)
     if not req.token or len(req.new_password) < 6:
         raise HTTPException(status_code=400, detail="Invalid request")
     record_attempt(ip_key)
@@ -983,10 +1014,8 @@ def _login_impl(req: LoginRequest, request: Request, response: Response, db: Ses
     client_ip = get_client_ip(request)
     ip_key = f"login:ip:{client_ip}"
     email_key = f"login:email:{email}"
-    if is_rate_limited(ip_key):
-        raise HTTPException(status_code=429, detail="Too many login attempts. Try again later.")
-    if is_rate_limited(email_key):
-        raise HTTPException(status_code=429, detail="Too many login attempts. Try again later.")
+    _too_many("Too many login attempts. Try again later.", ip_key)
+    _too_many("Too many login attempts. Try again later.", email_key)
     record_attempt(ip_key)
     user_query = db.query(User).filter(User.email == email)
     if db.get_bind().dialect.name != "sqlite":
@@ -2438,8 +2467,12 @@ def verify_invite_code(
         raise HTTPException(status_code=400, detail="Invalid email or verification code")
     client_ip = get_client_ip(request)
     rl_key = f"invite_verify:{client_ip}:{email}"
-    if is_rate_limited(rl_key, max_attempts=10, window_sec=900):
-        raise HTTPException(status_code=429, detail="Too many attempts. Try again later.")
+    _too_many(
+        "Too many attempts. Try again later.",
+        rl_key,
+        max_attempts=10,
+        window_sec=900,
+    )
     code_input = (req.code or "").strip()
     if not code_input:
         record_attempt(rl_key, max_attempts=10, window_sec=900)

@@ -62,11 +62,12 @@ Source of truth: `apps/api/app/core/config_contract.py`. The table between the m
   Failed decrypts are audited with user id, key id and reason only.
   Sessions whose signing key id is retired, or missing once a non-legacy session key is current,
   are deleted. Custody is versioned env keyrings, not a KMS.
-* **Rate limiting.** Unless `REDIS_URL` is set, the limiter in `app.core.rate_limit` is in-memory and
-  per-process. The Redis backend fails open on store errors for every route except `POST /api/workspaces`.
-  In production that route fails closed (HTTP 503, a generic detail, and `Retry-After`) because workspace
-  creation is rare and abuse-sensitive. Development and test keep the fail-open behaviour and log a warning.
-  The log does not include store addresses or other secret values.
+* **Rate limiting.** `REDIS_URL` selects Redis. When it is unset, `app.core.rate_limit` stores fixed
+  windows in `rate_limit_buckets`, so the same cap applies in every process. Store errors fail open
+  for every route except `POST /api/workspaces`. In production that route fails closed (HTTP 503, a
+  generic detail, and `Retry-After`) because workspace creation is rare and abuse-sensitive.
+  Development and test keep the fail-open behaviour and log a warning. The log does not include
+  store addresses or other secret values.
 * **Feature flags (TC-16-006).** `FEATURE_<NAME>` is optional and dynamic: `<NAME>` is the flag
   key in upper snake case, with `.` turned into `_` (`connectors.aws` is `FEATURE_CONNECTORS_AWS`).
   These names are not rows in the generated table below. `1`, `true`, and `yes` enable; any other
@@ -145,7 +146,7 @@ In the Entra app registration, open Token configuration and add the optional cla
 | `SMTP_USER` | string | optional | no | unset | SMTP username. |  |
 | `SMTP_PASSWORD` | secret string | optional | yes | unset | SMTP password; placeholders rejected in production. |  |
 | `SMTP_FROM` | email | conditional | no | unset | From address. Production: required when email delivery is enabled. |  |
-| `REDIS_URL` | URL | optional | yes | unset (in-memory rate limiting) | Shared rate-limit store. |  |
+| `REDIS_URL` | URL | optional | yes | unset (database rate limiting) | Optional Redis rate-limit store. Unset uses rate_limit_buckets, shared across processes. |  |
 | `RATE_LIMIT_RPM_PER_IP` | int >= 0 | optional | no | 120 | Per-IP request limit (0 disables). |  |
 | `SIGNUP_POLICY` | enum(invitation_only|self_signup) | optional | no | invitation_only | Who may create a workspace. `invitation_only`: existing workspace owners/admins and deployment operators only. `self_signup`: also any user with a verified email. An unknown value acts as `invitation_only` and stops a production start. |  |
 | `WORKSPACE_ADMIN_CAP_PER_USER` | int >= 1 | optional | no | 3 | Most workspaces one user may own or administer; creating beyond it is refused. |  |

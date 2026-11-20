@@ -611,7 +611,11 @@ def _teardown_login_residue():
 
 @pytest.fixture(autouse=True)
 def _disable_rate_limit():
-    """Reset in-memory rate limit counters and settings cache between tests."""
+    """Reset rate-limit counters and the settings cache between tests.
+
+    ``_store.clear()`` drops the in-memory dict and, when the database backend is
+    the one installed, the shared ``rate_limit_buckets`` rows.
+    """
     from app.core import rate_limit as _rl
     from app.core.config import get_settings
 
