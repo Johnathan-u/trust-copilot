@@ -19,6 +19,7 @@ _rl_logger = logging.getLogger(__name__)
 DEFAULT_MAX_ATTEMPTS = 10
 DEFAULT_WINDOW_SECONDS = 60
 
+
 # The in-memory class below still reads this dict. Tests call ``_store.clear()`` to
 # drop it and, when the database backend is installed, the shared rows as well.
 class _SharedStore(defaultdict):

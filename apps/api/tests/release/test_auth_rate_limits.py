@@ -174,13 +174,9 @@ def test_invite_verify_429_sends_retry_after(client: TestClient) -> None:
 def test_invite_creation_is_rate_limited(
     client: TestClient, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    monkeypatch.setattr(
-        "app.api.routes.members.send_invite_email", lambda *args, **kwargs: True
-    )
+    monkeypatch.setattr("app.api.routes.members.send_invite_email", lambda *args, **kwargs: True)
     _promote_demo_admin()
-    signed_in = client.post(
-        "/api/auth/login", json={"email": "demo@trust.local", "password": "j"}
-    )
+    signed_in = client.post("/api/auth/login", json={"email": "demo@trust.local", "password": "j"})
     assert signed_in.status_code == 200, signed_in.text
     emails = [_address(f"invite-{index}") for index in range(DEFAULT_MAX_ATTEMPTS + 1)]
     _delete_invites(emails)
