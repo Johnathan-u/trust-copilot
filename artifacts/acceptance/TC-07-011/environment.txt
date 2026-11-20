@@ -1,0 +1,4 @@
+SHA: 2647b2e2ad5ef575ee354a3c9c92a8bd16680dbc
+Python: 3.12.3
+pytest: 9.1.1
+PostgreSQL: not used (this test opens no database)
