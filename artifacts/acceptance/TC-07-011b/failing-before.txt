@@ -1,0 +1,55 @@
+F                                                                        [100%]
+=================================== FAILURES ===================================
+_________ test_log_redaction_hides_canaries_and_keeps_correlation_ids __________
+tests/release/test_log_redaction.py:255: in test_log_redaction_hides_canaries_and_keeps_correlation_ids
+    assert not leaked, "diagnostics still contain " + ", ".join(leaked) + "\n" + shipped
+E   AssertionError: diagnostics still contain filename, reset link, cookie, source sentence
+E     upload_rejected workspace_id=42 filename=../TC07011B-CANARY-filename-do-not-log.pdf reason=size_exceeded max_bytes=8
+E     (42, '../TC07011B-CANARY-filename-do-not-log.pdf', 8)
+E     {"ts": "2026-11-20 16:26:39,362", "level": "WARNING", "logger": "app.services.file_service", "msg": "upload_rejected workspace_id=42 filename=../TC07011B-CANARY-filename-do-not-log.pdf reason=size_exceeded max_bytes=8", "request_id": "req-tc07011b-correlation"}
+E     upload_rejected workspace_id=42 filename=TC07011B-CANARY-filename-do-not-log.exe ext=.exe reason=extension_not_allowed allowed=['.doc', '.docx', '.pdf', '.txt', '.xls', '.xlsx']
+E     (42, 'TC07011B-CANARY-filename-do-not-log.exe', '.exe', ['.doc', '.docx', '.pdf', '.txt', '.xls', '.xlsx'])
+E     {"ts": "2026-11-20 16:26:39,363", "level": "WARNING", "logger": "app.services.file_service", "msg": "upload_rejected workspace_id=42 filename=TC07011B-CANARY-filename-do-not-log.exe ext=.exe reason=extension_not_allowed allowed=['.doc', '.docx', '.pdf', '.txt', '.xls', '.xlsx']", "request_id": "req-tc07011b-correlation"}
+E     upload_rejected trust_request workspace_id=42 request_id=9001 filename=TC07011B-CANARY-filename-do-not-log.pdf reason=size_exceeded
+E     (42, 9001, 'TC07011B-CANARY-filename-do-not-log.pdf')
+E     {"ts": "2026-11-20 16:26:39,363", "level": "WARNING", "logger": "app.services.file_service", "msg": "upload_rejected trust_request workspace_id=42 request_id=9001 filename=TC07011B-CANARY-filename-do-not-log.pdf reason=size_exceeded", "request_id": "req-tc07011b-correlation"}
+E     upload_rejected trust_request workspace_id=42 filename=TC07011B-CANARY-filename-do-not-log.exe ext=.exe reason=extension_not_allowed
+E     (42, 'TC07011B-CANARY-filename-do-not-log.exe', '.exe')
+E     {"ts": "2026-11-20 16:26:39,363", "level": "WARNING", "logger": "app.services.file_service", "msg": "upload_rejected trust_request workspace_id=42 filename=TC07011B-CANARY-filename-do-not-log.exe ext=.exe reason=extension_not_allowed", "request_id": "req-tc07011b-correlation"}
+E     mapping_llm_classify: JSON parse failed: TC07011B-CANARY-source-sentence-do-not-log
+E     ('TC07011B-CANARY-source-sentence-do-not-log',)
+E     {"ts": "2026-11-20 16:26:39,363", "level": "WARNING", "logger": "app.services.mapping_llm_classify", "msg": "mapping_llm_classify: JSON parse failed: TC07011B-CANARY-source-sentence-do-not-log", "request_id": "req-tc07011b-correlation"}
+E     mapping_llm_classify: LLM call failed attempt 0: TC07011B-CANARY-source-sentence-do-not-log
+E     (0, RuntimeError('TC07011B-CANARY-source-sentence-do-not-log'))
+E     {"ts": "2026-11-20 16:26:39,363", "level": "WARNING", "logger": "app.services.mapping_llm_classify", "msg": "mapping_llm_classify: LLM call failed attempt 0: TC07011B-CANARY-source-sentence-do-not-log", "request_id": "req-tc07011b-correlation"}
+E     mapping_llm_classify: LLM call failed attempt 1: TC07011B-CANARY-source-sentence-do-not-log
+E     (1, RuntimeError('TC07011B-CANARY-source-sentence-do-not-log'))
+E     {"ts": "2026-11-20 16:26:39,363", "level": "WARNING", "logger": "app.services.mapping_llm_classify", "msg": "mapping_llm_classify: LLM call failed attempt 1: TC07011B-CANARY-source-sentence-do-not-log", "request_id": "req-tc07011b-correlation"}
+E     Password reset email was not accepted for delivery to person@example.com (user_id=7)
+E     ('person@example.com', 7)
+E     {"ts": "2026-11-20 16:26:39,470", "level": "WARNING", "logger": "app.api.routes.auth", "msg": "Password reset email was not accepted for delivery to person@example.com (user_id=7)", "request_id": "req-tc07011b-correlation"}
+E     Password reset email send failed for person@example.com (user_id=7, RuntimeError)
+E     ('person@example.com', 7, 'RuntimeError')
+E     {"ts": "2026-11-20 16:26:39,471", "level": "WARNING", "logger": "app.api.routes.auth", "msg": "Password reset email send failed for person@example.com (user_id=7, RuntimeError)", "request_id": "req-tc07011b-correlation"}
+E     {"ts": "2026-11-20 16:26:39,471", "level": "WARNING", "logger": "tc.tc07011b.correlation", "msg": "Cookie: tc_session=[REDACTED] https://app.example/reset-password?token=[REDACTED]", "request_id": "req-tc07011b-correlation", "job_id": 77011}
+E     pipeline job_start {'event': 'job_start', 'job_id': 77011, 'workspace_id': 42, 'kind': 'index'}
+E     {'event': 'job_start', 'job_id': 77011, 'workspace_id': 42, 'kind': 'index'}
+E     {"ts": "2026-11-20 16:26:39,471", "level": "INFO", "logger": "trustcopilot.pipeline", "msg": "pipeline job_start {'event': 'job_start', 'job_id': 77011, 'workspace_id': 42, 'kind': 'index'}", "request_id": "req-tc07011b-correlation"}
+E     Cookie: tc_session=[REDACTED] https://app.example/reset-password?token=[REDACTED]
+E     {"message": "operator notice", "request": {"url": "https://app.example/upload?filename=TC07011B-CANARY-filename-do-not-log.pdf", "headers": {"X-Request-ID": "req-tc07011b-correlation"}, "data": {"filename": "TC07011B-CANARY-filename-do-not-log.pdf", "text": "TC07011B-CANARY-source-sentence-do-not-log"}}, "extra": {"filename": "TC07011B-CANARY-filename-do-not-log.docx", "request_id": "req-tc07011b-correlation", "job_id": 77011}, "exception": {"values": [{"type": "RuntimeError", "value": "provider rejected Cookie: tc_session=TC07011B-CANARY-cookie https://app.example/reset-password?token=TC07011B-CANARY-reset-link"}]}}
+E   assert not ['filename', 'reset link', 'cookie', 'source sentence']
+------------------------------ Captured log call -------------------------------
+WARNING  app.services.file_service:file_service.py:67 upload_rejected workspace_id=42 filename=../TC07011B-CANARY-filename-do-not-log.pdf reason=size_exceeded max_bytes=8
+WARNING  app.services.file_service:file_service.py:79 upload_rejected workspace_id=42 filename=TC07011B-CANARY-filename-do-not-log.exe ext=.exe reason=extension_not_allowed allowed=['.doc', '.docx', '.pdf', '.txt', '.xls', '.xlsx']
+WARNING  app.services.file_service:file_service.py:106 upload_rejected trust_request workspace_id=42 request_id=9001 filename=TC07011B-CANARY-filename-do-not-log.pdf reason=size_exceeded
+WARNING  app.services.file_service:file_service.py:118 upload_rejected trust_request workspace_id=42 filename=TC07011B-CANARY-filename-do-not-log.exe ext=.exe reason=extension_not_allowed
+WARNING  app.services.mapping_llm_classify:mapping_llm_classify.py:99 mapping_llm_classify: JSON parse failed: TC07011B-CANARY-source-sentence-do-not-log
+WARNING  app.services.mapping_llm_classify:mapping_llm_classify.py:189 mapping_llm_classify: LLM call failed attempt 0: TC07011B-CANARY-source-sentence-do-not-log
+WARNING  app.services.mapping_llm_classify:mapping_llm_classify.py:189 mapping_llm_classify: LLM call failed attempt 1: TC07011B-CANARY-source-sentence-do-not-log
+WARNING  app.api.routes.auth:auth.py:710 Password reset email was not accepted for delivery to person@example.com (user_id=7)
+WARNING  app.api.routes.auth:auth.py:702 Password reset email send failed for person@example.com (user_id=7, RuntimeError)
+WARNING  tc.tc07011b.correlation:test_log_redaction.py:189 Cookie: tc_session=TC07011B-CANARY-cookie https://app.example/reset-password?token=TC07011B-CANARY-reset-link
+INFO     trustcopilot.pipeline:pipeline_logging.py:39 pipeline job_start {'event': 'job_start', 'job_id': 77011, 'workspace_id': 42, 'kind': 'index'}
+=========================== short test summary info ============================
+FAILED tests/release/test_log_redaction.py::test_log_redaction_hides_canaries_and_keeps_correlation_ids
+1 failed in 0.69s
