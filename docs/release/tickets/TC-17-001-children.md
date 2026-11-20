@@ -2,7 +2,7 @@
 
 Registered from the review of #307 ([comment 6998922136](https://github.com/Johnathan-u/trust-copilot/pull/307#issuecomment-6998922136)). These follow-ups are not blockers. They do not change the parent verdict, and they are not counted toward DONE. None of them is accepted.
 
-The sentence in the implementation commit said the tracker was not edited there. Records revision 35 registers TC-17-001a, TC-17-001b, TC-17-001c, TC-17-001d, TC-17-001e, TC-17-001f, TC-17-001h and TC-17-001i. TC-17-001g is the owner question. It is parked and is not a follow-up. Each registered child has its own file in this directory.
+The sentence in the implementation commit said the tracker was not edited there. Records revision 35 registers TC-17-001a, TC-17-001b, TC-17-001c, TC-17-001d, TC-17-001e, TC-17-001f, TC-17-001h and TC-17-001i. TC-17-001g is the owner question. It is parked and is not a follow-up. Each registered child has its own file in this directory. Records revision 36 closes TC-17-001b (#313) and TC-17-001h (#312). Those closes are not counted toward DONE.
 
 ## TC-17-001a — Public reads require a published version
 
@@ -12,7 +12,7 @@ A public read still returns the live columns when `published` is 1 and `publishe
 
 ## TC-17-001b — Acknowledging must not publish
 
-Open. P1 security. Registered. See [TC-17-001b.md](TC-17-001b.md).
+Closed by #313 (`030550e86bf3393f480cc0802fcfde68233457ed`). P1 security. Registered. See [TC-17-001b.md](TC-17-001b.md).
 
 `_viewable_version` publishes the current draft when a legacy published policy has no version. A member acknowledge should return 400 instead of calling `approve_current_draft`.
 
@@ -48,7 +48,7 @@ Create still defaults to `published: 1`, and the dashboard sends `published: 1` 
 
 ## TC-17-001h — Revoke comparison
 
-Open. P1. Registered. See [TC-17-001h.md](TC-17-001h.md). The fix is on `fix/TC-17-001-remaining-gaps` at `4a6251035996dad1b861074d1bfe1113989e1841` and missed the #307 squash.
+Closed by #312 (`32cc730e508b78af9c5039c1ee4a88bb29e970e6`). P1. Registered. See [TC-17-001h.md](TC-17-001h.md). The branch commit `4a6251035996dad1b861074d1bfe1113989e1841` missed the #307 squash. #312 landed the comparison on master.
 
 `revoke_acknowledgments` should compare the kept version with `IS DISTINCT FROM` so a null version id is not treated as equal.
 
