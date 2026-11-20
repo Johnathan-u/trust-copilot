@@ -4,6 +4,8 @@ Registered from the review of #307 ([comment 6998922136](https://github.com/John
 
 The sentence in the implementation commit said the tracker was not edited there. Records revision 35 registers TC-17-001a, TC-17-001b, TC-17-001c, TC-17-001d, TC-17-001e, TC-17-001f, TC-17-001h and TC-17-001i. TC-17-001g was the owner question and was not registered then. Each registered child has its own file in this directory. Records revision 36 closes TC-17-001b (#313) and TC-17-001h (#312). Records revision 37 closes TC-17-001a (#321) and registers TC-17-001g, the publish-on-save child for review item 7, after the owner ruling on #85 comment 7045436640. The docs do not define a TC-17-001j ticket, so that id is not registered. Those closes are not counted toward DONE.
 
+Records revision 38 registers TC-17-001j (P2). Claude's [#321 comment 7046162106](https://github.com/Johnathan-u/trust-copilot/pull/321#issuecomment-7046162106) is the deal-room and controls live-title item, and [#85 comment 7046827762](https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-7046827762) says to register it. TC-17-001e stays the earlier P1 item. TC-17-001g stays the publish-on-save child. The new child does not change the parent's DONE record and is not counted toward DONE.
+
 ## TC-17-001a — Public reads require a published version
 
 Closed by #321 (`0279867f9af52d568a2ed834532967459306d521`). P1. Registered. See [TC-17-001a.md](TC-17-001a.md).
@@ -57,3 +59,9 @@ Closed by #312 (`32cc730e508b78af9c5039c1ee4a88bb29e970e6`). P1. Registered. See
 Open. P2. Registered as a note. See [TC-17-001i.md](TC-17-001i.md). Internal only.
 
 A signed-in member can read the draft with a get that omits `workspace_id`, or with the workspace list. Note that, or restrict it. It is not the public read.
+
+## TC-17-001j — Deal room and published controls use the live title
+
+Open. P2. Registered in records revision 38. See [TC-17-001j.md](TC-17-001j.md).
+
+Claude's #321 comment 7046162106. #85 comment 7046827762 says to register this id. `deal_room_service` and `get_published_controls` list `published == 1` articles by their live title. Both reads are behind a session. They should use the published version's title and skip rows that have no version. TC-17-001e remains the earlier P1 item about the draft title and slug. This child does not change the parent's DONE record.
