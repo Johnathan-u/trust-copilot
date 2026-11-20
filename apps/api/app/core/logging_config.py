@@ -81,6 +81,78 @@ def redact(text: str) -> str:
     return text
 
 
+# TC-07-011a: monitoring events must not carry filenames, reset links, or source bodies.
+_FILENAME_KEY = re.compile(r"(?i)(?:^|[._-])file[_-]?name$")
+_FILENAME_PAIR = re.compile(r"(?i)((?:^|[?&\s\"'])file[_-]?name=)[^&\s\"']+")
+_FILENAME_JSON = re.compile(r'(?i)("file[_-]?name"\s*:\s*")[^"]*')
+_RESET_LINK = re.compile(
+    r"(?i)((?:https?://[^\s\"']*)?/reset-password\?[^\"'\s]*?\btoken=)[^\"'\s&]+"
+)
+_REQUEST_BODY_KEYS = frozenset({"data", "cookies", "body"})
+
+
+def _scrub_monitoring_text(text: str) -> str:
+    """Mask secrets, reset-link tokens, and filename pairs in one monitoring string."""
+    text = redact(text)
+    text = _RESET_LINK.sub(r"\1[REDACTED]", text)
+    text = _FILENAME_PAIR.sub(r"\1[REDACTED]", text)
+    text = _FILENAME_JSON.sub(r"\1[REDACTED]", text)
+    return text
+
+
+def _drop_authorization(headers: Any) -> Any:
+    if isinstance(headers, dict):
+        return {key: value for key, value in headers.items() if str(key).lower() != "authorization"}
+    if isinstance(headers, list):
+        kept = []
+        for item in headers:
+            if isinstance(item, (list, tuple)) and item and str(item[0]).lower() == "authorization":
+                continue
+            kept.append(item)
+        return kept
+    return headers
+
+
+def _scrub_monitoring_inplace(obj: Any) -> None:
+    if isinstance(obj, dict):
+        for key, value in list(obj.items()):
+            if (
+                isinstance(key, str)
+                and _SENSITIVE_KEY.search(key)
+                and value not in (None, "", 0, False)
+            ):
+                obj[key] = "[REDACTED]"
+            elif isinstance(key, str) and isinstance(value, str) and _FILENAME_KEY.search(key):
+                obj[key] = "[REDACTED]"
+            elif isinstance(value, str):
+                obj[key] = _scrub_monitoring_text(value)
+            elif isinstance(value, (dict, list)):
+                _scrub_monitoring_inplace(value)
+    elif isinstance(obj, list):
+        for index, value in enumerate(obj):
+            if isinstance(value, str):
+                obj[index] = _scrub_monitoring_text(value)
+            elif isinstance(value, (dict, list)):
+                _scrub_monitoring_inplace(value)
+
+
+def scrub_sentry_event(event: dict) -> dict:
+    """Remove filenames, reset links, and request bodies from a Sentry event.
+
+    Cookies and the Authorization header are dropped. ``request_id`` and ``job_id``
+    are left as they are. The event is updated in place and returned.
+    """
+    request = event.get("request")
+    if isinstance(request, dict):
+        for key in list(request):
+            if str(key).lower() in _REQUEST_BODY_KEYS:
+                request.pop(key, None)
+        if "headers" in request:
+            request["headers"] = _drop_authorization(request.get("headers"))
+    _scrub_monitoring_inplace(event)
+    return event
+
+
 def _redact_value(key: str, value: Any) -> Any:
     if _SENSITIVE_KEY.search(key) and value not in (None, "", 0, False):
         return "[REDACTED]"
