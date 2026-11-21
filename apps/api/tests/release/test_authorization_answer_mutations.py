@@ -25,12 +25,22 @@ def target_ids(store, action, name=None):
     return store["questions"][name], store["answers"].get(name)
 
 
-def send(client, action, qid, aid, body=None):
-    body = {"text": "Human replacement", "status": "approved"} if body is None else body
+def loaded_revision(store, aid):
+    """The updated_at an editor would have loaded for this answer."""
+    row = store["db"].get(Answer, aid) if aid is not None else None
+    if row is None or row.updated_at is None:
+        return None
+    return row.updated_at.isoformat()
+
+
+def send(client, action, qid, aid, body=None, revision=None):
+    payload = {"text": "Human replacement", "status": "approved"} if body is None else dict(body)
     if action == "patch":
-        return client.patch(f"/api/answers/{aid}", json=body)
+        if revision is not None:
+            payload["updated_at"] = revision
+        return client.patch(f"/api/answers/{aid}", json=payload)
     suffix = "/" if action.endswith("-slash") else ""
-    return client.post(f"/api/answers{suffix}", json={"question_id": qid, **body})
+    return client.post(f"/api/answers{suffix}", json={"question_id": qid, **payload})
 
 
 def denied(store, client, action, qid, aid, status, detail=None):
@@ -140,7 +150,13 @@ def test_available_parent_preserves_success_and_other_answer_fields(
     qid, aid = target_ids(s, action)
     with s["client"](role) as client:
         before = snapshot(s["db"])
-        response = send(client, action, qid, aid)
+        response = send(
+            client,
+            action,
+            qid,
+            aid,
+            revision=loaded_revision(s, aid) if action == "patch" else None,
+        )
     assert response.status_code == 200
     assert not response.history and "location" not in response.headers
     row = s["db"].query(Answer).filter(Answer.question_id == qid).one()
@@ -210,7 +226,7 @@ def test_patch_preserves_null_empty_text_status_and_outcome_semantics(
     qid, aid = target_ids(s, "patch")
     with s["client"]() as client:
         before = snapshot(s["db"])
-        response = send(client, "patch", qid, aid, body)
+        response = send(client, "patch", qid, aid, body, revision=loaded_revision(s, aid))
     assert response.status_code == 200
     assert response.json() == {
         "id": aid,
@@ -226,7 +242,13 @@ def test_retry_rechecks_parent_after_a_successful_write(answers_authority, actio
     s = answers_authority
     qid, aid = target_ids(s, action)
     with s["client"]() as client:
-        response = send(client, action, qid, aid)
+        response = send(
+            client,
+            action,
+            qid,
+            aid,
+            revision=loaded_revision(s, aid) if action == "patch" else None,
+        )
         assert response.status_code == 200
         parent_id = s["db"].get(Question, qid).questionnaire_id
         s["db"].get(Questionnaire, parent_id).deleted_at = datetime.now(timezone.utc)

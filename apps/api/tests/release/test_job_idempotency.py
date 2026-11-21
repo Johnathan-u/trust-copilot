@@ -1810,7 +1810,12 @@ def test_human_edited_llm_error_placeholder_survives_generation_retry(db, fake_a
     db.commit()
     patch_text = "Reviewer rewrote the failed answer."
     post_text = "Reviewer posted a replacement."
-    update_answer(patch_row.id, AnswerUpdate(text=patch_text), auth, db)
+    update_answer(
+        patch_row.id,
+        AnswerUpdate(text=patch_text, updated_at=patch_row.updated_at.isoformat()),
+        auth,
+        db,
+    )
     create_answer(
         AnswerCreate(question_id=q_post.id, text=post_text, status="insufficient_evidence"),
         auth,

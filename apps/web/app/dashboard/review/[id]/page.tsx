@@ -45,6 +45,7 @@ import {
   generationPhaseMessage,
   isInsufficientAnswerText,
 } from '@/lib/ai-review-copy'
+import { answerRowAfterSave, answerSaveRequest } from '@/lib/answer-save'
 
 const AUTOSAVE_DELAY_MS = 1500
 
@@ -66,6 +67,8 @@ type Question = {
     citations?: string
     outcome_code?: string | null
     outcome?: ApiErrorInfo | null
+    /** Loaded `updated_at`. The save sends this back as the row revision. */
+    updated_at?: string | null
     draft_revision?: {
       id: number
       revision_number: number
@@ -148,7 +151,12 @@ export default function ReviewPage() {
   const pendingSaves = useRef<
     Map<
       number,
-      { text: string; answerId?: number; timer: ReturnType<typeof setTimeout> }
+      {
+        text: string
+        answerId?: number
+        updatedAt?: string | null
+        timer: ReturnType<typeof setTimeout>
+      }
     >
   >(new Map())
   const genPollStartedAt = useRef<number | null>(null)
@@ -273,7 +281,8 @@ export default function ReviewPage() {
       questionId: number,
       text: string,
       answerId?: number,
-      status?: string
+      status?: string,
+      updatedAt?: string | null
     ) => {
       const seq = (saveSeq.current.get(questionId) ?? 0) + 1
       saveSeq.current.set(questionId, seq)
@@ -283,31 +292,30 @@ export default function ReviewPage() {
         [questionId]: approvingRow ? 'approving' : 'saving',
       }))
       const stillCurrent = () => saveSeq.current.get(questionId) === seq
-      const base = `/api/answers`
-      const payload: { text?: string; status?: string } = { text }
-      if (status) payload.status = status
+      const request = answerSaveRequest({
+        questionId,
+        text,
+        answerId,
+        status,
+        updatedAt,
+      })
       try {
-        const response = answerId
-          ? await fetch(`${base}/${answerId}`, {
-              method: 'PATCH',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify(payload),
-              credentials: 'include',
-            })
-          : await fetch(base, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                question_id: questionId,
-                text,
-                status: status || 'draft',
-              }),
-              credentials: 'include',
-            })
+        const response = await fetch(request.url, {
+          method: request.method,
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(request.body),
+          credentials: 'include',
+        })
         if (!stillCurrent()) return
         const data = await response.json().catch(() => null)
         if (!stillCurrent()) return
-        if (!response.ok) {
+        const outcome = answerRowAfterSave({
+          httpStatus: response.status,
+          typedText: text,
+          approving: approvingRow,
+        })
+        if (!outcome.saved) {
+          // 403, 409, and 500 leave outcome.text in the field and the phase unset.
           clearSavePhase(questionId)
           const notice = mutationFailureNotice(
             response.status,
@@ -319,7 +327,7 @@ export default function ReviewPage() {
         }
         setSavePhase((prev) => ({
           ...prev,
-          [questionId]: approvingRow ? 'approved' : 'saved',
+          [questionId]: outcome.phase,
         }))
         refresh()
       } catch {
@@ -332,7 +340,12 @@ export default function ReviewPage() {
   )
 
   const scheduleSave = useCallback(
-    (questionId: number, text: string, answerId?: number) => {
+    (
+      questionId: number,
+      text: string,
+      answerId?: number,
+      updatedAt?: string | null
+    ) => {
       const prev = pendingSaves.current.get(questionId)
       if (prev?.timer) clearTimeout(prev.timer)
       saveSeq.current.set(
@@ -341,10 +354,10 @@ export default function ReviewPage() {
       )
       clearSavePhase(questionId)
       const timer = setTimeout(() => {
-        saveAnswer(questionId, text, answerId)
+        saveAnswer(questionId, text, answerId, undefined, updatedAt)
         pendingSaves.current.delete(questionId)
       }, AUTOSAVE_DELAY_MS)
-      pendingSaves.current.set(questionId, { text, answerId, timer })
+      pendingSaves.current.set(questionId, { text, answerId, updatedAt, timer })
     },
     [clearSavePhase, saveAnswer]
   )
@@ -374,7 +387,8 @@ export default function ReviewPage() {
       const prev = pendingSaves.current.get(q.id)
       if (prev?.timer) clearTimeout(prev.timer)
       pendingSaves.current.delete(q.id)
-      if (q.answer?.id || v) saveAnswer(q.id, v, q.answer?.id)
+      if (q.answer?.id || v)
+        saveAnswer(q.id, v, q.answer?.id, undefined, q.answer?.updated_at)
     },
     [saveAnswer]
   )
@@ -1355,7 +1369,12 @@ export default function ReviewPage() {
                                 onChange={(e) => {
                                   const v = e.target.value
                                   updateAnswerText(q.id, v)
-                                  scheduleSave(q.id, v.trim(), q.answer?.id)
+                                  scheduleSave(
+                                    q.id,
+                                    v.trim(),
+                                    q.answer?.id,
+                                    q.answer?.updated_at
+                                  )
                                 }}
                                 placeholder="Edit draft answer…"
                               />
@@ -1413,7 +1432,8 @@ export default function ReviewPage() {
                                 q.id,
                                 q.answer?.text ?? '',
                                 q.answer?.id,
-                                e.target.value
+                                e.target.value,
+                                q.answer?.updated_at
                               )
                             }
                           >
