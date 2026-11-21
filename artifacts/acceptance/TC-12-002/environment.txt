@@ -5,8 +5,8 @@ TC_REQUIRE_DB=1 python -m pytest tests/release/test_answer_revisions.py -q
 Failing-before product code: ba789896951bc60e8f67842c87f67a0b50fbe988 (origin/master).
 The new test module was on disk. Answer PATCH and the questionnaire answer payload were the master versions.
 
-Passing-after product code: the head of branch tc/TC-12-002-answer-revision.
-Log: passing-after.txt. 2 passed, exit 0, no skip.
+Passing-after product code: f503e194f226c696c6f55be71aa28f4d5f80874b.
+That commit is the product change. Log: passing-after.txt. 2 passed, exit 0, no skip.
 
 Web command from apps/web:
 

@@ -26,7 +26,7 @@ Product code was master `ba789896951bc60e8f67842c87f67a0b50fbe988`. The test fil
 
 ## Passing after
 
-Same command on this branch's head. Log: `passing-after.txt`.
+Same command on product code `f503e194f226c696c6f55be71aa28f4d5f80874b`. Log: `passing-after.txt`.
 
 2 passed, exit 0, no skip. The stale client receives 409 and the stored text stays the winner's. A later questionnaire read returns that text. A save with no `updated_at` is 409 and the row stays.
 
