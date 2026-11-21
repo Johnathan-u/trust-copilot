@@ -1,0 +1,376 @@
+{
+  "version": 1,
+  "subject_tag_category": "topic",
+  "frameworks": [
+    {
+      "key": "soc2",
+      "label": "SOC 2",
+      "aliases": [
+        "SOC2",
+        "SOC-2",
+        "SOC II",
+        "SOC 2 Type II",
+        "SOC 2 Type 2"
+      ]
+    },
+    {
+      "key": "hipaa",
+      "label": "HIPAA",
+      "aliases": [
+        "HIPAA Security Rule"
+      ]
+    },
+    {
+      "key": "iso27001",
+      "label": "ISO 27001",
+      "aliases": [
+        "ISO27001",
+        "ISO/IEC 27001",
+        "ISO/IEC27001",
+        "ISO-27001"
+      ]
+    },
+    {
+      "key": "nist_csf_2_0",
+      "label": "NIST CSF 2.0",
+      "aliases": [
+        "NIST CSF 2",
+        "NIST CSF",
+        "CSF 2.0",
+        "NIST Cybersecurity Framework",
+        "NIST_CSF_2_0"
+      ]
+    },
+    {
+      "key": "nist_sp_800_53",
+      "label": "NIST SP 800-53",
+      "aliases": [
+        "NIST 800-53",
+        "NIST SP 800-53 Rev. 5",
+        "NIST SP 800-53 Rev 5",
+        "800-53",
+        "NIST 800-53r5",
+        "NIST_SP_800_53_REV5"
+      ]
+    },
+    {
+      "key": "nist_sp_800_171",
+      "label": "NIST SP 800-171",
+      "aliases": [
+        "NIST 800-171",
+        "NIST SP 800-171 Rev. 3",
+        "NIST SP 800-171 Rev 3",
+        "NIST 800-171r3",
+        "NIST_SP_800_171_REV3"
+      ]
+    },
+    {
+      "key": "nist",
+      "label": "NIST",
+      "aliases": []
+    },
+    {
+      "key": "sig",
+      "label": "SIG",
+      "aliases": [
+        "Shared Assessments SIG",
+        "Shared Assessments"
+      ]
+    },
+    {
+      "key": "caiq",
+      "label": "CAIQ",
+      "aliases": [
+        "CSA CAIQ"
+      ]
+    },
+    {
+      "key": "hitrust",
+      "label": "HITRUST",
+      "aliases": [
+        "HITRUST CSF"
+      ]
+    },
+    {
+      "key": "pci_dss",
+      "label": "PCI DSS",
+      "aliases": [
+        "PCI-DSS",
+        "PCIDSS",
+        "PCI DSS v4"
+      ]
+    },
+    {
+      "key": "gdpr",
+      "label": "GDPR",
+      "aliases": [
+        "EU GDPR",
+        "General Data Protection Regulation"
+      ]
+    }
+  ],
+  "subjects": [
+    {
+      "key": "access_control",
+      "label": "Access Control",
+      "aliases": [
+        "access management",
+        "access restriction",
+        "least privilege"
+      ]
+    },
+    {
+      "key": "application_security",
+      "label": "Application Security",
+      "aliases": [
+        "appsec",
+        "secure coding"
+      ]
+    },
+    {
+      "key": "asset_inventory",
+      "label": "Asset Inventory",
+      "aliases": [
+        "cmdb",
+        "asset management"
+      ]
+    },
+    {
+      "key": "audit_assurance",
+      "label": "Audit & Assurance",
+      "aliases": [
+        "attestation"
+      ]
+    },
+    {
+      "key": "availability_resilience",
+      "label": "Availability & Resilience",
+      "aliases": [
+        "high availability",
+        "fault tolerance"
+      ]
+    },
+    {
+      "key": "backup_restore",
+      "label": "Backup & Restore",
+      "aliases": [
+        "backup",
+        "restore"
+      ]
+    },
+    {
+      "key": "breach_notification",
+      "label": "Breach Notification",
+      "aliases": [
+        "breach reporting"
+      ]
+    },
+    {
+      "key": "business_continuity",
+      "label": "Business Continuity",
+      "aliases": [
+        "bcp",
+        "business continuity planning"
+      ]
+    },
+    {
+      "key": "change_management",
+      "label": "Change Management",
+      "aliases": [
+        "change control"
+      ]
+    },
+    {
+      "key": "cloud_security",
+      "label": "Cloud Security",
+      "aliases": [
+        "shared responsibility"
+      ]
+    },
+    {
+      "key": "confidentiality_data_protection",
+      "label": "Confidentiality & Data Protection",
+      "aliases": [
+        "sensitive data handling"
+      ]
+    },
+    {
+      "key": "configuration_management",
+      "label": "Configuration Management",
+      "aliases": [
+        "hardening",
+        "baseline configuration"
+      ]
+    },
+    {
+      "key": "cryptography",
+      "label": "Cryptography",
+      "aliases": [
+        "key management",
+        "kms",
+        "tls"
+      ]
+    },
+    {
+      "key": "data_classification",
+      "label": "Data Classification",
+      "aliases": [
+        "information classification"
+      ]
+    },
+    {
+      "key": "data_protection",
+      "label": "Data Protection",
+      "aliases": []
+    },
+    {
+      "key": "data_retention_disposal",
+      "label": "Data Retention & Disposal",
+      "aliases": [
+        "records retention",
+        "media sanitization"
+      ]
+    },
+    {
+      "key": "encryption",
+      "label": "Encryption",
+      "aliases": []
+    },
+    {
+      "key": "endpoint_security",
+      "label": "Endpoint Security",
+      "aliases": [
+        "edr",
+        "mdm"
+      ]
+    },
+    {
+      "key": "governance_risk_compliance",
+      "label": "Governance & Risk Compliance",
+      "aliases": [
+        "grc"
+      ]
+    },
+    {
+      "key": "hr_security",
+      "label": "HR Security",
+      "aliases": [
+        "human resources security"
+      ]
+    },
+    {
+      "key": "identity_authentication",
+      "label": "Identity & Authentication",
+      "aliases": [
+        "iam",
+        "mfa",
+        "sso"
+      ]
+    },
+    {
+      "key": "incident_response",
+      "label": "Incident Response",
+      "aliases": [
+        "incident management"
+      ]
+    },
+    {
+      "key": "integrity_monitoring",
+      "label": "Integrity Monitoring",
+      "aliases": [
+        "file integrity"
+      ]
+    },
+    {
+      "key": "logging",
+      "label": "Logging",
+      "aliases": []
+    },
+    {
+      "key": "logging_monitoring",
+      "label": "Logging & Monitoring",
+      "aliases": [
+        "siem",
+        "audit logs"
+      ]
+    },
+    {
+      "key": "network_security",
+      "label": "Network Security",
+      "aliases": [
+        "network segmentation"
+      ]
+    },
+    {
+      "key": "physical_security",
+      "label": "Physical Security",
+      "aliases": [
+        "facility security"
+      ]
+    },
+    {
+      "key": "privacy_data_governance",
+      "label": "Privacy & Data Governance",
+      "aliases": [
+        "privacy",
+        "data subject rights"
+      ]
+    },
+    {
+      "key": "privileged_access",
+      "label": "Privileged Access",
+      "aliases": [
+        "pam",
+        "privileged access management"
+      ]
+    },
+    {
+      "key": "risk_management",
+      "label": "Risk Management",
+      "aliases": []
+    },
+    {
+      "key": "secure_sdlc",
+      "label": "Secure SDLC",
+      "aliases": [
+        "sdlc",
+        "devsecops",
+        "secure development"
+      ]
+    },
+    {
+      "key": "supply_chain_risk",
+      "label": "Supply Chain Risk",
+      "aliases": [
+        "software supply chain"
+      ]
+    },
+    {
+      "key": "vendor_management",
+      "label": "Vendor Management",
+      "aliases": []
+    },
+    {
+      "key": "vendor_risk",
+      "label": "Vendor Risk",
+      "aliases": [
+        "third party risk"
+      ]
+    },
+    {
+      "key": "workforce_security_training",
+      "label": "Workforce Security & Training",
+      "aliases": [
+        "security awareness",
+        "security training"
+      ]
+    },
+    {
+      "key": "ai_governance",
+      "label": "AI Governance",
+      "aliases": [
+        "model governance"
+      ]
+    }
+  ]
+}

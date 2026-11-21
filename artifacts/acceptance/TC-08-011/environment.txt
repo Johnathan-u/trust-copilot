@@ -1,0 +1,19 @@
+Command from apps/api:
+
+TC_REQUIRE_DB=1 python -m pytest tests/release/test_tag_vocabulary.py -q
+
+Failing-before product code: 75437e34e570a16500cbea5e5c24f9f8578f47f3 (origin/master).
+The new test module and docs/product/tag-vocabulary.json were on disk. apps/api/app/services/tag_vocabulary.py and apps/api/app/data/tag_vocabulary.json were not. tag_service.py and app/api/routes/tags.py were the master versions.
+
+Passing-after product code: 6769a2c86f8c0d674fa9b6d70c65a03ef506707c.
+
+Python 3.12.3
+pytest 9.1.1
+SQLAlchemy 2.0.55
+Alembic 1.20.1
+PostgreSQL 16.15 (Ubuntu 16.15-0ubuntu0.24.04.1)
+pgvector 0.6.0
+Database trustcopilot_test on localhost:5432
+Alembic head applied by the test session: tc04007b_rate_buckets
+
+No migration in this change. No customer content. Fixtures are synthetic.
