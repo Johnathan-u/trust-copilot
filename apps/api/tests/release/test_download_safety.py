@@ -31,7 +31,7 @@ from app.models import (
     WorkspaceMember,
 )
 from app.services.export_service import XLSX_MEDIA_TYPE
-from app.services.storage import BucketNotPrivate, StorageClient
+from app.services.storage import BucketNotPrivate, PrivacyAttestationRejected, StorageClient
 
 _REAL_ENSURE = StorageClient.ensure_buckets
 
@@ -625,3 +625,50 @@ def test_development_bucket_without_a_block_api_can_stay_private(monkeypatch):
     buckets.add("export-bucket")
     _storage_client(buckets).ensure_buckets()
     assert "get_object" not in buckets.calls
+
+
+def _production_store(monkeypatch, *, attestation: str | None, public_policy: bool = False):
+    _use_real_ensure(monkeypatch)
+    monkeypatch.setenv("APP_ENV", "production")
+    if attestation is None:
+        monkeypatch.delenv("S3_PRIVACY_ATTESTATION", raising=False)
+    else:
+        monkeypatch.setenv("S3_PRIVACY_ATTESTATION", attestation)
+    buckets = _Buckets()
+    buckets.block_unsupported = True
+    buckets.add("raw-bucket", public_policy=public_policy)
+    buckets.add("export-bucket", public_policy=public_policy)
+    return buckets
+
+
+def test_production_unsupported_block_without_attestation_is_refused(monkeypatch):
+    buckets = _production_store(monkeypatch, attestation=None)
+    with pytest.raises(BucketNotPrivate, match="could not be confirmed"):
+        _storage_client(buckets).ensure_buckets()
+
+
+def test_production_unsupported_block_with_attestation_starts(monkeypatch, caplog):
+    buckets = _production_store(monkeypatch, attestation="unsupported-store-private")
+    with caplog.at_level(logging.WARNING, logger="app.services.storage"):
+        _storage_client(buckets).ensure_buckets()
+    text = caplog.text
+    assert "bucket=raw-bucket" in text
+    assert "bucket=export-bucket" in text
+    assert "check=public-access-block" in text
+    assert "Principal" not in text
+    assert "AllUsers" not in text
+    assert "get_object" not in buckets.calls
+
+
+def test_attestation_does_not_hide_a_public_policy(monkeypatch):
+    buckets = _production_store(
+        monkeypatch, attestation="unsupported-store-private", public_policy=True
+    )
+    with pytest.raises(BucketNotPrivate, match="not private"):
+        _storage_client(buckets).ensure_buckets()
+
+
+def test_unknown_privacy_attestation_is_refused(monkeypatch):
+    buckets = _production_store(monkeypatch, attestation="not-a-real-value")
+    with pytest.raises(PrivacyAttestationRejected, match="unsupported-store-private"):
+        _storage_client(buckets).ensure_buckets()

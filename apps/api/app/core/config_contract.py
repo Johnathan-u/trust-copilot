@@ -29,6 +29,8 @@ from app.core.session import MIN_PRODUCTION_SECRET_LENGTH, is_production_env, is
 
 ALLOWED_APP_ENVS = ("development", "test", "staging", "production")
 MIN_PRODUCTION_PASSWORD_LENGTH = 16
+# The only non-empty value accepted for S3_PRIVACY_ATTESTATION.
+S3_PRIVACY_ATTESTATION_VALUE = "unsupported-store-private"
 
 # Publicly documented vendor/tutorial defaults and placeholder words. Compared case-insensitively.
 # These are NOT secrets of this project; the scanner classifies them as review-only.
@@ -275,6 +277,18 @@ CONTRACT: tuple[ConfigVar, ...] = (
         False,
         "us-east-1",
         "SigV4 signing region of the S3 service (set it for AWS S3 outside us-east-1).",
+    ),
+    ConfigVar(
+        "S3_PRIVACY_ATTESTATION",
+        "enum(unsupported-store-private)",
+        "optional",
+        False,
+        "unset",
+        "Set only when the object store cannot answer ACL, bucket policy, or "
+        "public-access-block (for example Cloudflare R2) and the operator has "
+        "confirmed both buckets are private. The only accepted value is "
+        "unsupported-store-private. Any other non-empty value refuses startup. "
+        "A supported call that shows public access still refuses startup.",
     ),
     ConfigVar(
         "APP_BASE_URL",
@@ -933,7 +947,12 @@ _INT_VARS = {
 }
 _FLOAT_VARS = ("OPENAI_TEMPERATURE", "MAPPING_RERANK_MIN_CONFIDENCE")
 # Crash Settings() at import if malformed, so they are errors in every environment.
-_ALWAYS_FATAL_TYPES = ("MAX_UPLOAD_BYTES", "EXPORT_ANSWER_COL_OFFSET", "OIDC_DEFAULT_WORKSPACE_ID")
+_ALWAYS_FATAL_TYPES = (
+    "MAX_UPLOAD_BYTES",
+    "EXPORT_ANSWER_COL_OFFSET",
+    "OIDC_DEFAULT_WORKSPACE_ID",
+    "S3_PRIVACY_ATTESTATION",
+)
 
 
 @dataclass(frozen=True)
@@ -1165,6 +1184,25 @@ def _note_placeholder_only_variants(
             problems.append(Problem(name, "is a known default or placeholder", fatal=fatal))
 
 
+def _check_privacy_attestation(env: Mapping[str, str], problems: list[Problem]) -> None:
+    """Refuse any non-empty attestation other than the one accepted value.
+
+    Unset and blank are the default: production still proves the bucket is private.
+    The accepted value does not appear in the problem text as a secret; it is the
+    only value this setting accepts.
+    """
+    raw = env.get("S3_PRIVACY_ATTESTATION")
+    if raw is None or not raw.strip():
+        return
+    if raw.strip() != S3_PRIVACY_ATTESTATION_VALUE:
+        problems.append(
+            Problem(
+                "S3_PRIVACY_ATTESTATION",
+                "must be unset or unsupported-store-private",
+            )
+        )
+
+
 def validate_environment(env: Mapping[str, str] | None = None) -> list[Problem]:
     """Return contract problems for ``env`` (defaults to os.environ). Never includes values.
 
@@ -1178,6 +1216,7 @@ def validate_environment(env: Mapping[str, str] | None = None) -> list[Problem]:
 
     if app_env not in ALLOWED_APP_ENVS:
         problems.append(Problem("APP_ENV", f"must be one of {', '.join(ALLOWED_APP_ENVS)}"))
+    _check_privacy_attestation(env, problems)
 
     # Types (fatal where Settings() would crash; otherwise fatal only in production).
     for name, minimum in _INT_VARS.items():

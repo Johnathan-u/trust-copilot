@@ -1,8 +1,10 @@
 # Private downloads
 
 Operator notes for original, export, and trust-request attachment bytes (TC-07-008).
-No new setting is added. Production is still `APP_ENV=production`. Do not paste a
-storage key, a bucket policy, an ACL, or object bytes into a ticket or a log excerpt.
+Production is still `APP_ENV=production`. The one optional setting is
+`S3_PRIVACY_ATTESTATION`, and the only accepted value is
+`unsupported-store-private`. Do not paste a storage key, a bucket policy, an
+ACL, or object bytes into a ticket or a log excerpt.
 
 ## What the browser receives
 
@@ -46,11 +48,19 @@ not rewritten.
 The check refuses a bucket whose ACL grants `AllUsers` or `AuthenticatedUsers`,
 or whose bucket policy allows any action to a public principal. In production
 the public-access block must have `BlockPublicAcls`, `IgnorePublicAcls`,
-`BlockPublicPolicy`, and `RestrictPublicBuckets` all true. If production cannot
-read that answer, startup fails. The exception is `BucketNotPrivate`. The API
-does not log it and continue. The message is either `Object storage bucket is
-not private` or `Object storage bucket privacy could not be confirmed`. It does
-not include the policy document or the ACL.
+`BlockPublicPolicy`, and `RestrictPublicBuckets` all true when the store can
+answer that call. If production cannot read an ACL, policy, or
+public-access-block answer, startup fails. The exception is `BucketNotPrivate`.
+The API does not log it and continue. The message is either `Object storage
+bucket is not private` or `Object storage bucket privacy could not be
+confirmed`. It does not include the policy document or the ACL.
+
+`S3_PRIVACY_ATTESTATION=unsupported-store-private` is the only exception. It
+skips a call the store reports as unsupported, and it logs one warning per
+skipped call with the bucket name and the check name (`acl`, `policy`, or
+`public-access-block`). It does not skip a call the store answers. A public ACL
+or a public policy still refuses startup. Any other non-empty value refuses
+startup. Leave the variable unset on AWS S3.
 
 Outside production, a store that does not implement the public-access block API
 is accepted when the ACL is private and there is no public policy. A public ACL
@@ -66,6 +76,32 @@ When startup raises `BucketNotPrivate`:
 4. Start the API again.
 
 No migration is involved. Do not change a table to make a download succeed.
+
+## Cloudflare R2
+
+`docker-compose.prod.yml` names Cloudflare R2 as a supported production store.
+R2 does not implement bucket ACLs or `GetPublicAccessBlock`. Without the
+attestation, those unsupported calls stop the API. Confirm the buckets are
+private in R2 itself before you set the variable.
+
+Do this for the raw bucket and again for the export bucket:
+
+1. In the Cloudflare dashboard, open R2 and select the bucket.
+2. Open the bucket's public access settings. The r2.dev development URL must be
+   disabled. That URL looks like `https://pub-<id>.r2.dev`. If it is enabled,
+   anyone who has the URL can read objects. Turn it off.
+3. Remove any custom domain on that bucket that serves objects to the public.
+   A custom domain is another way to publish the bucket. A private bucket has
+   none.
+4. Leave the bucket with public access off. R2 has no public ACL switch to
+   clear; the r2.dev URL and custom domains are the public paths.
+
+Only after both buckets pass those checks, set
+`S3_PRIVACY_ATTESTATION=unsupported-store-private` in the production
+environment and start the API again. The startup warning names each bucket and
+the check it skipped. It does not include a policy or an ACL. If a later call
+the store does answer shows a public policy, startup still fails. Any other
+value of the variable refuses to start.
 
 ## Check
 

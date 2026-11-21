@@ -153,6 +153,9 @@ class Settings:
         self.s3_use_ssl: bool = os.getenv("S3_USE_SSL", "false").lower() == "true"
         # TC-01-003: SigV4 signing region of the external S3 service (AWS S3 outside us-east-1 needs it).
         self.s3_region: str = os.getenv("S3_REGION", "").strip() or "us-east-1"
+        # Blank unless the operator attests an S3-compatible store cannot answer
+        # the privacy calls. Validated by the configuration contract.
+        self.s3_privacy_attestation: str = os.getenv("S3_PRIVACY_ATTESTATION", "").strip()
 
         self.openai_api_key: str | None = os.getenv("OPENAI_API_KEY")
         # Completion model and tone controls for answer generation

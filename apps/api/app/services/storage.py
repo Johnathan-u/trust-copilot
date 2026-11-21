@@ -2,6 +2,8 @@
 
 import io  # noqa: F401
 import json
+import logging
+import os
 from typing import BinaryIO
 
 import boto3
@@ -9,10 +11,20 @@ from botocore.config import Config
 from botocore.exceptions import ClientError
 
 from app.core.config import get_settings
+from app.core.config_contract import S3_PRIVACY_ATTESTATION_VALUE
+
+logger = logging.getLogger(__name__)
 
 
 class BucketNotPrivate(RuntimeError):
     """The object bucket is public, or production could not prove it is private."""
+
+
+class PrivacyAttestationRejected(RuntimeError):
+    """S3_PRIVACY_ATTESTATION is set to a value other than the one accepted value."""
+
+
+_SKIPPED = object()
 
 
 # Group URIs that grant the bucket to anyone, or to any signed-in AWS account.
@@ -104,6 +116,30 @@ def _acl_is_public(acl: object) -> bool:
     return False
 
 
+def privacy_attestation_skips_unsupported() -> bool:
+    """True only for the one accepted attestation. Any other non-empty value is refused.
+
+    Unset keeps today's production behaviour: an unsupported privacy call fails closed.
+    """
+    value = os.getenv("S3_PRIVACY_ATTESTATION", "").strip()
+    if not value:
+        return False
+    if value != S3_PRIVACY_ATTESTATION_VALUE:
+        raise PrivacyAttestationRejected(
+            "S3_PRIVACY_ATTESTATION must be unset or unsupported-store-private"
+        )
+    return True
+
+
+def _warn_skipped(bucket: str, check: str) -> None:
+    """One warning per skipped check. The text names the bucket and the check only."""
+    logger.warning(
+        "object storage privacy check skipped bucket=%s check=%s",
+        bucket,
+        check,
+    )
+
+
 def _block_is_complete(config: object) -> bool:
     if not isinstance(config, dict):
         return False
@@ -138,17 +174,21 @@ class StorageClient:
     def ensure_buckets(self) -> None:
         """Create a missing bucket as private, and refuse a bucket that is public.
 
-        An existing bucket is checked and not rewritten. Production also requires
-        every public-access block flag. A store that cannot answer the check
-        fails closed in production. The error text does not include a policy or ACL.
+        An existing bucket is checked and not rewritten. Production requires a
+        full public-access block when the store can answer. An unsupported ACL,
+        policy, or public-access-block call fails closed unless
+        S3_PRIVACY_ATTESTATION is unsupported-store-private, which skips only
+        that call. A supported call that shows public access still fails. The
+        error and the skip warning do not include a policy or an ACL.
         """
         from app.core.session import is_production_env
 
+        attested = privacy_attestation_skips_unsupported()
         production = is_production_env()
         for bucket in (self._bucket_raw, self._bucket_exports):
-            self._ensure_one_bucket(bucket, production=production)
+            self._ensure_one_bucket(bucket, production=production, attested=attested)
 
-    def _ensure_one_bucket(self, bucket: str, *, production: bool) -> None:
+    def _ensure_one_bucket(self, bucket: str, *, production: bool, attested: bool) -> None:
         try:
             self._client.head_bucket(Bucket=bucket)
         except ClientError as exc:
@@ -158,7 +198,7 @@ class StorageClient:
                 raise
             self._client.create_bucket(Bucket=bucket)
             self._apply_private_defaults(bucket, production=production)
-        self._require_private(bucket, production=production)
+        self._require_private(bucket, production=production, attested=attested)
 
     def _apply_private_defaults(self, bucket: str, *, production: bool) -> None:
         self._client.put_bucket_acl(Bucket=bucket, ACL="private")
@@ -173,27 +213,47 @@ class StorageClient:
                     raise BucketNotPrivate(_UNCONFIRMED) from exc
                 raise
 
-    def _require_private(self, bucket: str, *, production: bool) -> None:
+    def _require_private(self, bucket: str, *, production: bool, attested: bool) -> None:
         try:
-            acl = self._client.get_bucket_acl(Bucket=bucket)
-            public_policy = self._policy_is_public(bucket, production=production)
-            block = self._public_access_block(bucket, production=production)
+            acl = self._read_acl(bucket, production=production, attested=attested)
+            public_policy = self._policy_is_public(bucket, production=production, attested=attested)
+            block = self._public_access_block(bucket, production=production, attested=attested)
         except BucketNotPrivate:
             raise
         except ClientError as exc:
             if production:
                 raise BucketNotPrivate(_UNCONFIRMED) from exc
             raise
-        if _acl_is_public(acl) or public_policy or (production and block is not True):
+        if acl is not _SKIPPED and _acl_is_public(acl):
+            raise BucketNotPrivate(_NOT_PRIVATE)
+        if public_policy is not _SKIPPED and public_policy:
+            raise BucketNotPrivate(_NOT_PRIVATE)
+        if production and block is not _SKIPPED and block is not True:
             raise BucketNotPrivate(_NOT_PRIVATE)
 
-    def _policy_is_public(self, bucket: str, *, production: bool) -> bool:
+    def _read_acl(self, bucket: str, *, production: bool, attested: bool):
+        try:
+            return self._client.get_bucket_acl(Bucket=bucket)
+        except ClientError as exc:
+            if _error_code(exc) not in _UNSUPPORTED:
+                raise
+            if production and attested:
+                _warn_skipped(bucket, "acl")
+                return _SKIPPED
+            if production:
+                raise BucketNotPrivate(_UNCONFIRMED) from exc
+            raise
+
+    def _policy_is_public(self, bucket: str, *, production: bool, attested: bool):
         try:
             raw = self._client.get_bucket_policy(Bucket=bucket).get("Policy")
         except ClientError as exc:
             code = _error_code(exc)
             if code in _MISSING_POLICY:
                 return False
+            if code in _UNSUPPORTED and production and attested:
+                _warn_skipped(bucket, "policy")
+                return _SKIPPED
             if code in _UNSUPPORTED and not production:
                 return False
             if production:
@@ -201,13 +261,16 @@ class StorageClient:
             raise
         return _policy_allows_public(raw)
 
-    def _public_access_block(self, bucket: str, *, production: bool) -> bool | None:
+    def _public_access_block(self, bucket: str, *, production: bool, attested: bool):
         try:
             payload = self._client.get_public_access_block(Bucket=bucket)
         except ClientError as exc:
             code = _error_code(exc)
             if code in _MISSING_BLOCK:
                 return None
+            if code in _UNSUPPORTED and production and attested:
+                _warn_skipped(bucket, "public-access-block")
+                return _SKIPPED
             if code in _UNSUPPORTED and not production:
                 return None
             if production:
