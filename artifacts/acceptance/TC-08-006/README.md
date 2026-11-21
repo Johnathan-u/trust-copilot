@@ -20,7 +20,7 @@ Product code was master `ad5135af1b7bd4fac19a364724130dc3ca0609f6`. The test fil
 
 ## Passing after
 
-Same command on this change. Log: `passing-after.txt`.
+Same command on product code `f558c8f8850248172cd0d1984f35dbb0cd11bb17`. Log: `passing-after.txt`.
 
 10 passed, exit 0, no skip. Approval records the supporting document id on the citation. Archive keeps the approved text and status and sets `support_stale`. Restore does not clear it. Export is 409 and lists the included answer id, and an insufficient-evidence row is not listed. A new revision approved against an active document exports. A replaced storage key is stale and blocks export. The worker raises `export_support_stale` before it reads the file. Accept-suggested returns 409 for a soft-deleted, not-indexed, or replaced chunk and still accepts an eligible chunk.
 

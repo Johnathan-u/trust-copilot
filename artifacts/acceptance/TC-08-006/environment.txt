@@ -5,7 +5,7 @@ TC_REQUIRE_DB=1 python -m pytest tests/release/test_archive_revalidation.py -q
 Failing-before product code: ad5135af1b7bd4fac19a364724130dc3ca0609f6 (origin/master).
 The new test module was on disk. Answer binding, the stale marker, export blocking, and the accept-chunk eligibility check were the master versions.
 
-Passing-after product code: this change. The SHA is the commit that adds apps/api/app/services/answer_support.py.
+Passing-after product code: f558c8f8850248172cd0d1984f35dbb0cd11bb17.
 
 Python 3.12.3
 pytest 9.1.1
