@@ -1,0 +1,10 @@
+{
+  "audited_sha": "c20f949161ac12a619b396d30904448ffd74d532",
+  "baseline_revision": "075",
+  "head_count": 1,
+  "head_revision": "tc20050_crm_pipeline_sync",
+  "kind": "fresh_schema",
+  "ok": true,
+  "revision_after": "tc20050_crm_pipeline_sync",
+  "upgrade_exit_code": 0
+}

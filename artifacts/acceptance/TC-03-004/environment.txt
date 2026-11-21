@@ -1,0 +1,33 @@
+Command from apps/api:
+
+TC_REQUIRE_DB=1 python -m pytest tests/release/test_migration_baseline.py -q
+
+Failing-before product code: b50d6760579fb8e0f487f6555e602e902d3b7055 (origin/master).
+apps/api/tests/release/test_migration_baseline.py was not in that tree.
+Exit 4. No tests ran. Log: failing-before.txt.
+
+Passing-after product code: a0aed61d49ae3484158811a96bfb987c7774a5ab.
+Exit 0. 4 passed, 0 failed, 0 skipped. Log: passing-after.txt.
+
+Python 3.12.3
+pytest 9.1.1
+SQLAlchemy 2.0.55
+Alembic 1.20.1
+PostgreSQL 16.15 (Ubuntu 16.15-0ubuntu0.24.04.1)
+pgvector 0.6.0
+
+Side databases on 127.0.0.1:5432, created from the suite URL and dropped after each test.
+Names: tc_migration_baseline_fresh_test, tc_migration_baseline_snapshot_test, tc_migration_baseline_partial_test.
+The password is the local development default and is not copied here.
+The shared suite database was not migrated by these tests.
+
+No migration in this change. Fixtures are synthetic. No customer document.
+The reports do not contain a connection URL.
+
+CI's build job uses Python 3.11. This local log is Python 3.12.3. CI run ids are not recorded here.
+
+Qualify report: backfill-report.json
+Fresh report: fresh-upgrade.json
+Head discovered at runtime: tc20050_crm_pipeline_sync (head_count 1). Not hardcoded in the script.
+Baseline revision: 075
+Audited SHA: c20f949161ac12a619b396d30904448ffd74d532
