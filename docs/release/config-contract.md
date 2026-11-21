@@ -110,7 +110,7 @@ Source of truth: `apps/api/app/core/config_contract.py`. The table between the m
 |---|---|---|
 | Public hostname with DNS + TLS (Caddy ACME, `infra/caddy/Caddyfile.production`) | APP_BASE_URL, FRONTEND_URL, TRUSTED_ORIGINS | https, non-localhost |
 | PostgreSQL 16 + pgvector with a generated password | DATABASE_URL, POSTGRES_USER, POSTGRES_PASSWORD | explicit DSN, strong non-default password |
-| Private external S3-compatible storage (e.g. AWS S3, Cloudflare R2) with dedicated keys and pre-created buckets; no bundled object store in production (TC-01-003) | S3_ENDPOINT, S3_REGION, S3_ACCESS_KEY, S3_SECRET_KEY, S3_BUCKET_RAW, S3_BUCKET_EXPORTS | endpoint and keys required, non-default |
+| Private external S3-compatible storage (e.g. AWS S3, Cloudflare R2) with dedicated keys and pre-created buckets; no bundled object store in production (TC-01-003) | S3_ENDPOINT, S3_REGION, S3_ACCESS_KEY, S3_SECRET_KEY, S3_BUCKET_RAW, S3_BUCKET_EXPORTS, S3_PRIVACY_ATTESTATION | endpoint and keys required, non-default. `S3_PRIVACY_ATTESTATION` is optional and accepts only `unsupported-store-private`; any other non-empty value refuses startup |
 | Model provider account | OPENAI_API_KEY | required, not placeholder |
 | SMTP relay account (only if email delivery is enabled) | EMAIL_DELIVERY_ENABLED, SMTP_HOST, SMTP_FROM (+ SMTP_USER/SMTP_PASSWORD) | required when EMAIL_DELIVERY_ENABLED is true (or unset with SMTP_HOST set); not needed for Slack-only / no-email deploys, which suppress all email |
 | Optional identity providers / billing | OAUTH_*, OIDC_*, IDME_*, STRIPE_* | id/secret pairs complete, secrets not placeholders; webhook secret(s) with Stripe key |
@@ -143,6 +143,7 @@ In the Entra app registration, open Token configuration and add the optional cla
 | `S3_BUCKET_EXPORTS` | string | optional | no | trustcopilot-exports | Bucket for exports. |  |
 | `S3_USE_SSL` | bool | optional | no | false | Use TLS to the S3 endpoint. |  |
 | `S3_REGION` | string | optional | no | us-east-1 | SigV4 signing region of the S3 service (set it for AWS S3 outside us-east-1). |  |
+| `S3_PRIVACY_ATTESTATION` | enum(unsupported-store-private) | optional | no | unset | Set only when the object store cannot answer ACL, bucket policy, or public-access-block (for example Cloudflare R2) and the operator has confirmed both buckets are private. The only accepted value is unsupported-store-private. Any other non-empty value refuses startup. A supported call that shows public access still refuses startup. |  |
 | `APP_BASE_URL` | https URL | required | no | http://localhost:3000 | Public base URL; OAuth redirect URIs are built from it. Production: https, not localhost. | DNS record + TLS (Caddy ACME) for the public hostname |
 | `FRONTEND_URL` | https URL | required | no | http://localhost:3000 | Frontend origin for CORS/CSRF. Production: https, not localhost. |  |
 | `TRUSTED_ORIGINS` | comma-separated origins | optional | no | FRONTEND_URL (+ localhost variants outside production) | CORS/CSRF allow-list. Production: every entry must be an https origin. |  |
