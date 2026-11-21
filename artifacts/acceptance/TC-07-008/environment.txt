@@ -6,8 +6,9 @@ Failing-before product code: c44e53b9386d5564781170b19238f7e37dd288ef (origin/ma
 apps/api/tests/release/test_download_safety.py was not in that tree.
 Exit 4. No tests ran. Log: failing-before.txt.
 
-Passing-after product code: dd40eae4e06db8a2034578606c365d88c0736047.
-Exit 0. 10 passed, 0 failed, 0 skipped. 24 warnings from datetime.utcnow deprecation in existing models. Log: passing-after.txt.
+Passing-after product code: 963dc491f672fdb217986d74862a96d89230a6b8.
+Exit 0. 14 passed, 0 failed, 0 skipped. 24 warnings from datetime.utcnow deprecation in existing models. Log: passing-after.txt.
+The four added tests cover an unsupported public-access-block call with no attestation, the same call with S3_PRIVACY_ATTESTATION=unsupported-store-private, that attestation together with a public policy, and an unknown attestation value.
 
 Python 3.12.3
 pytest 9.1.1

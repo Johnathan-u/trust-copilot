@@ -22,9 +22,9 @@ Exit 4. No tests ran. Pytest reported `file or directory not found`.
 
 ## Passing after
 
-Same command on product code `dd40eae4e06db8a2034578606c365d88c0736047`. Log: `passing-after.txt`.
+Same command on product code `963dc491f672fdb217986d74862a96d89230a6b8`. Log: `passing-after.txt`.
 
-10 passed, 0 failed, 0 skipped, exit 0. Pytest also printed 24 warnings from `datetime.utcnow` in existing models. A current session downloads the document, the hashed export, the legacy export, and the attachment with `nosniff` and without a presigned URL. An expired session and a revoked workspace session are 401 on all four. A cross-workspace id is 404 and the body has no foreign bytes. A stored key with `..`, a leading slash, or a `..` segment is 400 before any storage read. An archived document is not streamed. A public bucket is refused. Production must prove the public-access block. A new bucket is created private. A public bucket is not swallowed at startup.
+14 passed, 0 failed, 0 skipped, exit 0. Pytest also printed 24 warnings from `datetime.utcnow` in existing models. A current session downloads the document, the hashed export, the legacy export, and the attachment with `nosniff` and without a presigned URL. An expired session and a revoked workspace session are 401 on all four. A cross-workspace id is 404 and the body has no foreign bytes. A stored key with `..`, a leading slash, or a `..` segment is 400 before any storage read. An archived document is not streamed. A public bucket is refused. Production must prove the public-access block. A new bucket is created private. A public bucket is not swallowed at startup. An unsupported public-access-block call with no attestation is refused. The same call with `S3_PRIVACY_ATTESTATION=unsupported-store-private` starts and logs the bucket and the skipped check. That attestation does not hide a public policy. Any other non-empty value of the setting is refused.
 
 ## Environment
 
