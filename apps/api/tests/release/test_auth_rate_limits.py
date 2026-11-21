@@ -229,8 +229,10 @@ def test_rate_limit_bucket_migration_downgrade_and_upgrade(migrated_db: bool) ->
         assert result.returncode == 0, result.stderr[-2000:]
         return result.stdout
 
-    assert mod.revision in alembic("heads")
-    alembic("downgrade", "-1")
+    # Later revisions may sit on this one, so relative "-1" is no longer this file.
+    # Downgrade to its parent to drop the table, then return to the current head.
+    assert mod.down_revision
+    alembic("downgrade", mod.down_revision)
     try:
         engine.dispose()
         assert "rate_limit_buckets" not in inspect(engine).get_table_names()
