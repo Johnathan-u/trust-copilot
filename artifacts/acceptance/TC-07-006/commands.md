@@ -30,4 +30,6 @@ Exit 0. 8 passed. The file had 5 tests before this change.
 
 Also run from `apps/api` after the change, same interpreter and database: `tests/release/test_upload_stream.py`, `tests/test_tc07011a_upload_log_redaction.py`, `tests/release/test_workbook_preflight.py`. 38 passed, exit 0.
 
+Green run tree: `7e6bec9a511c94e80b57d16533200499d537695d`.
+
 This file does not record a CI run id.

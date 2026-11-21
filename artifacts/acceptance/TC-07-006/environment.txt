@@ -5,3 +5,4 @@ pgvector 0.6.0
 Node v22.23.4 (local web unit test; CI image is Node 24)
 Database: trustcopilot_test at 127.0.0.1:5432
 Base SHA (red run): ba789896951bc60e8f67842c87f67a0b50fbe988
+Tested commit (green run): 7e6bec9a511c94e80b57d16533200499d537695d
