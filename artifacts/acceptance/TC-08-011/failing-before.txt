@@ -1,0 +1,56 @@
+.FF.FFFFFFF                                                              [100%]
+=================================== FAILURES ===================================
+E   AssertionError: assert False
+     +  where False = is_file()
+     +    where is_file = PosixPath('/agent/repos/trust-copilot/apps/api/app/data/tag_vocabulary.json').is_file
+/agent/repos/trust-copilot/apps/api/tests/release/test_tag_vocabulary.py:159: AssertionError: assert False
+E   AssertionError: assert 'SOC II' == 'soc2'
+
+      - soc2
+      + SOC II
+/agent/repos/trust-copilot/apps/api/tests/release/test_tag_vocabulary.py:186: AssertionError: assert 'SOC II' == 'soc2'
+E   AssertionError: assert ['SOC 2'] == ['GDPR']
+
+      At index 0 diff: 'SOC 2' != 'GDPR'
+      Use -v to get more diff
+/agent/repos/trust-copilot/apps/api/tests/release/test_tag_vocabulary.py:237: AssertionError: assert ['SOC 2'] == ['GDPR']
+E   AssertionError: assert 'approved' == 'stale'
+
+      - stale
+      + approved
+/agent/repos/trust-copilot/apps/api/tests/release/test_tag_vocabulary.py:123: AssertionError: assert 'approved' == 'stale'
+E   AssertionError: assert 'approved' == 'stale'
+
+      - stale
+      + approved
+/agent/repos/trust-copilot/apps/api/tests/release/test_tag_vocabulary.py:123: AssertionError: assert 'approved' == 'stale'
+E   AssertionError: assert 'approved' == 'stale'
+
+      - stale
+      + approved
+/agent/repos/trust-copilot/apps/api/tests/release/test_tag_vocabulary.py:123: AssertionError: assert 'approved' == 'stale'
+E   assert None is not None
+/agent/repos/trust-copilot/apps/api/tests/release/test_tag_vocabulary.py:325: assert None is not None
+E   assert 404 == 403
+     +  where 404 = <Response [404 Not Found]>.status_code
+/agent/repos/trust-copilot/apps/api/tests/release/test_tag_vocabulary.py:357: assert 404 == 403
+E   assert 404 == 200
+     +  where 404 = <Response [404 Not Found]>.status_code
+/agent/repos/trust-copilot/apps/api/tests/release/test_tag_vocabulary.py:374: assert 404 == 200
+=============================== warnings summary ===============================
+tests/release/test_tag_vocabulary.py: 24 warnings
+  /tmp/tc-api-venv/lib/python3.12/site-packages/sqlalchemy/sql/schema.py:3627: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    return util.wrap_callable(lambda ctx: fn(), fn)  # type: ignore
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/release/test_tag_vocabulary.py::test_runtime_catalog_matches_the_docs_file
+FAILED tests/release/test_tag_vocabulary.py::test_alias_resolves_to_one_canonical_tag
+FAILED tests/release/test_tag_vocabulary.py::test_suggestions_stay_out_of_document_json_until_approved
+FAILED tests/release/test_tag_vocabulary.py::test_add_invalidates_only_mappings_for_that_tag
+FAILED tests/release/test_tag_vocabulary.py::test_approve_invalidates_only_mappings_for_that_tag
+FAILED tests/release/test_tag_vocabulary.py::test_remove_invalidates_only_mappings_for_that_tag
+FAILED tests/release/test_tag_vocabulary.py::test_relabel_invalidates_only_mappings_for_that_tag
+FAILED tests/release/test_tag_vocabulary.py::test_editor_cannot_relabel - ass...
+FAILED tests/release/test_tag_vocabulary.py::test_reviewer_relabel_stays_inside_the_workspace
+9 failed, 2 passed, 24 warnings in 2.03s

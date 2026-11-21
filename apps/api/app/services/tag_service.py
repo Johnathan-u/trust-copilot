@@ -6,81 +6,23 @@ import json
 import logging
 import re  # noqa: F401
 import time
+from datetime import datetime, timezone
 from typing import Sequence  # noqa: F401
 
 from sqlalchemy.orm import Session
 
 from app.core.config import get_settings
-from app.models.tag import DocumentTag, Tag, TAG_CATEGORIES, TAG_SOURCES  # noqa: F401
+from app.models.tag import TAG_CATEGORIES, TAG_SOURCES, DocumentTag, Tag  # noqa: F401
+from app.services.tag_vocabulary import canonical_label, canonical_tag_key, catalog_entries
 
 logger = logging.getLogger(__name__)
 
 # ── Predefined system tag catalog ───────────────────────────────────────────
+# Framework and subject keys, labels, and aliases live in
+# docs/product/tag-vocabulary.json. Document types are not part of that alias
+# contract. Subject rows are stored with category "topic".
 
-SYSTEM_TAGS: list[dict] = [
-    # Frameworks
-    {"category": "framework", "key": "soc2", "label": "SOC 2"},
-    {"category": "framework", "key": "hipaa", "label": "HIPAA"},
-    {"category": "framework", "key": "iso27001", "label": "ISO 27001"},
-    {"category": "framework", "key": "nist_csf_2_0", "label": "NIST CSF 2.0"},
-    {"category": "framework", "key": "nist_sp_800_53", "label": "NIST SP 800-53"},
-    {"category": "framework", "key": "nist_sp_800_171", "label": "NIST SP 800-171"},
-    {"category": "framework", "key": "nist", "label": "NIST"},
-    {"category": "framework", "key": "sig", "label": "SIG"},
-    {"category": "framework", "key": "caiq", "label": "CAIQ"},
-    {"category": "framework", "key": "hitrust", "label": "HITRUST"},
-    {"category": "framework", "key": "pci_dss", "label": "PCI DSS"},
-    {"category": "framework", "key": "gdpr", "label": "GDPR"},
-    # Topics (aligned with framework_metadata SUBJECTS)
-    {"category": "topic", "key": "access_control", "label": "Access Control"},
-    {"category": "topic", "key": "application_security", "label": "Application Security"},
-    {"category": "topic", "key": "asset_inventory", "label": "Asset Inventory"},
-    {"category": "topic", "key": "audit_assurance", "label": "Audit & Assurance"},
-    {"category": "topic", "key": "availability_resilience", "label": "Availability & Resilience"},
-    {"category": "topic", "key": "backup_restore", "label": "Backup & Restore"},
-    {"category": "topic", "key": "breach_notification", "label": "Breach Notification"},
-    {"category": "topic", "key": "business_continuity", "label": "Business Continuity"},
-    {"category": "topic", "key": "change_management", "label": "Change Management"},
-    {"category": "topic", "key": "cloud_security", "label": "Cloud Security"},
-    {
-        "category": "topic",
-        "key": "confidentiality_data_protection",
-        "label": "Confidentiality & Data Protection",
-    },
-    {"category": "topic", "key": "configuration_management", "label": "Configuration Management"},
-    {"category": "topic", "key": "cryptography", "label": "Cryptography"},
-    {"category": "topic", "key": "data_classification", "label": "Data Classification"},
-    {"category": "topic", "key": "data_protection", "label": "Data Protection"},
-    {"category": "topic", "key": "data_retention_disposal", "label": "Data Retention & Disposal"},
-    {"category": "topic", "key": "encryption", "label": "Encryption"},
-    {"category": "topic", "key": "endpoint_security", "label": "Endpoint Security"},
-    {
-        "category": "topic",
-        "key": "governance_risk_compliance",
-        "label": "Governance & Risk Compliance",
-    },
-    {"category": "topic", "key": "hr_security", "label": "HR Security"},
-    {"category": "topic", "key": "identity_authentication", "label": "Identity & Authentication"},
-    {"category": "topic", "key": "incident_response", "label": "Incident Response"},
-    {"category": "topic", "key": "integrity_monitoring", "label": "Integrity Monitoring"},
-    {"category": "topic", "key": "logging", "label": "Logging"},
-    {"category": "topic", "key": "logging_monitoring", "label": "Logging & Monitoring"},
-    {"category": "topic", "key": "network_security", "label": "Network Security"},
-    {"category": "topic", "key": "physical_security", "label": "Physical Security"},
-    {"category": "topic", "key": "privacy_data_governance", "label": "Privacy & Data Governance"},
-    {"category": "topic", "key": "privileged_access", "label": "Privileged Access"},
-    {"category": "topic", "key": "risk_management", "label": "Risk Management"},
-    {"category": "topic", "key": "secure_sdlc", "label": "Secure SDLC"},
-    {"category": "topic", "key": "supply_chain_risk", "label": "Supply Chain Risk"},
-    {"category": "topic", "key": "vendor_management", "label": "Vendor Management"},
-    {"category": "topic", "key": "vendor_risk", "label": "Vendor Risk"},
-    {
-        "category": "topic",
-        "key": "workforce_security_training",
-        "label": "Workforce Security & Training",
-    },
-    {"category": "topic", "key": "ai_governance", "label": "AI Governance"},
-    # Document types
+_DOCUMENT_TYPE_TAGS: list[dict] = [
     {"category": "document_type", "key": "policy", "label": "Policy"},
     {"category": "document_type", "key": "procedure", "label": "Procedure"},
     {"category": "document_type", "key": "report", "label": "Report"},
@@ -88,6 +30,8 @@ SYSTEM_TAGS: list[dict] = [
     {"category": "document_type", "key": "training_record", "label": "Training Record"},
     {"category": "document_type", "key": "certificate", "label": "Certificate"},
 ]
+
+SYSTEM_TAGS: list[dict] = [*catalog_entries(), *_DOCUMENT_TYPE_TAGS]
 
 
 def ensure_system_tags(db: Session) -> None:
@@ -131,7 +75,13 @@ def ensure_system_tags(db: Session) -> None:
 def resolve_tag(
     db: Session, category: str, key: str, workspace_id: int | None = None
 ) -> Tag | None:
-    """Look up a tag by category+key.  Checks workspace-scoped first, then global system tags."""
+    """Look up a tag by category+key.  Checks workspace-scoped first, then global system tags.
+
+    A framework or subject alias resolves to the canonical catalog key before the lookup.
+    """
+    canonical = canonical_tag_key(category, key)
+    if canonical is not None:
+        key = canonical
     if workspace_id is not None:
         tag = (
             db.query(Tag)
@@ -150,11 +100,23 @@ def resolve_tag(
 def get_or_create_tag(
     db: Session, category: str, key: str, label: str, workspace_id: int | None = None
 ) -> Tag:
-    """Return existing tag or create a new one."""
+    """Return existing tag or create a new one.
+
+    An alias of a catalog key returns that canonical tag and does not insert a second key.
+    """
+    canonical = canonical_tag_key(category, key)
+    if canonical is not None:
+        key = canonical
+        label = canonical_label(category, key) or label
     tag = resolve_tag(db, category, key, workspace_id)
     if tag:
         return tag
-    tag = Tag(workspace_id=workspace_id, category=category, key=key, label=label, is_system=False)
+    if canonical is not None:
+        tag = Tag(workspace_id=None, category=category, key=key, label=label, is_system=True)
+    else:
+        tag = Tag(
+            workspace_id=workspace_id, category=category, key=key, label=label, is_system=False
+        )
     db.add(tag)
     db.flush()
     return tag
@@ -186,6 +148,9 @@ def assign_tag(
         if user_id:
             existing.created_by_user_id = user_id
         db.flush()
+        _sync_assignment_label(db, document_id, tag_id, approved)
+        invalidate_derived_mappings(db, tag_id=tag_id, workspace_id=workspace_id)
+        db.flush()
         return existing
     dt = DocumentTag(
         workspace_id=workspace_id,
@@ -197,6 +162,9 @@ def assign_tag(
         created_by_user_id=user_id,
     )
     db.add(dt)
+    db.flush()
+    _sync_assignment_label(db, document_id, tag_id, approved)
+    invalidate_derived_mappings(db, tag_id=tag_id, workspace_id=workspace_id)
     db.flush()
     return dt
 
@@ -214,7 +182,12 @@ def remove_tag(db: Session, document_id: int, tag_id: int, workspace_id: int) ->
     )
     if not dt:
         return False
+    was_approved = bool(dt.approved)
     db.delete(dt)
+    db.flush()
+    if was_approved:
+        _sync_assignment_label(db, document_id, tag_id, False)
+    invalidate_derived_mappings(db, tag_id=tag_id, workspace_id=workspace_id)
     db.flush()
     return True
 
@@ -231,6 +204,9 @@ def approve_tag(
     if not dt:
         return None
     dt.approved = approved
+    db.flush()
+    _sync_assignment_label(db, dt.document_id, dt.tag_id, approved)
+    invalidate_derived_mappings(db, tag_id=dt.tag_id, workspace_id=workspace_id)
     db.flush()
     return dt
 
@@ -465,17 +441,23 @@ def classify_text(text: str, filename: str = "") -> list[dict]:
 def auto_tag_document(
     db: Session, document_id: int, workspace_id: int, filename: str, chunk_texts: list[str]
 ) -> int:
-    """Classify a document via LLM and persist tags + update JSON fields. Returns tag count."""
+    """Classify a document and store unapproved suggestions. Returns the tag count.
+
+    Suggestions stay out of frameworks_json and subject_areas_json until a reviewer
+    approves the assignment.
+    """
     combined_text = "\n".join(chunk_texts[:20])
     suggestions = classify_text(combined_text, filename)
     count = 0
-    framework_labels: list[str] = []
-    topic_labels: list[str] = []
-    for s in suggestions:
-        tag = resolve_tag(db, s["category"], s["key"])
+    for suggestion in suggestions:
+        tag = resolve_tag(db, suggestion["category"], suggestion["key"])
         if not tag:
             tag = get_or_create_tag(
-                db, s["category"], s["key"], s["key"].replace("_", " ").title(), workspace_id
+                db,
+                suggestion["category"],
+                suggestion["key"],
+                suggestion["key"].replace("_", " ").title(),
+                workspace_id,
             )
         assign_tag(
             db,
@@ -483,24 +465,174 @@ def auto_tag_document(
             tag_id=tag.id,
             workspace_id=workspace_id,
             source="ai",
-            confidence=s["confidence"],
+            confidence=suggestion["confidence"],
             approved=False,
         )
-        if s["category"] == "framework":
-            framework_labels.append(tag.label)
-        elif s["category"] == "topic":
-            topic_labels.append(tag.label)
         count += 1
-
-    # Update the JSON fields on the document so tier/display reflect LLM tags
-    if framework_labels or topic_labels:
-        from app.models import Document
-
-        doc = db.query(Document).filter(Document.id == document_id).first()
-        if doc:
-            if framework_labels:
-                doc.frameworks_json = json.dumps(framework_labels)
-            if topic_labels:
-                doc.subject_areas_json = json.dumps(topic_labels)
-
     return count
+
+
+def relabel_tag(db: Session, tag_id: int, workspace_id: int, label: str) -> Tag | None:
+    """Rename a workspace-owned tag and stale only mappings that used it.
+
+    System tags keep the label in the vocabulary file. Another workspace's tag is left
+    unchanged. Returns None when this workspace cannot relabel that tag.
+    """
+    cleaned = (label or "").strip()
+    if not cleaned or len(cleaned) > 128:
+        return None
+    tag = (
+        db.query(Tag)
+        .filter(Tag.id == tag_id, Tag.workspace_id == workspace_id, Tag.is_system.is_(False))
+        .first()
+    )
+    if tag is None:
+        return None
+    old = tag.label
+    tag.label = cleaned
+    if old != cleaned:
+        _replace_label_on_approved_documents(db, tag, workspace_id, old, cleaned)
+    invalidate_derived_mappings(db, tag_id=tag.id, workspace_id=workspace_id)
+    db.flush()
+    return tag
+
+
+def invalidate_derived_mappings(db: Session, *, tag_id: int, workspace_id: int) -> int:
+    """Mark derived rows that reference this tag in this workspace as stale.
+
+    Question mappings that store ``preferred_tag_id`` and evidence-tag mappings that
+    store ``tag_id`` are the rows derived from the tag. Rows for a different tag, and
+    rows in another workspace, stay as they are. Framework-control mappings are keyed
+    by a framework name, not by the tag row, and are not changed.
+    """
+    from app.models.ai_mapping import EvidenceTagMapping, QuestionMappingPreference
+
+    changed = 0
+    now = datetime.now(timezone.utc)
+    preferences = (
+        db.query(QuestionMappingPreference)
+        .filter(
+            QuestionMappingPreference.workspace_id == workspace_id,
+            QuestionMappingPreference.preferred_tag_id == tag_id,
+        )
+        .all()
+    )
+    for row in preferences:
+        if row.status != "stale" or row.approved:
+            row.status = "stale"
+            row.approved = False
+            row.updated_at = now
+            changed += 1
+    evidence_rows = (
+        db.query(EvidenceTagMapping)
+        .filter(
+            EvidenceTagMapping.workspace_id == workspace_id,
+            EvidenceTagMapping.tag_id == tag_id,
+            EvidenceTagMapping.approved.is_(True),
+        )
+        .all()
+    )
+    for row in evidence_rows:
+        row.approved = False
+        changed += 1
+    return changed
+
+
+def _label_field(category: str) -> str | None:
+    if category == "framework":
+        return "frameworks_json"
+    if category == "topic":
+        return "subject_areas_json"
+    return None
+
+
+def _read_labels(raw: str | None) -> list[str]:
+    if not raw:
+        return []
+    try:
+        parsed = json.loads(raw)
+    except json.JSONDecodeError:
+        return []
+    if not isinstance(parsed, list):
+        return []
+    return [str(item) for item in parsed]
+
+
+def _write_labels(doc: object, field: str, labels: list[str]) -> None:
+    setattr(doc, field, json.dumps(labels) if labels else None)
+
+
+def _label_still_approved(
+    db: Session,
+    document_id: int,
+    category: str,
+    label: str,
+    *,
+    except_tag_id: int | None = None,
+) -> bool:
+    query = (
+        db.query(DocumentTag.id)
+        .join(Tag, DocumentTag.tag_id == Tag.id)
+        .filter(
+            DocumentTag.document_id == document_id,
+            DocumentTag.approved.is_(True),
+            Tag.category == category,
+            Tag.label == label,
+        )
+    )
+    if except_tag_id is not None:
+        query = query.filter(Tag.id != except_tag_id)
+    return query.first() is not None
+
+
+def _set_document_label(
+    db: Session, document_id: int, category: str, label: str, present: bool
+) -> None:
+    field = _label_field(category)
+    if field is None or not label:
+        return
+    from app.models import Document
+
+    doc = db.query(Document).filter(Document.id == document_id).first()
+    if doc is None:
+        return
+    labels = _read_labels(getattr(doc, field))
+    if present:
+        if label not in labels:
+            labels.append(label)
+    else:
+        labels = [item for item in labels if item != label]
+    _write_labels(doc, field, labels)
+
+
+def _sync_assignment_label(db: Session, document_id: int, tag_id: int, approved: bool) -> None:
+    tag = db.query(Tag).filter(Tag.id == tag_id).first()
+    if tag is None:
+        return
+    if not approved and _label_still_approved(
+        db, document_id, tag.category, tag.label, except_tag_id=tag.id
+    ):
+        return
+    _set_document_label(db, document_id, tag.category, tag.label, approved)
+
+
+def _replace_label_on_approved_documents(
+    db: Session, tag: Tag, workspace_id: int, old: str, new: str
+) -> None:
+    if _label_field(tag.category) is None:
+        return
+    assignments = (
+        db.query(DocumentTag)
+        .filter(
+            DocumentTag.tag_id == tag.id,
+            DocumentTag.workspace_id == workspace_id,
+            DocumentTag.approved.is_(True),
+        )
+        .all()
+    )
+    for assignment in assignments:
+        if not _label_still_approved(
+            db, assignment.document_id, tag.category, old, except_tag_id=tag.id
+        ):
+            _set_document_label(db, assignment.document_id, tag.category, old, False)
+        _set_document_label(db, assignment.document_id, tag.category, new, True)

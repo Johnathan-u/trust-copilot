@@ -16,6 +16,7 @@ from app.services.tag_service import (
     list_available_tags,
     list_tags_for_document,
     list_tags_for_documents,
+    relabel_tag,
     remove_tag,
     resolve_tag,
 )
@@ -121,6 +122,37 @@ def remove_document_tag(
         raise HTTPException(status_code=404, detail="Tag assignment not found")
     db.commit()
     return list_tags_for_document(db, document_id, ws)
+
+
+class RelabelBody(BaseModel):
+    label: str
+
+
+@router.patch("/{tag_id}")
+def relabel_workspace_tag(
+    tag_id: int,
+    body: RelabelBody,
+    session: dict = Depends(_require_tag_manager),
+    db: Session = Depends(get_db),
+):
+    """Rename a workspace-owned tag. System tags and other workspaces are unchanged."""
+    ws = session.get("workspace_id")
+    if ws is None:
+        raise HTTPException(status_code=403, detail="No workspace")
+    cleaned = body.label.strip()
+    if not cleaned or len(cleaned) > 128:
+        raise HTTPException(status_code=400, detail="Label must be 1 to 128 characters")
+    tag = relabel_tag(db, tag_id, ws, cleaned)
+    if tag is None:
+        raise HTTPException(status_code=404, detail="Tag not found")
+    db.commit()
+    return {
+        "id": tag.id,
+        "category": tag.category,
+        "key": tag.key,
+        "label": tag.label,
+        "is_system": tag.is_system,
+    }
 
 
 class ApproveBody(BaseModel):
