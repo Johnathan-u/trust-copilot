@@ -905,7 +905,20 @@ def run_export(job: Job, session, payload: dict) -> None:
         )
         .first()
     )
-    if not qnr or not qnr.storage_key:
+    if not qnr:
+        raise ValueError("Questionnaire not found or has no file")
+    from app.core.job_errors import EXPORT_SUPPORT_STALE, TerminalJobError
+    from app.services.answer_support import EXPORT_BLOCKED_MESSAGE, blocking_answers
+
+    blocked = blocking_answers(session, ws_id, qnr_id)
+    if blocked:
+        listed = ", ".join(str(item["answer_id"]) for item in blocked)
+        _record_failed_export(job, payload)
+        raise TerminalJobError(
+            EXPORT_SUPPORT_STALE,
+            f"{EXPORT_BLOCKED_MESSAGE} Answers: {listed}.",
+        )
+    if not qnr.storage_key:
         raise ValueError("Questionnaire not found or has no file")
     effects = JobEffects(session, job)
     existing_rec = (

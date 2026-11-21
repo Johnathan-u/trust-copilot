@@ -11,7 +11,13 @@ from app.core.job_errors import (
     EXPORT_DOCX_FAILED,
     EXPORT_MAPPING_STALE,
     EXPORT_STORAGE_FAILED,
+    EXPORT_SUPPORT_STALE,
     EXPORT_XLSX_FAILED,
+)
+from app.services.answer_support import (
+    EXPORT_BLOCKED_MESSAGE,
+    ExportBlocked,
+    blocking_answers,
 )
 from app.core.logging_config import request_id_ctx
 from app.models import Job, Questionnaire
@@ -37,6 +43,7 @@ EXPORT_STORAGE_FAILED_MESSAGE = "The export could not be stored. No substitute f
 EXPORT_MAPPING_STALE_MESSAGE = (
     "The workbook no longer matches the stored cell mapping. No answers were written."
 )
+EXPORT_SUPPORT_STALE_MESSAGE = EXPORT_BLOCKED_MESSAGE
 XLSX_MEDIA_TYPE = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
 DOCX_MEDIA_TYPE = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
 _EXPORT_MEDIA = {"xlsx": XLSX_MEDIA_TYPE, "docx": DOCX_MEDIA_TYPE}
@@ -45,6 +52,7 @@ _FIXED_EXPORT_ERRORS = {
     EXPORT_DOCX_FAILED: EXPORT_DOCX_FAILED_MESSAGE,
     EXPORT_STORAGE_FAILED: EXPORT_STORAGE_FAILED_MESSAGE,
     EXPORT_MAPPING_STALE: EXPORT_MAPPING_STALE_MESSAGE,
+    EXPORT_SUPPORT_STALE: EXPORT_SUPPORT_STALE_MESSAGE,
 }
 
 
@@ -67,6 +75,10 @@ def enqueue_export_job(
     )
     if not qnr:
         raise ValueError("Questionnaire not found")
+    blocked = blocking_answers(db, workspace_id, questionnaire_id)
+    if blocked:
+        db.commit()
+        raise ExportBlocked(blocked)
     # TC-10-003: an identical export that is still QUEUED is reused instead of duplicated.
     job, _created = enqueue_job(
         db,

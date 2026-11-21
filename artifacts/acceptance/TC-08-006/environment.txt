@@ -1,0 +1,25 @@
+Command from apps/api:
+
+TC_REQUIRE_DB=1 python -m pytest tests/release/test_archive_revalidation.py -q
+
+Failing-before product code: ad5135af1b7bd4fac19a364724130dc3ca0609f6 (origin/master).
+The new test module was on disk. Answer binding, the stale marker, export blocking, and the accept-chunk eligibility check were the master versions.
+
+Passing-after product code: this change. The SHA is the commit that adds apps/api/app/services/answer_support.py.
+
+Python 3.12.3
+pytest 9.1.1
+SQLAlchemy 2.0.55
+Alembic 1.20.1
+PostgreSQL 16.15 (Ubuntu 16.15-0ubuntu0.24.04.1)
+pgvector 0.6.0
+Database trustcopilot_test on localhost:5432
+Alembic head applied by the test session: tc04007b_rate_buckets
+
+No migration in this change. The stale marker is a field on the existing citations text. No customer content. Fixtures are synthetic.
+
+Web unit command from apps/web, Node 24.22.3, npm 11.19.1:
+
+npx vitest run tests/unit/ai-review-copy.test.ts tests/unit/review-approved-draft.test.ts tests/unit/answer-save.test.ts
+
+21 passed.

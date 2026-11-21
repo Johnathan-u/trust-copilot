@@ -696,6 +696,15 @@ def accept_suggested_evidence(
         require_same_workspace(db, ws, document_id=doc_id)
     except CrossWorkspaceReference:
         raise HTTPException(status_code=404, detail=NOT_FOUND_DETAIL)
+    from app.services.active_sources import chunk_is_eligible, document_is_eligible
+
+    if not chunk_is_eligible(db, ws, ch.id) or not document_is_eligible(db, ws, doc_id):
+        raise HTTPException(
+            status_code=409,
+            detail=(
+                "That chunk cannot be accepted because its document is archived or not eligible."
+            ),
+        )
     key = _accept_idempotency_key(request, ws, control_id)
     cached, owner = _claim_or_replay(db, key)
     if cached is not None:

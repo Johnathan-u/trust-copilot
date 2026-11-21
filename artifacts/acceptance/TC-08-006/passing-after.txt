@@ -1,0 +1,36 @@
+..........                                                               [100%]
+=============================== warnings summary ===============================
+tests/release/test_archive_revalidation.py: 43 warnings
+  /tmp/tc-api/lib/python3.12/site-packages/sqlalchemy/sql/schema.py:3627: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    return util.wrap_callable(lambda ctx: fn(), fn)  # type: ignore
+
+tests/release/test_archive_revalidation.py::test_export_blocked_until_new_revision_on_active_source
+  /agent/repos/trust-copilot/apps/api/app/services/answer_revisions.py:68: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    now = datetime.utcnow()
+
+tests/release/test_archive_revalidation.py::test_export_blocked_until_new_revision_on_active_source
+  /agent/repos/trust-copilot/apps/api/app/services/answer_revisions.py:225: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    created_at=datetime.utcnow(),
+
+tests/release/test_archive_revalidation.py::test_export_blocked_until_new_revision_on_active_source
+  /agent/repos/trust-copilot/apps/api/app/services/answer_revisions.py:226: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    updated_at=datetime.utcnow(),
+
+tests/release/test_archive_revalidation.py::test_export_blocked_until_new_revision_on_active_source
+  /agent/repos/trust-copilot/apps/api/app/services/answer_revisions.py:271: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    created_at=datetime.utcnow(),
+
+tests/release/test_archive_revalidation.py::test_export_blocked_until_new_revision_on_active_source
+  /agent/repos/trust-copilot/apps/api/app/services/answer_revisions.py:272: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    updated_at=datetime.utcnow(),
+
+tests/release/test_archive_revalidation.py::test_export_blocked_until_new_revision_on_active_source
+  /agent/repos/trust-copilot/apps/api/app/services/answer_revisions.py:290: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    revision.updated_at = datetime.utcnow()
+
+tests/release/test_archive_revalidation.py::test_accept_suggested_accepts_an_eligible_chunk
+  /agent/repos/trust-copilot/apps/api/app/api/routes/compliance_controls.py:546: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    now = datetime.utcnow()
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+10 passed, 50 warnings in 0.92s

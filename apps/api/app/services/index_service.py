@@ -72,6 +72,10 @@ def index_document(
     started = time.monotonic()
     log_index_start(document_id, doc.workspace_id, job_id=job_id)
 
+    # A new storage key replaces the indexed chunks. Mark citing answers first.
+    from app.services.answer_support import note_reindex_replacement
+
+    note_reindex_replacement(db, doc)
     # Idempotent indexing: remove existing chunks so retries do not duplicate (Fix 1).
     db.query(Chunk).filter(Chunk.document_id == document_id).delete()
     db.flush()

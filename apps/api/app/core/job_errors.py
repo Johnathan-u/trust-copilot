@@ -8,7 +8,8 @@ A job failure is classified into a stable, typed ``error_code``:
   lost its job lease before finishing; the attempt is abandoned and retried under the same cap);
 * **terminal** (retrying cannot help): ``bad_input``, ``not_found``, ``auth_failed``,
   ``permission_denied``, ``config_error``, ``internal_error``, and the export codes
-  ``export_xlsx_failed``, ``export_docx_failed``, ``export_storage_failed`` (TC-13-005).
+  ``export_xlsx_failed``, ``export_docx_failed``, ``export_storage_failed`` (TC-13-005),
+  ``export_support_stale`` (TC-08-006).
 
 Model-provider failures (TC-11-001, ``app.services.model_outcomes``) keep TC-11-001's
 ``model_*`` code and its catalog ``retryable`` flag and safe message, so ``jobs.error_code``
@@ -64,6 +65,9 @@ EXPORT_STORAGE_FAILED = "export_storage_failed"
 # writing anyway would put answers in the wrong cells, and a retry cannot
 # repair the workbook.
 EXPORT_MAPPING_STALE = "export_mapping_stale"
+# An included answer cites a revoked source or is still the stale revision.
+# Terminal: retrying does not approve a new revision.
+EXPORT_SUPPORT_STALE = "export_support_stale"
 
 RETRYABLE_CODES = frozenset(
     {
@@ -87,6 +91,7 @@ TERMINAL_CODES = frozenset(
         EXPORT_DOCX_FAILED,
         EXPORT_STORAGE_FAILED,
         EXPORT_MAPPING_STALE,
+        EXPORT_SUPPORT_STALE,
     }
 )
 ALL_CODES = RETRYABLE_CODES | TERMINAL_CODES

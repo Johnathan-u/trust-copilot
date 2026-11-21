@@ -17,6 +17,7 @@ from app.core.database import get_db
 from app.core.workspace_refs import require_in_workspace
 from app.models import Answer, Question, Questionnaire
 from app.services.answer_generation import _lock_answer_write
+from app.services.answer_support import bind_approved_support
 from app.services.answer_revisions import (
     RevisionRejected,
     approve_draft_revision,
@@ -91,10 +92,16 @@ def _expected_answer_revision(db: Session, answer: Answer, body: AnswerUpdate) -
 
 
 def _write_answer_if_current(
-    db: Session, answer: Answer, body: AnswerUpdate, expected: datetime | None
+    db: Session,
+    answer: Answer,
+    body: AnswerUpdate,
+    expected: datetime | None,
+    citations: str | None = None,
 ) -> None:
     """Update the row only while ``updated_at`` is still the loaded revision."""
     values: dict[str, object] = {"updated_at": datetime.now(timezone.utc).replace(tzinfo=None)}
+    if citations is not None:
+        values["citations"] = citations
     if body.text is not None:
         values["text"] = body.text
         if body.text != answer.text:
@@ -197,6 +204,14 @@ def bulk_update_status(
         else:
             a = next(x for x in answers if x.question_id == qid)
             a.status = body.status
+    db.flush()
+    if body.status == "approved":
+        rows = db.query(Answer).filter(Answer.question_id.in_(body.question_ids)).all()
+        for row in rows:
+            bound = bind_approved_support(db, row, clear_stale=False)
+            if bound is not None:
+                row.citations = bound
+                row.updated_at = datetime.now(timezone.utc).replace(tzinfo=None)
     db.commit()
     return {"updated": len(body.question_ids), "status": body.status}
 
@@ -226,7 +241,10 @@ def update_answer(
     _lock_answer_write(db, a.question_id)
     db.refresh(a)
     expected = _expected_answer_revision(db, a, body)
-    _write_answer_if_current(db, a, body, expected)
+    citations = None
+    if body.status == "approved":
+        citations = bind_approved_support(db, a, clear_stale=False)
+    _write_answer_if_current(db, a, body, expected, citations)
     db.commit()
     db.refresh(a)
     return {"id": a.id, "question_id": a.question_id, "text": a.text, "status": a.status}

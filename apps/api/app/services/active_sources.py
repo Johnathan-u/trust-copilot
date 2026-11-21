@@ -79,6 +79,28 @@ def restore_document_chunks(db: Session, document_id: int) -> None:
         flag_modified(row, "metadata_")
 
 
+def chunk_is_eligible(db: Session, workspace_id: int, chunk_id: int) -> bool:
+    """True when this chunk may be retrieved for the workspace."""
+    return eligible_chunk_query(db, workspace_id).filter(Chunk.id == chunk_id).first() is not None
+
+
+def document_is_eligible(db: Session, workspace_id: int, document_id: int | None) -> bool:
+    """True when there is no document, or it is indexed and not soft-deleted here."""
+    if document_id is None:
+        return True
+    row = (
+        db.query(Document.id)
+        .filter(
+            Document.id == document_id,
+            Document.workspace_id == workspace_id,
+            Document.deleted_at.is_(None),
+            Document.status == INDEXED_STATUS,
+        )
+        .first()
+    )
+    return row is not None
+
+
 def document_is_citable(db: Session, workspace_id: int, document_id: int | None) -> bool:
     """True for evidence with no document, or a live document in this workspace."""
     if document_id is None:
