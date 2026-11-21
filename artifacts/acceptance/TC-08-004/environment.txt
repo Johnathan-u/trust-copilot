@@ -1,0 +1,19 @@
+Command from apps/api:
+
+TC_REQUIRE_DB=1 python -m pytest tests/release/test_retrieval_isolation.py -q
+
+Failing-before product code: b0b8a01fd2a11914a884630d90ae68fd00291841 (origin/master).
+The new test module was on disk. Retrieval, the answer cache key, soft delete, and the permission policy were the master versions.
+
+Passing-after product code: 445972c4d40e1b7fc2d88e35b7809f47823f7861.
+
+Python 3.12.3
+pytest 9.1.1
+SQLAlchemy 2.0.55
+Alembic 1.20.1
+PostgreSQL 16.15 (Ubuntu 16.15-0ubuntu0.24.04.1)
+pgvector 0.6.0
+Database trustcopilot_test on localhost:5432
+Alembic head applied by the test session: tc04007b_rate_buckets
+
+No migration in this change. No customer content. Fixtures are synthetic.
