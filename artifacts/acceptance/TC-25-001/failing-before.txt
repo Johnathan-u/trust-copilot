@@ -1,0 +1,30 @@
+.FF..FF                                                                  [100%]
+=================================== FAILURES ===================================
+E   assert 200 == 422
+     +  where 200 = <Response [200 OK]>.status_code
+/agent/repos/trust-copilot/apps/api/tests/release/test_domain_dashboard_cards.py:204: assert 200 == 422
+E   AssertionError: {"id":2,"workspace_id":1,"title":"After reorder","description":"Synthetic card","icon":"document","target_route":"/dashboard/documents","sort_order":1,"is_enabled":true,"visibility_scope":"all","size":"medium","created_at":"2026-11-21T02:11:32.566977","updated_at":"2026-11-21T02:11:32.596521"}
+    assert 200 == 409
+     +  where 200 = <Response [200 OK]>.status_code
+/agent/repos/trust-copilot/apps/api/tests/release/test_domain_dashboard_cards.py:251: AssertionError: {"id":2,"workspace_id":1,"title":"After reorder","description":"Synthetic card","icon":"document","target_route":"/dashboard/documents","sort_order":1,"is_enabled":true,"visibility_scope":"all","size":"medium","created_at":"2026-11-21T02:11:32.566977","updated_at":"2026-11-21T02:11:32.596521"}
+E   assert 6 == 5
+/agent/repos/trust-copilot/apps/api/tests/release/test_domain_dashboard_cards.py:318: assert 6 == 5
+E   assert 8 == 7
+/agent/repos/trust-copilot/apps/api/tests/release/test_domain_dashboard_cards.py:376: assert 8 == 7
+=============================== warnings summary ===============================
+tests/release/test_domain_dashboard_cards.py: 39 warnings
+  /tmp/tc-venv/lib/python3.12/site-packages/sqlalchemy/sql/schema.py:3627: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    return util.wrap_callable(lambda ctx: fn(), fn)  # type: ignore
+
+tests/release/test_domain_dashboard_cards.py::test_patch_requires_the_loaded_revision_and_conflict_keeps_the_row
+tests/release/test_domain_dashboard_cards.py::test_reorder_moves_the_revision_so_a_stale_edit_is_409
+  /agent/repos/trust-copilot/apps/api/app/api/routes/dashboard_cards.py:275: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    card.updated_at = datetime.utcnow()
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/release/test_domain_dashboard_cards.py::test_patch_requires_the_loaded_revision_and_conflict_keeps_the_row
+FAILED tests/release/test_domain_dashboard_cards.py::test_reorder_moves_the_revision_so_a_stale_edit_is_409
+FAILED tests/release/test_domain_dashboard_cards.py::test_retried_create_returns_the_same_card_after_restart
+FAILED tests/release/test_domain_dashboard_cards.py::test_failed_create_releases_the_key
+4 failed, 3 passed, 41 warnings in 2.17s

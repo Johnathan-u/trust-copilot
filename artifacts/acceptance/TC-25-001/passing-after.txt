@@ -1,0 +1,17 @@
+.........                                                                [100%]
+=============================== warnings summary ===============================
+tests/release/test_domain_dashboard_cards.py: 51 warnings
+  /tmp/tc-venv/lib/python3.12/site-packages/sqlalchemy/sql/schema.py:3627: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    return util.wrap_callable(lambda ctx: fn(), fn)  # type: ignore
+
+tests/release/test_domain_dashboard_cards.py::test_patch_requires_the_loaded_revision_and_conflict_keeps_the_row
+  /agent/repos/trust-copilot/apps/api/app/api/routes/dashboard_cards.py:425: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    values["updated_at"] = datetime.utcnow()
+
+tests/release/test_domain_dashboard_cards.py::test_reorder_moves_the_revision_so_a_stale_edit_is_409
+tests/release/test_domain_dashboard_cards.py::test_reorder_moves_the_revision_so_a_stale_edit_is_409
+  /agent/repos/trust-copilot/apps/api/app/api/routes/dashboard_cards.py:526: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    card.updated_at = datetime.utcnow()
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+9 passed, 54 warnings in 3.46s
