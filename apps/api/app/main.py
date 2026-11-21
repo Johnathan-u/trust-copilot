@@ -137,7 +137,7 @@ from app.api.routes import contracts as contracts_router  # noqa: E402
 from app.api.routes import buyer_portal as buyer_portal_router  # noqa: E402
 from app.api.routes import proof_graph as proof_graph_router  # noqa: E402
 from app.api.routes import answer_outcomes as answer_outcomes_router  # noqa: E402
-from app.services.storage import StorageClient  # noqa: E402
+from app.services.storage import BucketNotPrivate, StorageClient  # noqa: E402
 
 
 def _init_sentry() -> None:
@@ -187,6 +187,23 @@ def _verify_db_connectivity():
         ) from e
 
 
+def _init_object_storage() -> None:
+    """Create or check the raw and export buckets.
+
+    A public bucket, or a production bucket whose privacy cannot be confirmed,
+    is not swallowed. Other storage failures stay a startup warning so a
+    missing local store does not stop the API.
+    """
+    import logging
+
+    try:
+        StorageClient().ensure_buckets()
+    except BucketNotPrivate:
+        raise
+    except Exception as exc:
+        logging.getLogger("app.main").warning("S3/MinIO bucket init skipped or failed: %s", exc)
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # TC-07-001a: the production secret check runs first, before any DB, S3 or other I/O, and is
@@ -209,13 +226,7 @@ async def lifespan(app: FastAPI):
     from app.core.database import warn_if_database_time_zone_is_not_utc
 
     warn_if_database_time_zone_is_not_utc()
-    try:
-        storage = StorageClient()
-        storage.ensure_buckets()
-    except Exception as e:
-        import logging
-
-        logging.getLogger("app.main").warning("S3/MinIO bucket init skipped or failed: %s", e)
+    _init_object_storage()
     configure_logging(s.log_level, use_json=is_production_env())
     if not is_production_env():
         if not s.session_secret:

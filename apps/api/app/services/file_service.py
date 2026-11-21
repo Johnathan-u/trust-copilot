@@ -45,11 +45,16 @@ def sanitize_filename(filename: str | None) -> str:
 
 
 def validate_storage_key(key: str) -> None:
-    """Reject keys that could escape bucket scope."""
+    """Reject keys that could escape bucket scope.
+
+    The detail does not echo the key. ``nosniff`` is set on the error so a
+    browser does not sniff the rejection body.
+    """
+    headers = {"X-Content-Type-Options": "nosniff"}
     if not key or ".." in key or key.startswith("/") or "\0" in key:
-        raise HTTPException(status_code=400, detail="Invalid storage key")
+        raise HTTPException(status_code=400, detail="Invalid storage key", headers=headers)
     if len(key) > 600:
-        raise HTTPException(status_code=400, detail="Storage key too long")
+        raise HTTPException(status_code=400, detail="Storage key too long", headers=headers)
 
 
 def make_key(workspace_id: int, prefix: str, filename: str) -> str:

@@ -304,6 +304,8 @@ def _freshness_label(created_at: datetime | None, policy: dict) -> str | None:
 
 
 def _source_preview_url(document: Document, workspace_id: int) -> str | None:
+    if document.deleted_at is not None:
+        return None
     key = document.storage_key or ""
     if not key or ".." in key or key.startswith("/") or "\0" in key or len(key) > 600:
         return None
@@ -502,13 +504,18 @@ def document_content(
 
     The media type comes from the filename extension. Stored content types are
     not reflected. The storage key is not part of the URL or the error text.
-    A share token is not accepted on this route.
+    A share token is not accepted on this route. An archived document is not
+    streamed.
     """
     if session.get("workspace_id") != workspace_id:
         raise HTTPException(status_code=403, detail="Access denied")
     doc = (
         db.query(Document)
-        .filter(Document.id == document_id, Document.workspace_id == workspace_id)
+        .filter(
+            Document.id == document_id,
+            Document.workspace_id == workspace_id,
+            Document.deleted_at.is_(None),
+        )
         .first()
     )
     if not doc or not doc.storage_key:

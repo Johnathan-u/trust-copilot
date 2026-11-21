@@ -33,6 +33,7 @@ from app.services.file_service import (
     ALLOWED_RAW_EXTENSIONS,
     read_bounded_upload,
     sanitize_filename,
+    validate_storage_key,
 )
 from pathlib import Path
 import hashlib
@@ -365,17 +366,23 @@ def download_trust_request_attachment(
         raise HTTPException(status_code=404, detail="Trust request not found")
     if not req.attachment_storage_key:
         raise HTTPException(status_code=404, detail="No attachment on this trust request")
+    validate_storage_key(req.attachment_storage_key)
 
     try:
         stream = storage.download_stream(storage.bucket_raw, req.attachment_storage_key)
+    except HTTPException:
+        raise
     except Exception:
         raise HTTPException(status_code=404, detail="Attachment file not found in storage")
 
-    filename = req.attachment_filename or "attachment"
+    filename = sanitize_filename(req.attachment_filename or "attachment")
     return StreamingResponse(
         stream,
         media_type="application/octet-stream",
-        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+        headers={
+            "Content-Disposition": f'attachment; filename="{filename}"',
+            "X-Content-Type-Options": "nosniff",
+        },
     )
 
 

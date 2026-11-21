@@ -1,6 +1,7 @@
 """S3-compatible object storage client (FILE-01). MinIO in dev compose; external S3 in production."""
 
 import io  # noqa: F401
+import json
 from typing import BinaryIO
 
 import boto3
@@ -8,6 +9,105 @@ from botocore.config import Config
 from botocore.exceptions import ClientError
 
 from app.core.config import get_settings
+
+
+class BucketNotPrivate(RuntimeError):
+    """The object bucket is public, or production could not prove it is private."""
+
+
+# Group URIs that grant the bucket to anyone, or to any signed-in AWS account.
+_PUBLIC_GRANTEE_URIS = frozenset(
+    {
+        "http://acs.amazonaws.com/groups/global/allusers",
+        "http://acs.amazonaws.com/groups/global/authenticatedusers",
+    }
+)
+_MISSING_BUCKET = frozenset({"404", "nosuchbucket", "notfound"})
+_MISSING_POLICY = frozenset({"nosuchbucketpolicy", "404"})
+_MISSING_BLOCK = frozenset({"nosuchpublicaccessblockconfiguration", "404"})
+_UNSUPPORTED = frozenset(
+    {"notimplemented", "unsupportedoperation", "methodnotallowed", "notsupported", "501"}
+)
+_BLOCK_FLAGS = (
+    "BlockPublicAcls",
+    "IgnorePublicAcls",
+    "BlockPublicPolicy",
+    "RestrictPublicBuckets",
+)
+_NOT_PRIVATE = "Object storage bucket is not private"
+_UNCONFIRMED = "Object storage bucket privacy could not be confirmed"
+
+
+def _error_code(exc: ClientError) -> str:
+    error = exc.response.get("Error") if isinstance(exc.response, dict) else None
+    if not isinstance(error, dict):
+        return ""
+    return str(error.get("Code") or "").strip().lower()
+
+
+def _principal_is_public(principal: object) -> bool:
+    if principal == "*":
+        return True
+    if isinstance(principal, list):
+        return any(_principal_is_public(item) for item in principal)
+    if not isinstance(principal, dict):
+        return False
+    for value in principal.values():
+        if value == "*":
+            return True
+        if isinstance(value, list) and any(item == "*" for item in value):
+            return True
+    return False
+
+
+def _policy_allows_public(raw: object) -> bool:
+    """True when the policy grants any action to a public principal, or cannot be read."""
+    if not isinstance(raw, str) or not raw.strip():
+        return True
+    try:
+        document = json.loads(raw)
+    except (TypeError, ValueError):
+        return True
+    if not isinstance(document, dict):
+        return True
+    statements = document.get("Statement", [])
+    if isinstance(statements, dict):
+        statements = [statements]
+    if not isinstance(statements, list):
+        return True
+    for statement in statements:
+        if not isinstance(statement, dict):
+            return True
+        effect = str(statement.get("Effect") or "Allow").strip().lower()
+        if effect != "allow":
+            continue
+        if _principal_is_public(statement.get("Principal")):
+            return True
+    return False
+
+
+def _acl_is_public(acl: object) -> bool:
+    if not isinstance(acl, dict):
+        return True
+    grants = acl.get("Grants")
+    if not isinstance(grants, list):
+        return True
+    for grant in grants:
+        if not isinstance(grant, dict):
+            return True
+        grantee = grant.get("Grantee")
+        if not isinstance(grantee, dict):
+            return True
+        uri = str(grantee.get("URI") or "").strip().lower()
+        if uri in _PUBLIC_GRANTEE_URIS:
+            return True
+    return False
+
+
+def _block_is_complete(config: object) -> bool:
+    if not isinstance(config, dict):
+        return False
+    return all(config.get(flag) is True for flag in _BLOCK_FLAGS)
 
 
 class StorageClient:
@@ -36,15 +136,86 @@ class StorageClient:
         self._client.list_buckets()
 
     def ensure_buckets(self) -> None:
-        """Create buckets if they do not exist."""
-        for bucket in [self._bucket_raw, self._bucket_exports]:
-            try:
-                self._client.head_bucket(Bucket=bucket)
-            except ClientError as e:
-                if e.response["Error"]["Code"] == "404":
-                    self._client.create_bucket(Bucket=bucket)
-                else:
-                    raise
+        """Create a missing bucket as private, and refuse a bucket that is public.
+
+        An existing bucket is checked and not rewritten. Production also requires
+        every public-access block flag. A store that cannot answer the check
+        fails closed in production. The error text does not include a policy or ACL.
+        """
+        from app.core.session import is_production_env
+
+        production = is_production_env()
+        for bucket in (self._bucket_raw, self._bucket_exports):
+            self._ensure_one_bucket(bucket, production=production)
+
+    def _ensure_one_bucket(self, bucket: str, *, production: bool) -> None:
+        try:
+            self._client.head_bucket(Bucket=bucket)
+        except ClientError as exc:
+            if _error_code(exc) not in _MISSING_BUCKET:
+                if production:
+                    raise BucketNotPrivate(_UNCONFIRMED) from exc
+                raise
+            self._client.create_bucket(Bucket=bucket)
+            self._apply_private_defaults(bucket, production=production)
+        self._require_private(bucket, production=production)
+
+    def _apply_private_defaults(self, bucket: str, *, production: bool) -> None:
+        self._client.put_bucket_acl(Bucket=bucket, ACL="private")
+        try:
+            self._client.put_public_access_block(
+                Bucket=bucket,
+                PublicAccessBlockConfiguration={flag: True for flag in _BLOCK_FLAGS},
+            )
+        except ClientError as exc:
+            if production or _error_code(exc) not in _UNSUPPORTED:
+                if production:
+                    raise BucketNotPrivate(_UNCONFIRMED) from exc
+                raise
+
+    def _require_private(self, bucket: str, *, production: bool) -> None:
+        try:
+            acl = self._client.get_bucket_acl(Bucket=bucket)
+            public_policy = self._policy_is_public(bucket, production=production)
+            block = self._public_access_block(bucket, production=production)
+        except BucketNotPrivate:
+            raise
+        except ClientError as exc:
+            if production:
+                raise BucketNotPrivate(_UNCONFIRMED) from exc
+            raise
+        if _acl_is_public(acl) or public_policy or (production and block is not True):
+            raise BucketNotPrivate(_NOT_PRIVATE)
+
+    def _policy_is_public(self, bucket: str, *, production: bool) -> bool:
+        try:
+            raw = self._client.get_bucket_policy(Bucket=bucket).get("Policy")
+        except ClientError as exc:
+            code = _error_code(exc)
+            if code in _MISSING_POLICY:
+                return False
+            if code in _UNSUPPORTED and not production:
+                return False
+            if production:
+                raise BucketNotPrivate(_UNCONFIRMED) from exc
+            raise
+        return _policy_allows_public(raw)
+
+    def _public_access_block(self, bucket: str, *, production: bool) -> bool | None:
+        try:
+            payload = self._client.get_public_access_block(Bucket=bucket)
+        except ClientError as exc:
+            code = _error_code(exc)
+            if code in _MISSING_BLOCK:
+                return None
+            if code in _UNSUPPORTED and not production:
+                return None
+            if production:
+                raise BucketNotPrivate(_UNCONFIRMED) from exc
+            raise
+        if not isinstance(payload, dict):
+            return False
+        return _block_is_complete(payload.get("PublicAccessBlockConfiguration"))
 
     def upload(
         self,

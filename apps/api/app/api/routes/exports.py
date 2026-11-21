@@ -414,6 +414,7 @@ def get_download_url(
             headers={
                 "Content-Disposition": disposition,
                 "X-Content-SHA256": recorded["sha256"],
+                "X-Content-Type-Options": "nosniff",
             },
         )
     # Exports written before the hash was recorded still download by extension.
@@ -432,7 +433,10 @@ def get_download_url(
     return StreamingResponse(
         stream,
         media_type=media_type,
-        headers={"Content-Disposition": disposition},
+        headers={
+            "Content-Disposition": disposition,
+            "X-Content-Type-Options": "nosniff",
+        },
     )
 
 
