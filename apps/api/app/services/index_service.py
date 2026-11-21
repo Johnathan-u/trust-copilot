@@ -125,6 +125,9 @@ def index_document(
             meta = dict(c.get("metadata", {}))
             meta["filename"] = doc.filename
             meta["document_id"] = document_id
+            # Compared at retrieval to the document's current key. A later
+            # replacement makes these chunks ineligible. Not returned to clients.
+            meta["source_version"] = doc.storage_key
             if "chunk_index" not in meta:
                 meta["chunk_index"] = len(chunk_ids)
             ch = Chunk(
@@ -206,15 +209,18 @@ def index_document(
             logger.debug("auto_tag_document failed for document_id=%s", document_id, exc_info=True)
 
         db.commit()
-        # Invalidate retrieval cache when evidence corpus changes (answer pipeline)
+        # A new index changes the corpus. Both caches key off that version, and
+        # the answer cache is also cleared because older rows must not be served.
         try:
             from app.core.corpus_version import bump_corpus_version
+            from app.services.answer_cache import invalidate_workspace as answer_cache_invalidate
             from app.services.retrieval_cache import (
                 invalidate_workspace as retrieval_cache_invalidate,
             )
 
             bump_corpus_version(db, doc.workspace_id)
             retrieval_cache_invalidate(db, doc.workspace_id)
+            answer_cache_invalidate(db, doc.workspace_id)
         except Exception:
             pass
         duration_ms = (time.monotonic() - started) * 1000

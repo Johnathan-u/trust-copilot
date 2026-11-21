@@ -1,4 +1,8 @@
-"""Keep soft-deleted documents out of retrieval, caches, and citation resolution.
+"""Keep ineligible documents out of retrieval, caches, and citation resolution.
+
+A chunk is eligible when it has no document, or its document is in this
+workspace, not soft-deleted, ``status`` indexed, not tombstoned, and not
+indexed from a storage key the document has since replaced.
 
 A chunk with no document stays eligible: it is not a deleted document's chunk.
 A document in another workspace is not eligible for this workspace.
@@ -8,12 +12,24 @@ from __future__ import annotations
 
 from sqlalchemy import and_, or_
 from sqlalchemy.orm import Query, Session
+from sqlalchemy.orm.attributes import flag_modified
 
 from app.models import Chunk, Document
 
+INDEXED_STATUS = "indexed"
+TOMBSTONE_KEY = "retrieval_tombstone"
+SOURCE_VERSION_KEY = "source_version"
+
+
+def _json_text(column, key: str):
+    """PostgreSQL JSON text extraction (``->>``). NULL metadata yields NULL."""
+    return column.op("->>")(key)
+
 
 def eligible_chunk_query(db: Session, workspace_id: int) -> Query:
-    """Chunks in this workspace whose document is active here, plus orphan chunks."""
+    """Chunks in this workspace that may be retrieved, plus orphan chunks."""
+    tombstone = _json_text(Chunk.metadata_, TOMBSTONE_KEY)
+    source_version = _json_text(Chunk.metadata_, SOURCE_VERSION_KEY)
     return (
         db.query(Chunk)
         .outerjoin(
@@ -22,13 +38,45 @@ def eligible_chunk_query(db: Session, workspace_id: int) -> Query:
                 Document.id == Chunk.document_id,
                 Document.workspace_id == workspace_id,
                 Document.deleted_at.is_(None),
+                Document.status == INDEXED_STATUS,
             ),
         )
         .filter(
             Chunk.workspace_id == workspace_id,
             or_(Chunk.document_id.is_(None), Document.id.isnot(None)),
+            tombstone.is_(None),
+            or_(
+                Chunk.document_id.is_(None),
+                source_version.is_(None),
+                source_version == Document.storage_key,
+            ),
         )
     )
+
+
+def tombstone_document_chunks(db: Session, document_id: int) -> None:
+    """Mark this document's chunks ineligible without deleting them.
+
+    Restore clears the mark so the same chunks can be retrieved again.
+    """
+    rows = db.query(Chunk).filter(Chunk.document_id == document_id).all()
+    for row in rows:
+        meta = dict(row.metadata_) if isinstance(row.metadata_, dict) else {}
+        meta[TOMBSTONE_KEY] = "soft_deleted"
+        row.metadata_ = meta
+        flag_modified(row, "metadata_")
+
+
+def restore_document_chunks(db: Session, document_id: int) -> None:
+    """Clear the soft-delete tombstone so restored chunks are eligible again."""
+    rows = db.query(Chunk).filter(Chunk.document_id == document_id).all()
+    for row in rows:
+        if not isinstance(row.metadata_, dict) or TOMBSTONE_KEY not in row.metadata_:
+            continue
+        meta = dict(row.metadata_)
+        meta.pop(TOMBSTONE_KEY, None)
+        row.metadata_ = meta or None
+        flag_modified(row, "metadata_")
 
 
 def document_is_citable(db: Session, workspace_id: int, document_id: int | None) -> bool:
@@ -61,6 +109,8 @@ def _known_document_ineligible(db: Session, workspace_id: int, document_ids: set
             or_(
                 Document.deleted_at.isnot(None),
                 Document.workspace_id != workspace_id,
+                Document.status.is_(None),
+                Document.status != INDEXED_STATUS,
             )
         )
         .first()
@@ -69,6 +119,8 @@ def _known_document_ineligible(db: Session, workspace_id: int, document_ids: set
 
 
 def _known_chunk_ineligible(db: Session, workspace_id: int, chunk_ids: set[int]) -> bool:
+    tombstone = _json_text(Chunk.metadata_, TOMBSTONE_KEY)
+    source_version = _json_text(Chunk.metadata_, SOURCE_VERSION_KEY)
     row = (
         db.query(Chunk.id)
         .outerjoin(Document, Document.id == Chunk.document_id)
@@ -76,12 +128,19 @@ def _known_chunk_ineligible(db: Session, workspace_id: int, chunk_ids: set[int])
         .filter(
             or_(
                 Chunk.workspace_id != workspace_id,
+                tombstone.isnot(None),
                 and_(
                     Chunk.document_id.isnot(None),
                     or_(
                         Document.id.is_(None),
                         Document.deleted_at.isnot(None),
                         Document.workspace_id != workspace_id,
+                        Document.status.is_(None),
+                        Document.status != INDEXED_STATUS,
+                        and_(
+                            source_version.isnot(None),
+                            source_version != Document.storage_key,
+                        ),
                     ),
                 ),
             )
@@ -98,9 +157,11 @@ def references_ineligible_source(
     document_ids: set[int],
     chunk_ids: set[int],
 ) -> bool:
-    """True when a known document or chunk is soft-deleted or outside the workspace.
+    """True when a known document or chunk is ineligible or outside the workspace.
 
-    Ids that do not exist are ignored so a synthetic cache fixture is unchanged.
+    Ineligible means soft-deleted, not indexed, tombstoned, or indexed from a
+    storage key the document has replaced. Ids that do not exist are ignored
+    so a synthetic cache fixture is unchanged.
     """
     if document_ids and _known_document_ineligible(db, workspace_id, document_ids):
         return True
@@ -110,7 +171,7 @@ def references_ineligible_source(
 
 
 def retrieval_rows_are_stale(db: Session, workspace_id: int, rows: list) -> bool:
-    """True when cached retrieval rows cite a soft-deleted or foreign document."""
+    """True when cached retrieval rows cite an ineligible document or chunk."""
     if not isinstance(rows, list):
         return False
     document_ids: set[int] = set()
@@ -132,7 +193,7 @@ def retrieval_rows_are_stale(db: Session, workspace_id: int, rows: list) -> bool
 
 
 def citations_are_stale(db: Session, workspace_id: int, citations: list) -> bool:
-    """True when cached answer citations name a soft-deleted or foreign document."""
+    """True when cached answer citations name an ineligible document or chunk."""
     if not isinstance(citations, list):
         return False
     document_ids: set[int] = set()

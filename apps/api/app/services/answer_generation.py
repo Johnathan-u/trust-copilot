@@ -975,7 +975,14 @@ def _generate_answers_impl(
         evidence_fp = evidence_fingerprint_hash(chunk_ids)
         cached = None
         try:
-            cached = answer_cache_get(db, workspace_id, q_hashes[i], style_for_cache, evidence_fp)
+            cached = answer_cache_get(
+                db,
+                workspace_id,
+                q_hashes[i],
+                style_for_cache,
+                evidence_fp,
+                model_id=model_name,
+            )
         except Exception:
             pass
         if cached and cached.get("text") and not is_insufficient_answer_text(cached["text"]):
@@ -1320,6 +1327,7 @@ def _generate_answers_impl(
                         text,
                         citations,
                         conf,
+                        model_id=model_name,
                     )
                 except Exception:
                     pass

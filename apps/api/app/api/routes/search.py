@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 from app.core.auth_deps import require_can_review
 from app.core.database import get_db
 from app.services.retrieval import RetrievalService
+from app.services.retrieval_permissions import policy_for_role
 
 router = APIRouter(prefix="/search", tags=["search"])
 
@@ -26,4 +27,13 @@ def search(
 
     query_emb = embed_text(q) if q.strip() else None
     svc = RetrievalService(db)
-    return {"results": svc.search(workspace_id, q, limit=limit, query_embedding=query_emb)}
+    policy = policy_for_role(session.get("role"), db=db, workspace_id=workspace_id)
+    return {
+        "results": svc.search(
+            workspace_id,
+            q,
+            limit=limit,
+            query_embedding=query_emb,
+            permission_policy=policy,
+        )
+    }

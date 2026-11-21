@@ -1,4 +1,11 @@
-"""Answer cache: keyed by workspace + normalized question + style + evidence fingerprint."""
+"""Answer cache.
+
+The key is workspace, normalized question, response style, evidence fingerprint,
+current corpus version, prompt version, model id, and permission-policy
+fingerprint. A lookup uses the corpus version now stored for the workspace, so
+a row written before a bump is not a hit. A hit whose citations name an
+ineligible source returns None.
+"""
 
 import json
 import logging
@@ -7,15 +14,51 @@ from datetime import datetime, timezone
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
+from app.core.corpus_version import get_corpus_version
 from app.services.active_sources import citations_are_stale
+from app.services.prompt_builder import ANSWER_PROMPT_VERSION
 
 logger = logging.getLogger(__name__)
 
+# Same default ``resolve_model`` returns when the caller does not name a model.
+DEFAULT_ANSWER_MODEL_ID = "gpt-4o-mini"
 
-def _cache_key(workspace_id: int, question_hash: str, response_style: str, evidence_fp: str) -> str:
+
+def _model_id(model_id: str | None) -> str:
+    text_id = (model_id or "").strip()
+    return text_id or DEFAULT_ANSWER_MODEL_ID
+
+
+def _prompt_version(prompt_version: str | None) -> str:
+    if prompt_version is None:
+        return ANSWER_PROMPT_VERSION
+    return prompt_version
+
+
+def _cache_key(
+    workspace_id: int,
+    question_hash: str,
+    response_style: str,
+    evidence_fp: str,
+    corpus_version: str,
+    prompt_version: str,
+    model_id: str,
+    permission_fingerprint: str,
+) -> str:
     import hashlib
 
-    key = f"{workspace_id}|{question_hash}|{response_style}|{evidence_fp}"
+    key = "|".join(
+        (
+            str(workspace_id),
+            question_hash,
+            response_style,
+            evidence_fp,
+            corpus_version,
+            prompt_version,
+            model_id,
+            permission_fingerprint or "",
+        )
+    )
     return hashlib.sha256(key.encode("utf-8")).hexdigest()[:48]
 
 
@@ -25,10 +68,26 @@ def get(
     question_normalized_hash: str,
     response_style: str,
     evidence_fingerprint_hash: str,
+    *,
+    model_id: str | None = None,
+    prompt_version: str | None = None,
+    permission_fingerprint: str = "",
 ) -> dict | None:
-    """Return cached answer dict (text, citations, confidence) or None."""
+    """Return cached answer dict (text, citations, confidence) or None.
+
+    The corpus version is the workspace's current version, not a version the
+    caller passes. A row stored under an older version is a miss.
+    """
+    corpus_version = get_corpus_version(db, workspace_id)
     ck = _cache_key(
-        workspace_id, question_normalized_hash, response_style, evidence_fingerprint_hash
+        workspace_id,
+        question_normalized_hash,
+        response_style,
+        evidence_fingerprint_hash,
+        corpus_version,
+        _prompt_version(prompt_version),
+        _model_id(model_id),
+        permission_fingerprint,
     )
     row = db.execute(
         text(
@@ -58,10 +117,22 @@ def set(
     answer_text: str,
     citations: list,
     confidence: int,
+    *,
+    model_id: str | None = None,
+    prompt_version: str | None = None,
+    permission_fingerprint: str = "",
 ) -> None:
-    """Upsert one answer cache entry."""
+    """Upsert one answer cache entry under the current corpus version."""
+    corpus_version = get_corpus_version(db, workspace_id)
     ck = _cache_key(
-        workspace_id, question_normalized_hash, response_style, evidence_fingerprint_hash
+        workspace_id,
+        question_normalized_hash,
+        response_style,
+        evidence_fingerprint_hash,
+        corpus_version,
+        _prompt_version(prompt_version),
+        _model_id(model_id),
+        permission_fingerprint,
     )
     citations_json = json.dumps(citations) if citations else "[]"
     db.execute(
