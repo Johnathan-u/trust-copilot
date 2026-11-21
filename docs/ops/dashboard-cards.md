@@ -33,4 +33,4 @@ Allowed target routes (`ALLOWED_ROUTES`):
 - `/dashboard/settings`
 - `/dashboard/security`
 
-Visibility is `all` or `admin`. A non-admin sees a custom card only when it is enabled and its visibility is `all`.
+Visibility is `all` or `admin`. A non-admin sees a custom card only when it is enabled, its visibility is `all`, and the application nav would show that route to them. `requiresAdmin` routes need `can_admin`. `requiresReview` routes need `can_review`. An admin sees every custom card.

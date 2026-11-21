@@ -24,7 +24,7 @@ Product code was master `b0b8a01fd2a11914a884630d90ae68fd00291841`. The test fil
 
 Same command on the product code in this change. Log: `passing-after.txt`.
 
-7 passed, exit 0, no skip. A stale `updated_at` is 409 and the stored title stays. Reorder moves `updated_at`, so the old revision is 409. The same Idempotency-Key returns one card, and a new process reads that card from `GET /api/dashboard/cards`. A rejected create does not keep the key.
+9 passed, exit 0, no skip. A stale `updated_at` is 409 and the stored title stays. Reorder moves `updated_at`, so the old revision is 409. The same Idempotency-Key returns one card, and a new process reads that card from `GET /api/dashboard/cards`. A rejected create does not keep the key. An editor keeps a Documents card and does not see a Members card. A custom role with `can_review` keeps the Review card.
 
 `python -m pytest tests/test_dashboard_cards.py -q` on the same product code: 26 passed, exit 0.
 

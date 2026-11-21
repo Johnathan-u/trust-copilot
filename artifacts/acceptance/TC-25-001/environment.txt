@@ -23,6 +23,6 @@ Node: 24.22.3 (web unit test)
 Working directory for the backlog command: apps/api
 Failing product code: b0b8a01fd2a11914a884630d90ae68fd00291841
 Named command before the product change: 4 failed, 3 passed, exit 1
-Named command after the product change: 7 passed, exit 0, no skip
+Named command after the product change: 9 passed, exit 0, no skip
 tests/test_dashboard_cards.py after the product change: 26 passed, exit 0
 Web unit test apps/web/tests/unit/dashboard-card-form.test.ts: 4 passed

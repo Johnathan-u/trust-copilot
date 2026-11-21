@@ -11,7 +11,7 @@ from sqlalchemy import update
 from sqlalchemy.orm import Session
 
 from app.core.audit import persist_audit
-from app.core.auth_deps import require_can_admin, require_session
+from app.core.auth_deps import _resolve_permission, require_can_admin, require_session
 from app.core.database import get_db
 from app.core.idempotency import (
     IdempotencyKeyError,
@@ -25,6 +25,7 @@ from app.models.dashboard_card import (
     ALLOWED_ICONS,
     ALLOWED_ROUTES,
     CARD_SIZES,
+    ROUTE_PERMISSION,
     VISIBILITY_SCOPES,
     DashboardCard,
 )
@@ -94,6 +95,18 @@ DEFAULT_CARDS = [
 ]
 
 
+def _caller_may_open(route: str, session: dict, db: Session) -> bool:
+    """True when the application nav would show this route to the caller.
+
+    A route with no permission is visible to every signed-in member.
+    Custom roles are resolved by ``_resolve_permission``.
+    """
+    needed = ROUTE_PERMISSION.get(route)
+    if not needed:
+        return True
+    return _resolve_permission(session.get("role"), needed, session.get("workspace_id"), db)
+
+
 @router.get("")
 @router.get("/")
 def list_cards(
@@ -104,7 +117,8 @@ def list_cards(
 
     Built-in default cards are always included first.
     Custom workspace cards are appended after defaults.
-    Admins see all custom cards. Non-admins see only enabled custom cards with visibility_scope='all'.
+    Admins see every custom card. A non-admin sees an enabled card with
+    visibility_scope='all' only when the application nav would show its route.
     """
     ws = session.get("workspace_id")
     if ws is None:
@@ -141,7 +155,9 @@ def list_cards(
         result += [
             {**_card_dict(c), "is_builtin": False}
             for c in custom_rows
-            if c.is_enabled and c.visibility_scope == "all"
+            if c.is_enabled
+            and c.visibility_scope == "all"
+            and _caller_may_open(c.target_route, session, db)
         ]
 
     return {"cards": result, "has_custom": len(custom_rows) > 0}

@@ -65,9 +65,12 @@ def _make_editor(client: TestClient) -> None:
 
 
 def _cleanup() -> None:
+    from app.models import CustomRole
+
     db = SessionLocal()
     try:
         db.query(DashboardCard).delete()
+        db.query(CustomRole).filter(CustomRole.name.in_(("card_reviewer", "card_reader"))).delete()
         db.execute(
             text("DELETE FROM idempotency_keys WHERE idempotency_key LIKE :prefix"),
             {"prefix": "%dashboard-cards:create%"},
@@ -377,3 +380,112 @@ def test_failed_create_releases_the_key(client: TestClient):
     assert _count_title(title) == 1
     listed = _customs(client)
     assert [card["id"] for card in listed] == [created.json()["id"]]
+
+
+def _as_role(client: TestClient, role: str) -> None:
+    from app.models import User, WorkspaceMember
+
+    db = SessionLocal()
+    try:
+        user = db.query(User).filter(User.email == "demo@trust.local").first()
+        mem = (
+            db.query(WorkspaceMember)
+            .filter(WorkspaceMember.user_id == user.id, WorkspaceMember.workspace_id == 1)
+            .first()
+        )
+        mem.role = role
+        db.commit()
+    finally:
+        db.close()
+    response = client.post("/api/auth/login", json={"email": "demo@trust.local", "password": "j"})
+    assert response.status_code == 200
+
+
+def _grant_role(name: str, **flags: bool) -> None:
+    from app.models import CustomRole
+
+    values = {
+        "can_edit": False,
+        "can_review": False,
+        "can_export": False,
+        "can_admin": False,
+    }
+    values.update(flags)
+    db = SessionLocal()
+    try:
+        db.query(CustomRole).filter(CustomRole.workspace_id == 1, CustomRole.name == name).delete()
+        db.add(CustomRole(workspace_id=1, name=name, **values))
+        db.commit()
+    finally:
+        db.close()
+
+
+def test_route_permission_follows_the_application_nav():
+    """The map is the nav flag for every allowed route, and nothing else."""
+    from app.models.dashboard_card import ALLOWED_ROUTES, ROUTE_PERMISSION
+
+    assert set(ROUTE_PERMISSION) == set(ALLOWED_ROUTES)
+    assert ROUTE_PERMISSION["/dashboard/members"] == "can_admin"
+    assert ROUTE_PERMISSION["/dashboard/notifications"] == "can_admin"
+    assert ROUTE_PERMISSION["/dashboard/slack"] == "can_admin"
+    assert ROUTE_PERMISSION["/dashboard/gmail"] == "can_admin"
+    assert ROUTE_PERMISSION["/dashboard/audit"] == "can_admin"
+    assert ROUTE_PERMISSION["/dashboard/ai-governance"] == "can_admin"
+    assert ROUTE_PERMISSION["/dashboard/settings"] == "can_admin"
+    assert ROUTE_PERMISSION["/dashboard/requests"] == "can_review"
+    assert ROUTE_PERMISSION["/dashboard/documents"] is None
+    assert ROUTE_PERMISSION["/dashboard/questionnaires"] is None
+    assert ROUTE_PERMISSION["/dashboard/review"] is None
+    assert ROUTE_PERMISSION["/dashboard/exports"] is None
+    assert ROUTE_PERMISSION["/dashboard/compliance-gaps"] is None
+    assert ROUTE_PERMISSION["/dashboard/trust-center"] is None
+    assert ROUTE_PERMISSION["/dashboard/proof-chain"] is None
+    assert ROUTE_PERMISSION["/dashboard/security"] is None
+
+
+def test_list_drops_a_card_whose_route_the_caller_cannot_open(client: TestClient):
+    """An editor keeps Documents and loses Members. A review role keeps Review."""
+    _login_admin(client)
+    created = {
+        "documents": client.post(
+            "/api/dashboard/cards", json=_body("Open documents", route="/dashboard/documents")
+        ),
+        "members": client.post(
+            "/api/dashboard/cards", json=_body("Members link", route="/dashboard/members")
+        ),
+        "review": client.post(
+            "/api/dashboard/cards", json=_body("Review link", route="/dashboard/review")
+        ),
+        "requests": client.post(
+            "/api/dashboard/cards", json=_body("Requests link", route="/dashboard/requests")
+        ),
+    }
+    assert all(response.status_code == 200 for response in created.values())
+
+    _make_editor(client)
+    editor_titles = {card["title"] for card in _customs(client)}
+    assert "Open documents" in editor_titles
+    assert "Review link" in editor_titles
+    assert "Requests link" in editor_titles
+    assert "Members link" not in editor_titles
+
+    _grant_role("card_reviewer", can_review=True)
+    _as_role(client, "card_reviewer")
+    review_titles = {card["title"] for card in _customs(client)}
+    assert "Review link" in review_titles
+    assert "Open documents" in review_titles
+    assert "Requests link" in review_titles
+    assert "Members link" not in review_titles
+
+    _grant_role("card_reader")
+    _as_role(client, "card_reader")
+    reader_titles = {card["title"] for card in _customs(client)}
+    assert "Open documents" in reader_titles
+    assert "Review link" in reader_titles
+    assert "Requests link" not in reader_titles
+    assert "Members link" not in reader_titles
+
+    _login_admin(client)
+    admin_titles = {card["title"] for card in _customs(client)}
+    assert "Members link" in admin_titles
+    assert "Requests link" in admin_titles

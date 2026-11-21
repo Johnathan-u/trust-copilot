@@ -28,6 +28,30 @@ ALLOWED_ROUTES = [
     "/dashboard/security",
 ]
 
+# Permission the application nav requires before it shows the route.
+# None means apps/web/lib/app-navigation.ts shows it to every signed-in member.
+# requiresAdmin is can_admin. requiresReview is can_review.
+# /dashboard/review and /dashboard/exports have neither flag.
+# /dashboard/security is accountNavItems and has no flag.
+ROUTE_PERMISSION: dict[str, str | None] = {
+    "/dashboard/documents": None,
+    "/dashboard/questionnaires": None,
+    "/dashboard/review": None,
+    "/dashboard/requests": "can_review",
+    "/dashboard/exports": None,
+    "/dashboard/compliance-gaps": None,
+    "/dashboard/trust-center": None,
+    "/dashboard/proof-chain": None,
+    "/dashboard/members": "can_admin",
+    "/dashboard/notifications": "can_admin",
+    "/dashboard/slack": "can_admin",
+    "/dashboard/gmail": "can_admin",
+    "/dashboard/audit": "can_admin",
+    "/dashboard/ai-governance": "can_admin",
+    "/dashboard/settings": "can_admin",
+    "/dashboard/security": None,
+}
+
 ALLOWED_ICONS = [
     "document",
     "questionnaire",
