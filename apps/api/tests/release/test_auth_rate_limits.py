@@ -229,8 +229,8 @@ def test_rate_limit_bucket_migration_downgrade_and_upgrade(migrated_db: bool) ->
         assert result.returncode == 0, result.stderr[-2000:]
         return result.stdout
 
-    # Later revisions may sit on this one, so relative "-1" is no longer this file.
-    # Downgrade to its parent to drop the table, then return to the current head.
+    # tc20050_crm_pipeline_sync sits on this revision, so "-1" from head is not
+    # this file. Downgrade to the recorded parent, then return to head.
     assert mod.down_revision
     alembic("downgrade", mod.down_revision)
     try:
