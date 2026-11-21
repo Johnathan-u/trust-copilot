@@ -1,0 +1,26 @@
+Command from apps/api:
+
+TC_REQUIRE_DB=1 python -m pytest tests/release/test_answer_revisions.py -q
+
+Failing-before product code: ba789896951bc60e8f67842c87f67a0b50fbe988 (origin/master).
+The new test module was on disk. Answer PATCH and the questionnaire answer payload were the master versions.
+
+Passing-after product code: the head of branch tc/TC-12-002-answer-revision.
+Log: passing-after.txt. 2 passed, exit 0, no skip.
+
+Web command from apps/web:
+
+npx vitest run tests/unit/answer-save.test.ts
+
+4 passed. Node 24.22.3. vitest 5.0.5.
+
+Python 3.12.3
+pytest 9.1.1
+SQLAlchemy 2.0.55
+Alembic 1.20.1
+PostgreSQL 16.15 (Ubuntu 16.15-0ubuntu0.24.04.1)
+pgvector 0.6.0
+Database trustcopilot_test on localhost:5432
+Alembic head applied by the test session: tc04007b_rate_buckets
+
+No migration in this change. No customer content. Fixtures are synthetic.

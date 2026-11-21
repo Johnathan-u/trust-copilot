@@ -16,6 +16,7 @@ from pydantic import BaseModel, Field
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
+from app.api.routes.answers import answer_revision_token
 from app.api.schemas import BulkDeleteBody, MetadataUpdateBody
 from app.core.api_errors import (
     ApiError,
@@ -771,6 +772,8 @@ def get_questionnaire(
                             getattr(answers[q.id], "outcome_code", None), _rid
                         ),
                         "draft_revision": revision_payload(drafts.get(answers[q.id].id)),
+                        # TC-12-002: updated_at is the revision the editor must send back.
+                        "updated_at": answer_revision_token(answers[q.id].updated_at),
                     }
                     if q.id in answers
                     else None

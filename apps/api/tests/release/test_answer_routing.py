@@ -285,7 +285,11 @@ def test_dynamic_update_still_reaches_individual_handler(answers_authority):
     aid = f["answers"]["existing"]
     with f["client"]() as client:
         before = snapshot(f["db"])
-        response = client.patch(f"/api/answers/{aid}", json={"text": "", "status": "flagged"})
+        loaded = f["db"].get(Answer, aid).updated_at.isoformat()
+        response = client.patch(
+            f"/api/answers/{aid}",
+            json={"text": "", "status": "flagged", "updated_at": loaded},
+        )
     assert response.status_code == 200
     assert response.json() == {
         "id": aid,

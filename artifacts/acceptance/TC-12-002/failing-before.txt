@@ -1,0 +1,24 @@
+FF                                                                       [100%]
+=================================== FAILURES ===================================
+________ test_stale_client_gets_409_and_a_later_read_returns_the_winner ________
+tests/release/test_answer_revisions.py:186: in test_stale_client_gets_409_and_a_later_read_returns_the_winner
+    assert conflict.status_code == 409, conflict.text
+E   AssertionError: {"id":677,"question_id":803,"text":"Stale editor tried to replace it.","status":"draft"}
+E   assert 200 == 409
+E    +  where 200 = <Response [200 OK]>.status_code
+_______________ test_missing_revision_is_409_and_leaves_the_row ________________
+tests/release/test_answer_revisions.py:203: in test_missing_revision_is_409_and_leaves_the_row
+    assert rejected.status_code == 409, rejected.text
+E   AssertionError: {"id":678,"question_id":804,"text":"This save omitted the loaded revision.","status":"draft"}
+E   assert 200 == 409
+E    +  where 200 = <Response [200 OK]>.status_code
+=============================== warnings summary ===============================
+tests/release/test_answer_revisions.py: 13 warnings
+  /tmp/tc-venv/lib/python3.12/site-packages/sqlalchemy/sql/schema.py:3627: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    return util.wrap_callable(lambda ctx: fn(), fn)  # type: ignore
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/release/test_answer_revisions.py::test_stale_client_gets_409_and_a_later_read_returns_the_winner
+FAILED tests/release/test_answer_revisions.py::test_missing_revision_is_409_and_leaves_the_row
+2 failed, 13 warnings in 0.67s

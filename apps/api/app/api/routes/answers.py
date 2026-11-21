@@ -5,8 +5,11 @@ enqueues ``generate_answers`` via ``POST /api/exports/generate/{questionnaire_id
 ``export_service.enqueue_generate_answers_job`` and ``docs/engineering/ANSWER_GENERATION_PIPELINE.md``).
 """
 
+from datetime import datetime, timezone
+
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, StrictInt
+from sqlalchemy import update
 from sqlalchemy.orm import Session
 
 from app.core.auth_deps import require_can_review
@@ -35,6 +38,12 @@ class AnswerCreate(BaseModel):
 class AnswerUpdate(BaseModel):
     text: str | None = None
     status: str | None = None
+    # The updated_at the editor loaded. It is the row revision, not a new value.
+    updated_at: str | None = None
+
+
+# Missing and mismatch both use this. The stored row is left unchanged.
+_STALE_ANSWER = "This answer changed since it was loaded. Reload it and try again."
 
 
 class BulkUpdateBody(BaseModel):
@@ -48,6 +57,59 @@ def _record_human_text(row: Answer, new_text: str) -> None:
         row.outcome_code = None
         row.insufficient_reason = None
     row.text = new_text
+
+
+def answer_revision_token(value: datetime | None) -> str | None:
+    """ISO form of ``answers.updated_at``. That existing column is the revision."""
+    if value is None:
+        return None
+    if value.tzinfo is not None:
+        value = value.astimezone(timezone.utc).replace(tzinfo=None)
+    return value.isoformat()
+
+
+def _reject_stale_answer(db: Session) -> None:
+    db.rollback()
+    raise HTTPException(status_code=409, detail=_STALE_ANSWER)
+
+
+def _expected_answer_revision(db: Session, answer: Answer, body: AnswerUpdate) -> datetime | None:
+    """409 unless the caller still holds the row's updated_at.
+
+    The check runs after authorization and before any column is written.
+    Omitting the value, sending it blank, or sending a different value are all 409.
+    """
+    if "updated_at" not in body.model_fields_set:
+        _reject_stale_answer(db)
+    if body.updated_at is None:
+        if answer.updated_at is not None:
+            _reject_stale_answer(db)
+        return None
+    if body.updated_at.strip() != answer_revision_token(answer.updated_at):
+        _reject_stale_answer(db)
+    return answer.updated_at
+
+
+def _write_answer_if_current(
+    db: Session, answer: Answer, body: AnswerUpdate, expected: datetime | None
+) -> None:
+    """Update the row only while ``updated_at`` is still the loaded revision."""
+    values: dict[str, object] = {"updated_at": datetime.now(timezone.utc).replace(tzinfo=None)}
+    if body.text is not None:
+        values["text"] = body.text
+        if body.text != answer.text:
+            values["outcome_code"] = None
+            values["insufficient_reason"] = None
+    if body.status is not None:
+        values["status"] = body.status
+    stmt = update(Answer).where(Answer.id == answer.id)
+    if expected is None:
+        stmt = stmt.where(Answer.updated_at.is_(None))
+    else:
+        stmt = stmt.where(Answer.updated_at == expected)
+    result = db.execute(stmt.values(**values))
+    if result.rowcount != 1:
+        _reject_stale_answer(db)
 
 
 @router.post("")
@@ -146,7 +208,11 @@ def update_answer(
     session: dict = Depends(require_can_review),
     db: Session = Depends(get_db),
 ):
-    """Update answer text and/or status."""
+    """Update answer text and/or status.
+
+    ``updated_at`` must be the value the editor loaded. A missing value or a
+    mismatch is 409 and the stored row is left unchanged.
+    """
     a = db.query(Answer).filter(Answer.id == answer_id).first()
     if not a:
         raise HTTPException(status_code=404, detail="Answer not found")
@@ -156,10 +222,11 @@ def update_answer(
         if qnr and qnr.workspace_id != session.get("workspace_id"):
             raise HTTPException(status_code=403, detail="Access denied")
     require_in_workspace(db, session.get("workspace_id"), "answer", answer_id)
-    if body.text is not None:
-        _record_human_text(a, body.text)
-    if body.status is not None:
-        a.status = body.status
+    # The advisory lock serializes writers. It does not detect a stale editor.
+    _lock_answer_write(db, a.question_id)
+    db.refresh(a)
+    expected = _expected_answer_revision(db, a, body)
+    _write_answer_if_current(db, a, body, expected)
     db.commit()
     db.refresh(a)
     return {"id": a.id, "question_id": a.question_id, "text": a.text, "status": a.status}
