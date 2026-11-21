@@ -1,11 +1,39 @@
 import { NextRequest } from 'next/server'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { DEFAULT_MAX_UPLOAD_BYTES } from '@/lib/upload-limit'
+
 // The route reads API_UPSTREAM at import time, so set it before importing.
 vi.stubEnv('API_UPSTREAM', 'http://upstream.test/')
 const route = await import('@/app/api/[[...path]]/route')
 
-type FetchArgs = [string, RequestInit]
+type FetchArgs = [string, RequestInit & { duplex?: string }]
+
+async function decodeBody(body: BodyInit | null | undefined): Promise<string> {
+  if (body == null) return ''
+  if (typeof body === 'string') return body
+  if (body instanceof Uint8Array) return new TextDecoder().decode(body)
+  if (body instanceof ArrayBuffer) return new TextDecoder().decode(body)
+  if (body instanceof ReadableStream) {
+    const reader = body.getReader()
+    const parts: Uint8Array[] = []
+    for (;;) {
+      const step = await reader.read()
+      if (step.done) break
+      if (step.value) parts.push(step.value)
+    }
+    const merged = new Uint8Array(
+      parts.reduce((sum, part) => sum + part.byteLength, 0)
+    )
+    let offset = 0
+    for (const part of parts) {
+      merged.set(part, offset)
+      offset += part.byteLength
+    }
+    return new TextDecoder().decode(merged)
+  }
+  return ''
+}
 
 const fetchMock = vi.fn<(...args: FetchArgs) => Promise<Response>>()
 
@@ -48,6 +76,7 @@ describe('/api proxy route', () => {
     expect(url).toBe('http://upstream.test/api/auth/me?verbose=1')
     expect(init.method).toBe('GET')
     expect(init.body).toBeUndefined()
+    expect(init.duplex).toBeUndefined()
     expect(init.cache).toBe('no-store')
     const headers = init.headers as Record<string, string>
     expect(headers.Cookie).toBe('tc_session=synthetic')
@@ -80,9 +109,9 @@ describe('/api proxy route', () => {
     expect(headers.Origin).toBe('https://app.tc.test')
     expect(headers.Referer).toBe('https://app.tc.test/dashboard/review/3')
     expect(headers['Content-Type']).toBe('application/json')
-    expect(new TextDecoder().decode(init.body as ArrayBuffer)).toBe(
-      '{"text":"synthetic answer"}'
-    )
+    expect(init.duplex).toBe('half')
+    expect(init.body).toBeInstanceOf(ReadableStream)
+    expect(await decodeBody(init.body)).toBe('{"text":"synthetic answer"}')
     expect(res.status).toBe(201)
     expect(await res.json()).toEqual({ id: 3 })
   })
@@ -113,5 +142,66 @@ describe('/api proxy route', () => {
     fetchMock.mockResolvedValue(new Response('{}', { status: 200 }))
     await route.GET(new NextRequest('http://tc.test/api'), ctx())
     expect(fetchMock.mock.calls[0][0]).toBe('http://upstream.test/api/')
+  })
+
+  it('rejects a Content-Length above MAX_UPLOAD_BYTES before reading the body', async () => {
+    vi.stubEnv('MAX_UPLOAD_BYTES', '4')
+    const req = new NextRequest('http://tc.test/api/documents/upload', {
+      method: 'POST',
+      headers: {
+        'content-type': 'text/plain',
+        'content-length': '5',
+      },
+    })
+    expect(req.headers.get('content-length')).toBe('5')
+    Object.defineProperty(req, 'body', {
+      get() {
+        throw new Error('body was read')
+      },
+    })
+
+    const res = await route.POST(req, ctx(['documents', 'upload']))
+
+    expect(res.status).toBe(413)
+    expect((await res.json()).detail).toBe('File exceeds max size (4 bytes)')
+    expect(fetchMock).not.toHaveBeenCalled()
+  })
+
+  it('streams a chunked body and stops before forwarding the overflow', async () => {
+    vi.stubEnv('MAX_UPLOAD_BYTES', '4')
+    const stream = new ReadableStream({
+      start(controller) {
+        controller.enqueue(new TextEncoder().encode('123'))
+        controller.enqueue(new TextEncoder().encode('4567'))
+        controller.close()
+      },
+    })
+    const req = new NextRequest('http://tc.test/api/documents/upload', {
+      method: 'POST',
+      body: stream,
+      duplex: 'half',
+      headers: { 'content-type': 'text/plain' },
+    })
+    const forwarded: number[] = []
+    fetchMock.mockImplementation(async (_url, init) => {
+      const reader = (init.body as ReadableStream<Uint8Array>).getReader()
+      for (;;) {
+        const step = await reader.read()
+        if (step.done) break
+        forwarded.push(step.value.byteLength)
+      }
+      return new Response('{"ok":true}', { status: 200 })
+    })
+
+    const res = await route.POST(req, ctx(['documents', 'upload']))
+
+    expect(res.status).toBe(413)
+    expect((await res.json()).detail).toBe('File exceeds max size (4 bytes)')
+    expect(forwarded).toEqual([3])
+    expect(fetchMock.mock.calls[0][1].duplex).toBe('half')
+  })
+
+  it('uses the documented 50 MiB default when MAX_UPLOAD_BYTES is unset', () => {
+    expect(DEFAULT_MAX_UPLOAD_BYTES).toBe(50 * 1024 * 1024)
   })
 })

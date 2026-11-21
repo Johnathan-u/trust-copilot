@@ -51,7 +51,13 @@ trustcopilot.app, www.trustcopilot.app {
         }
     }
 
+    # TC-07-006: the same byte cap as MAX_UPLOAD_BYTES. Unset stays 52428800,
+    # which is the API default (50 MiB). A larger body is rejected with 413
+    # before it is proxied.
     handle /api* {
+        request_body {
+            max_size {$MAX_UPLOAD_BYTES:52428800}
+        }
         reverse_proxy api:8000 {
             header_up Host {hostport}
             header_up -X-Forwarded-Host

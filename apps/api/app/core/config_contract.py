@@ -418,7 +418,15 @@ CONTRACT: tuple[ConfigVar, ...] = (
         "Direct peers allowed to set X-Forwarded-For, X-Forwarded-Host, and X-Forwarded-Proto. "
         "Unset trusts none of those headers.",
     ),
-    ConfigVar("MAX_UPLOAD_BYTES", "int > 0", "optional", False, "52428800", "Upload size limit."),
+    ConfigVar(
+        "MAX_UPLOAD_BYTES",
+        "int > 0",
+        "optional",
+        False,
+        "52428800",
+        "Upload size limit in bytes. The API, the Next.js /api proxy, and production Caddy "
+        "stop above it with HTTP 413.",
+    ),
     ConfigVar(
         "EXPORT_ANSWER_COL_OFFSET", "int", "optional", False, "1", "Export answer column offset."
     ),

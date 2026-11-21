@@ -5,7 +5,22 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 
+import {
+  isUploadTooLarge,
+  limitRequestBody,
+  maxUploadBytes,
+  uploadLimitDetail,
+} from '@/lib/upload-limit'
+
 const API_UPSTREAM = process.env.API_UPSTREAM || 'http://localhost:8000'
+
+function declaredLength(request: NextRequest): number | null {
+  const raw = request.headers.get('content-length')
+  if (raw == null || !/^\d+$/.test(raw.trim())) return null
+  const value = Number(raw.trim())
+  if (!Number.isSafeInteger(value)) return null
+  return value
+}
 
 function buildBackendUrl(
   path: string[],
@@ -87,25 +102,43 @@ async function proxy(
   const contentType = request.headers.get('content-type')
   if (contentType) headers['Content-Type'] = contentType
 
-  let body: ArrayBuffer | undefined
-  if (method !== 'GET') {
-    try {
-      // Use arrayBuffer so multipart/form-data (e.g. trust request with file) is forwarded correctly
-      body = await request.arrayBuffer()
-    } catch {
-      body = undefined
+  const maxBytes = maxUploadBytes()
+  let body: ReadableStream<Uint8Array> | undefined
+  // GET has no body. Any other method streams, with a hard stop at MAX_UPLOAD_BYTES.
+  if (method !== 'GET' && method !== 'HEAD') {
+    const declared = declaredLength(request)
+    if (declared != null && declared > maxBytes) {
+      return NextResponse.json(
+        { detail: uploadLimitDetail(maxBytes) },
+        { status: 413 }
+      )
+    }
+    if (request.body) {
+      body = limitRequestBody(request.body, maxBytes)
     }
   }
 
   let res: Response
   try {
-    res = await fetch(url, {
-      method,
-      headers,
-      body: body && body.byteLength > 0 ? body : undefined,
-      cache: 'no-store',
-    })
-  } catch {
+    res = await fetch(
+      url,
+      body
+        ? ({
+            method,
+            headers,
+            body,
+            duplex: 'half',
+            cache: 'no-store',
+          } as RequestInit)
+        : { method, headers, cache: 'no-store' }
+    )
+  } catch (err) {
+    if (isUploadTooLarge(err)) {
+      return NextResponse.json(
+        { detail: uploadLimitDetail(maxBytes) },
+        { status: 413 }
+      )
+    }
     // Backend unreachable (ECONNREFUSED, etc.) — return 502 so the client gets a proper response
     // instead of an unhandled exception that surfaces as "Failed to fetch".
     return NextResponse.json(

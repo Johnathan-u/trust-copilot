@@ -23,6 +23,11 @@ services:
       - ./infra/caddy/Caddyfile.production:/etc/caddy/Caddyfile:ro
       - caddy_data:/data
       - caddy_config:/config
+    environment:
+      # TC-07-006: Caddyfile.production request_body max_size. deploy.sh passes
+      # --env-file .env.production, so this is the same value the API reads.
+      # Unset stays 52428800, the API and Caddyfile default.
+      MAX_UPLOAD_BYTES: ${MAX_UPLOAD_BYTES:-52428800}
     depends_on:
       web:
         condition: service_healthy
