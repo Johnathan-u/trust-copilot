@@ -112,8 +112,8 @@ def test_retrieval_cache_and_corpus_version(db_session: Session):
     new_version = get_corpus_version(db, workspace_id)
     assert new_version != version
     out2 = retrieval_cache_get(db, workspace_id, q_hash)
-    # Current version is new_version; cached row has old version so retrieval_cache_get returns None (version mismatch)
-    assert out2 is None or len(out2) == 0
+    # Current version is new_version; the old row is not a hit.
+    assert out2 is None
     retrieval_cache_invalidate(db, workspace_id)
 
 

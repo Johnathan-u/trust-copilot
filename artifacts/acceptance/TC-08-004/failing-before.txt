@@ -1,0 +1,67 @@
+..FFFFFFFF                                                               [100%]
+=================================== FAILURES ===================================
+_____________ test_corpus_bump_misses_retrieval_and_answer_caches ______________
+tests/release/test_retrieval_isolation.py:392: in test_corpus_bump_misses_retrieval_and_answer_caches
+    assert (
+E   AssertionError: assert {'text': 'Cached own answer.', 'citations': [{'chunk_id': 2, 'document_id': 2}], 'confidence': 81} is None
+E    +  where {'text': 'Cached own answer.', 'citations': [{'chunk_id': 2, 'document_id': 2}], 'confidence': 81} = answer_cache_get(<sqlalchemy.orm.session.Session object at 0x7f2391ec1730>, 4, 'fd94aac9328351a72f634c925343e2e2', 'balanced', 'd4735e3a265e16eee03f59718b9b5d03')
+________ test_keyword_excludes_soft_deleted_not_indexed_and_superseded _________
+tests/release/test_retrieval_isolation.py:417: in test_keyword_excludes_soft_deleted_not_indexed_and_superseded
+    assert isolation["chunks"]["pending"] not in found
+E   assert 4 not in {2, 4, 5, 6, 8}
+______________ test_semantic_pgvector_excludes_ineligible_sources ______________
+tests/release/test_retrieval_isolation.py:430: in test_semantic_pgvector_excludes_ineligible_sources
+    assert isolation["chunks"]["pending"] not in found
+E   assert 4 not in {2, 4, 5, 6, 8}
+______________ test_semantic_fallback_excludes_ineligible_sources ______________
+tests/release/test_retrieval_isolation.py:446: in test_semantic_fallback_excludes_ineligible_sources
+    assert isolation["chunks"]["pending"] not in found
+E   assert 4 not in {2, 4, 5, 6, 8}
+------------------------------ Captured log call -------------------------------
+WARNING  app.services.retrieval:retrieval.py:344 retrieval using semantic fallback (pgvector disabled or unavailable) workspace_id=4 limit=20
+________ test_permission_policy_hides_unreadable_document_in_workspace _________
+tests/release/test_retrieval_isolation.py:459: in test_permission_policy_hides_unreadable_document_in_workspace
+    from app.services.retrieval_permissions import policy_for_role
+E   ModuleNotFoundError: No module named 'app.services.retrieval_permissions'
+
+During handling of the above exception, another exception occurred:
+tests/release/test_retrieval_isolation.py:461: in test_permission_policy_hides_unreadable_document_in_workspace
+    pytest.fail("search does not apply the caller's permission policy")
+E   Failed: search does not apply the caller's permission policy
+___________ test_answer_cache_key_includes_prompt_version_and_model ____________
+tests/release/test_retrieval_isolation.py:570: in test_answer_cache_key_includes_prompt_version_and_model
+    from app.services.prompt_builder import ANSWER_PROMPT_VERSION
+E   ImportError: cannot import name 'ANSWER_PROMPT_VERSION' from 'app.services.prompt_builder' (/agent/repos/trust-copilot/apps/api/app/services/prompt_builder.py)
+
+During handling of the above exception, another exception occurred:
+tests/release/test_retrieval_isolation.py:572: in test_answer_cache_key_includes_prompt_version_and_model
+    pytest.fail("answer cache key does not include a prompt version")
+E   Failed: answer cache key does not include a prompt version
+_____ test_replaced_source_is_a_cache_miss_without_waiting_for_empty_list ______
+tests/release/test_retrieval_isolation.py:662: in test_replaced_source_is_a_cache_miss_without_waiting_for_empty_list
+    assert retrieval_cache_get(isolation["db"], isolation["own"], question_hash) is None
+E   AssertionError: assert [{'id': 5, 'text': 'old version', 'metadata': {'document_id': 5}, 'score': 0.95}] is None
+E    +  where [{'id': 5, 'text': 'old version', 'metadata': {'document_id': 5}, 'score': 0.95}] = retrieval_cache_get(<sqlalchemy.orm.session.Session object at 0x7f2391f0dee0>, 4, '24920cdeca3a5ae2877530d374dc1a89')
+_____________ test_soft_delete_tombstones_chunks_and_bumps_corpus ______________
+tests/release/test_retrieval_isolation.py:679: in test_soft_delete_tombstones_chunks_and_bumps_corpus
+    assert (chunk.metadata_ or {}).get("retrieval_tombstone") == "soft_deleted"
+E   AssertionError: assert None == 'soft_deleted'
+E    +  where None = <built-in method get of dict object at 0x7f2391e56a00>('retrieval_tombstone')
+E    +    where <built-in method get of dict object at 0x7f2391e56a00> = ({'document_id': 6, 'filename': 'hidden-2dbb1a56b533.txt'}).get
+E    +      where {'document_id': 6, 'filename': 'hidden-2dbb1a56b533.txt'} = <app.models.chunk.Chunk object at 0x7f2391ed1b20>.metadata_
+=============================== warnings summary ===============================
+tests/release/test_retrieval_isolation.py: 71 warnings
+  /tmp/tc-venv/lib/python3.12/site-packages/sqlalchemy/sql/schema.py:3627: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    return util.wrap_callable(lambda ctx: fn(), fn)  # type: ignore
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/release/test_retrieval_isolation.py::test_corpus_bump_misses_retrieval_and_answer_caches
+FAILED tests/release/test_retrieval_isolation.py::test_keyword_excludes_soft_deleted_not_indexed_and_superseded
+FAILED tests/release/test_retrieval_isolation.py::test_semantic_pgvector_excludes_ineligible_sources
+FAILED tests/release/test_retrieval_isolation.py::test_semantic_fallback_excludes_ineligible_sources
+FAILED tests/release/test_retrieval_isolation.py::test_permission_policy_hides_unreadable_document_in_workspace
+FAILED tests/release/test_retrieval_isolation.py::test_answer_cache_key_includes_prompt_version_and_model
+FAILED tests/release/test_retrieval_isolation.py::test_replaced_source_is_a_cache_miss_without_waiting_for_empty_list
+FAILED tests/release/test_retrieval_isolation.py::test_soft_delete_tombstones_chunks_and_bumps_corpus
+8 failed, 2 passed, 71 warnings in 1.01s

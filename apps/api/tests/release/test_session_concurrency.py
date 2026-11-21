@@ -66,6 +66,7 @@ def two_tenants(pg_ready) -> Iterator[dict]:
                 workspace_id=ws.id,
                 storage_key=f"synthetic/{tag}/{name}.txt",
                 filename=f"{name}.txt",
+                status="indexed",
             )
             db.add(doc)
             db.flush()

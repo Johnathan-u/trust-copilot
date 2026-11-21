@@ -267,7 +267,7 @@ def test_threaded_workers_keep_typed_outcomes_and_hide_raw_errors(monkeypatch):
             return []
         return [dict(EVIDENCE[0])]
 
-    def _cache_get(_db, _ws, q_hash, _style, _fp):
+    def _cache_get(_db, _ws, q_hash, _style, _fp, **_k):
         if state["mode"] != "mixed":
             return None
         if q_hash in cached_hashes:
