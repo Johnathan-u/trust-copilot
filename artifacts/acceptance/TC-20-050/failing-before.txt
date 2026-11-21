@@ -1,0 +1,17 @@
+
+==================================== ERRORS ====================================
+__________ ERROR collecting tests/release/test_crm_salesforce_data.py __________
+ImportError while importing test module '/tmp/tc20050-red/apps/api/tests/release/test_crm_salesforce_data.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/usr/lib/python3.12/importlib/__init__.py:90: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/release/test_crm_salesforce_data.py:18: in <module>
+    from app.models.crm_connection import CrmConnection
+E   ModuleNotFoundError: No module named 'app.models.crm_connection'
+=========================== short test summary info ============================
+ERROR tests/release/test_crm_salesforce_data.py
+!!!!!!!!!!!!!!!!!!!! Interrupted: 1 error during collection !!!!!!!!!!!!!!!!!!!!
+1 error in 0.32s
+EXIT:2

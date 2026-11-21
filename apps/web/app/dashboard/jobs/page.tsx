@@ -58,6 +58,8 @@ function progressFacts(job: SafeJob): { text: string; label: string } | null {
       return { text: `${counts} answers exported`, label: 'Answers exported' }
     case 'generate_answers':
       return { text: `${counts} answers generated`, label: 'Answers generated' }
+    case 'crm_sync':
+      return { text: `${counts} records synced`, label: 'Records synced' }
     default:
       return null
   }
@@ -382,7 +384,7 @@ function JobsForWorkspace({
               </h2>
               <p className="mt-tc-2 text-tc-label text-tc-muted">
                 {beforeId === null
-                  ? 'Parsing, indexing, answer generation and exports appear here when they run.'
+                  ? 'Parsing, indexing, answer generation, exports and CRM sync appear here when they run.'
                   : 'Return to the newest jobs to check recent activity.'}
               </p>
             </Card>
