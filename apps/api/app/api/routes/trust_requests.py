@@ -29,7 +29,11 @@ from app.core.database import get_db
 from app.models import TrustRequest, TrustRequestNote, User, Workspace, WorkspaceMember
 from app.models.trust_request_note import NOTE_TYPE_INTERNAL, NOTE_TYPE_REPLY
 from app.services import trust_request_service as trust_svc
-from app.services.file_service import ALLOWED_RAW_EXTENSIONS, sanitize_filename
+from app.services.file_service import (
+    ALLOWED_RAW_EXTENSIONS,
+    read_bounded_upload,
+    sanitize_filename,
+)
 from pathlib import Path
 import hashlib
 from app.core.config import get_settings
@@ -207,10 +211,11 @@ def _persist_intake(
         ext = Path(filename).suffix.lower()
         if ext not in ALLOWED_RAW_EXTENSIONS:
             raise HTTPException(400, "File type is not supported.")
-        content = document.file.read(get_settings().max_upload_bytes + 1)
-        document.file.seek(0)
-        if len(content) > get_settings().max_upload_bytes:
-            raise HTTPException(413, "File is too large.")
+        content = read_bounded_upload(
+            document.file,
+            get_settings().max_upload_bytes,
+            detail="File is too large.",
+        )
         file_hash = hashlib.sha256(content).hexdigest()
     digest = trust_svc.fingerprint(
         {

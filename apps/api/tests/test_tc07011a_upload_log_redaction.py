@@ -91,7 +91,8 @@ def test_upload_logs_omit_the_user_filename(monkeypatch, caplog) -> None:
     assert CANARY not in rendered
     assert "filename=" not in rendered
     assert "workspace_id=42" in rendered
-    assert "size_bytes=10" in rendered
+    # The reader stops on the first byte past the 8-byte cap, so the log records 9.
+    assert "size_bytes=9" in rendered
     assert "size_bytes=3" in rendered
     assert "ext=.pdf" in rendered
     assert "ext=.exe" in rendered

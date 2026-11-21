@@ -3,7 +3,9 @@
 import logging
 import re
 import uuid
+from collections.abc import Callable
 from pathlib import Path
+from typing import BinaryIO
 
 from fastapi import HTTPException, UploadFile
 
@@ -15,6 +17,8 @@ from app.services.storage import StorageClient  # noqa: E402
 
 PRESIGNED_EXPORT_EXPIRY = 900  # 15 min
 ALLOWED_RAW_EXTENSIONS = {".pdf", ".docx", ".doc", ".xlsx", ".xls", ".txt"}
+# Sized reads. A body past the cap stops on the next byte instead of one unbounded read.
+_UPLOAD_CHUNK_BYTES = 64 * 1024
 
 
 _XLSX_MEDIA = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
@@ -76,6 +80,59 @@ def _http_request_id() -> str:
     if isinstance(rid, str) and _SAFE_REQUEST_ID.fullmatch(rid):
         return rid
     return "-"
+
+
+def upload_limit_detail(max_bytes: int) -> str:
+    """413 text. A whole number of MiB stays in MB; any other cap is the byte count."""
+    mib = max_bytes // (1024 * 1024)
+    if mib > 0 and mib * 1024 * 1024 == max_bytes:
+        return f"File exceeds max size ({mib}MB)"
+    return f"File exceeds max size ({max_bytes} bytes)"
+
+
+class UploadTooLarge(HTTPException):
+    """413 raised when an upload passes the cap. ``observed`` is how far the read got."""
+
+    def __init__(self, max_bytes: int, observed: int, detail: str | None = None) -> None:
+        self.max_bytes = max_bytes
+        self.observed = observed
+        super().__init__(status_code=413, detail=detail or upload_limit_detail(max_bytes))
+
+
+def read_bounded_upload(
+    fileobj: BinaryIO,
+    max_bytes: int,
+    *,
+    detail: str | None = None,
+) -> bytes:
+    """Read at most ``max_bytes``.
+
+    The byte that crosses the cap, or a chunk that already crosses it, is not
+    appended. The function stops there, so the rest of a larger body is not read.
+    """
+    if max_bytes < 0:
+        raise UploadTooLarge(max_bytes, 0, detail) from None
+    chunks: list[bytes] = []
+    total = 0
+    while total < max_bytes:
+        want = min(_UPLOAD_CHUNK_BYTES, max_bytes - total)
+        chunk = fileobj.read(want)
+        if not chunk:
+            return b"".join(chunks)
+        if len(chunk) > want or total + len(chunk) > max_bytes:
+            observed = total + len(chunk)
+            chunk = b""
+            chunks.clear()
+            raise UploadTooLarge(max_bytes, observed, detail) from None
+        chunks.append(chunk)
+        total += len(chunk)
+    extra = fileobj.read(1)
+    if extra:
+        observed = total + len(extra)
+        extra = b""
+        chunks.clear()
+        raise UploadTooLarge(max_bytes, observed, detail) from None
+    return b"".join(chunks)
 
 
 def _log_upload_rejected(
@@ -147,21 +204,33 @@ class FileService:
     def __init__(self, storage: StorageClient):
         self._storage = storage
 
-    def upload_raw(self, workspace_id: int, file: UploadFile) -> tuple[str, str]:
-        """Upload to raw bucket, return (key, filename). Enforces max size and allowed extensions only."""
-        content = file.file.read()
+    def upload_raw(
+        self,
+        workspace_id: int,
+        file: UploadFile,
+        *,
+        before_store: Callable[[bytes], None] | None = None,
+    ) -> tuple[str, str]:
+        """Upload to raw bucket, return (key, filename). Enforces max size and allowed extensions only.
+
+        ``before_store`` runs after the size check and before the extension check, so a
+        questionnaire can refuse a macro workbook (including ``.xlsm``) with the
+        workbook check detail. Nothing is stored until both checks pass.
+        """
         max_bytes = get_settings().max_upload_bytes
-        if len(content) > max_bytes:
+        try:
+            content = read_bounded_upload(file.file, max_bytes)
+        except UploadTooLarge as exc:
             _log_upload_rejected(
                 workspace_id=workspace_id,
                 filename=getattr(file, "filename", None),
-                size_bytes=len(content),
+                size_bytes=exc.observed,
                 reason="size_exceeded",
                 max_bytes=max_bytes,
             )
-            raise HTTPException(
-                status_code=413, detail=f"File exceeds max size ({max_bytes // (1024*1024)}MB)"
-            )
+            raise
+        if before_store is not None:
+            before_store(content)
         safe_name = sanitize_filename(file.filename)
         ext = Path(safe_name).suffix.lower()
         if not ext or ext not in ALLOWED_RAW_EXTENSIONS:
@@ -188,20 +257,19 @@ class FileService:
         self, workspace_id: int, request_id: int, file: UploadFile
     ) -> tuple[str, str, int]:
         """Upload trust request attachment to raw bucket. Return (key, original_filename, size_bytes)."""
-        content = file.file.read()
         max_bytes = get_settings().max_upload_bytes
-        if len(content) > max_bytes:
+        try:
+            content = read_bounded_upload(file.file, max_bytes)
+        except UploadTooLarge as exc:
             _log_upload_rejected(
                 workspace_id=workspace_id,
                 filename=getattr(file, "filename", None),
-                size_bytes=len(content),
+                size_bytes=exc.observed,
                 reason="size_exceeded",
                 trust_request_id=request_id,
                 max_bytes=max_bytes,
             )
-            raise HTTPException(
-                status_code=413, detail=f"File exceeds max size ({max_bytes // (1024*1024)}MB)"
-            )
+            raise
         safe_name = sanitize_filename(file.filename)
         ext = Path(safe_name).suffix.lower()
         if not ext or ext not in ALLOWED_RAW_EXTENSIONS:

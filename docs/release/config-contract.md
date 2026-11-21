@@ -94,6 +94,15 @@ Source of truth: `apps/api/app/core/config_contract.py`. The table between the m
   OPTIONS, and headers Accept, Authorization, Cache-Control, Content-Type, Idempotency-Key, and
   Pragma. `allow_credentials` stays true. The origin list is still `TRUSTED_ORIGINS` /
   `FRONTEND_URL`, not a method or header setting.
+* **Upload cap (TC-07-006).** `MAX_UPLOAD_BYTES` is the one byte limit for a document, a
+  questionnaire, and a trust-request attachment. Unset means 52428800 (50 MiB). The API reads
+  the body in chunks and returns HTTP 413 as soon as the total passes the cap; the extra bytes
+  are not kept. Production Caddy sets `request_body` `max_size` on `/api*` from the same variable
+  (`{$MAX_UPLOAD_BYTES:52428800}`). `deploy.sh` passes `--env-file .env.production`, so the Caddy
+  container receives the same value as the API. The Next.js `/api` proxy reads it at request time:
+  a `Content-Length` above the cap is 413 with the body unread, and any other body is streamed
+  (`duplex: 'half'`) through a counter that stops on the chunk that would pass the cap. A rejected
+  or interrupted upload does not leave a document, questionnaire, trust request, job, or stored object.
 
 ## Owner-account / infrastructure prerequisites
 
@@ -153,7 +162,7 @@ In the Entra app registration, open Token configuration and add the optional cla
 | `WORKSPACE_CREATE_PER_HOUR` | int >= 1 | optional | no | 5 | Most workspaces one user may create per hour; beyond it the request is throttled. |  |
 | `DEPLOYMENT_OPERATOR_EMAILS` | comma-separated emails | optional | no | unset | Deployment operator accounts (case-insensitive; email must be verified). Operators may create workspaces under `invitation_only`. |  |
 | `TRUSTED_PROXY_IPS` | comma-separated IPs or CIDRs | optional | no | unset | Direct peers allowed to set X-Forwarded-For, X-Forwarded-Host, and X-Forwarded-Proto. Unset trusts none of those headers. |  |
-| `MAX_UPLOAD_BYTES` | int > 0 | optional | no | 52428800 | Upload size limit. |  |
+| `MAX_UPLOAD_BYTES` | int > 0 | optional | no | 52428800 | Upload size limit in bytes. The API, the Next.js /api proxy, and production Caddy stop above it with HTTP 413. |  |
 | `EXPORT_ANSWER_COL_OFFSET` | int | optional | no | 1 | Export answer column offset. |  |
 | `AUDIT_RETENTION_DAYS` | int >= 0 | optional | no | 90 | Audit purge horizon (0 disables). |  |
 | `LOG_LEVEL` | enum(DEBUG|INFO|WARNING|ERROR|CRITICAL) | optional | no | INFO | Log level. |  |

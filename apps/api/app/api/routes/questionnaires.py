@@ -1,6 +1,5 @@
 """Questionnaire API (QNR-01, QNR-02, QNR-13, AI-05)."""
 
-import io
 import json
 import os  # noqa: F401
 import re  # noqa: F401
@@ -208,17 +207,16 @@ def upload_questionnaire(
             )
     stored_key: str | None = None
     try:
-        content = file.file.read()
-        try:
-            file.file.seek(0)
-        except Exception:
-            file.file = io.BytesIO(content)
-        if len(content) <= get_settings().max_upload_bytes:
+
+        def _refuse_unsupported_workbook(content: bytes) -> None:
             try:
                 _reject_unsupported_workbook_upload(getattr(file, "filename", None), content)
             except UnsupportedWorkbookStructure as exc:
                 raise HTTPException(status_code=400, detail=str(exc)) from None
-        stored_key, filename = file_svc.upload_raw(workspace_id, file)
+
+        stored_key, filename = file_svc.upload_raw(
+            workspace_id, file, before_store=_refuse_unsupported_workbook
+        )
         fw_list = [f.strip() for f in frameworks.split(",") if f.strip()] or ["Other"]
         sa_list = [s.strip() for s in subject_areas.split(",") if s.strip()] or ["Other"]
         qnr = Questionnaire(

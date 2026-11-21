@@ -1,0 +1,68 @@
+FFFFFF........FF.......                                                  [100%]
+=================================== FAILURES ===================================
+__________________ test_proxy_and_api_share_the_upload_limit ___________________
+tests/release/test_upload_stream.py:188: in test_proxy_and_api_share_the_upload_limit
+    assert "request_body" in api_block
+E   AssertionError: assert 'request_body' in ' {\n        reverse_proxy api:8000 {\n            header_up Host {hostport}\n            header_up -X-Forwarded-Host\...       header_up -X-Forwarded-Proto\n            header_up X-Forwarded-Proto {http.request.scheme}\n        }\n    }\n'
+____________________ test_uploads_share_one_bounded_reader _____________________
+tests/release/test_upload_stream.py:208: in test_uploads_share_one_bounded_reader
+    assert "def read_bounded_upload" in service
+E   assert 'def read_bounded_upload' in '"""Higher-level file upload/download service (FILE-02, OPS-02)."""\n\nimport logging\nimport re\nimport uuid\nfrom pa...rsal."""\n        validate_storage_key(key)\n        return self._storage.get_presigned_url(bucket, key, expires_in)\n'
+___________________ test_over_delivery_is_not_retained[raw] ____________________
+tests/release/test_upload_stream.py:228: in test_over_delivery_is_not_retained
+    assert all(call > 0 for call in greedy.calls)
+E   assert False
+E    +  where False = all(<generator object test_over_delivery_is_not_retained.<locals>.<genexpr> at 0x7f53ca5ec450>)
+------------------------------ Captured log call -------------------------------
+WARNING  app.services.file_service:file_service.py:101 upload_rejected workspace_id=1 size_bytes=87 ext=.txt reason=size_exceeded max_bytes=32 http_request_id=-
+__________________ test_over_delivery_is_not_retained[trust] ___________________
+tests/release/test_upload_stream.py:228: in test_over_delivery_is_not_retained
+    assert all(call > 0 for call in greedy.calls)
+E   assert False
+E    +  where False = all(<generator object test_over_delivery_is_not_retained.<locals>.<genexpr> at 0x7f53ca5ec2b0>)
+------------------------------ Captured log call -------------------------------
+WARNING  app.services.file_service:file_service.py:122 upload_rejected trust_request workspace_id=1 request_id=7 size_bytes=87 ext=.txt reason=size_exceeded max_bytes=32 http_request_id=-
+__________ test_respecting_stream_stops_at_the_first_extra_byte[raw] ___________
+tests/release/test_upload_stream.py:245: in test_respecting_stream_stops_at_the_first_extra_byte
+    assert probe.pos <= 33
+E   assert 55 <= 33
+E    +  where 55 = <tests.release.test_upload_stream._Probe object at 0x7f53ca5982c0>.pos
+------------------------------ Captured log call -------------------------------
+WARNING  app.services.file_service:file_service.py:101 upload_rejected workspace_id=1 size_bytes=55 ext=.txt reason=size_exceeded max_bytes=32 http_request_id=-
+_________ test_respecting_stream_stops_at_the_first_extra_byte[trust] __________
+tests/release/test_upload_stream.py:245: in test_respecting_stream_stops_at_the_first_extra_byte
+    assert probe.pos <= 33
+E   assert 55 <= 33
+E    +  where 55 = <tests.release.test_upload_stream._Probe object at 0x7f53ca5999d0>.pos
+------------------------------ Captured log call -------------------------------
+WARNING  app.services.file_service:file_service.py:122 upload_rejected trust_request workspace_id=1 request_id=7 size_bytes=55 ext=.txt reason=size_exceeded max_bytes=32 http_request_id=-
+________ test_body_over_the_limit_is_413_and_leaves_nothing[documents] _________
+tests/release/test_upload_stream.py:324: in test_body_over_the_limit_is_413_and_leaves_nothing
+    assert all(size > 0 for size, _n in reads)
+E   assert False
+E    +  where False = all(<generator object test_body_over_the_limit_is_413_and_leaves_nothing.<locals>.<genexpr> at 0x7f53c8d8b9f0>)
+------------------------------ Captured log call -------------------------------
+WARNING  app.services.file_service:file_service.py:101 upload_rejected workspace_id=1 size_bytes=87 ext=.txt reason=size_exceeded max_bytes=64 http_request_id=64031cf6-1d3e-40b5-b7d4-ad078f301c94
+______ test_body_over_the_limit_is_413_and_leaves_nothing[questionnaires] ______
+tests/release/test_upload_stream.py:324: in test_body_over_the_limit_is_413_and_leaves_nothing
+    assert all(size > 0 for size, _n in reads)
+E   assert False
+E    +  where False = all(<generator object test_body_over_the_limit_is_413_and_leaves_nothing.<locals>.<genexpr> at 0x7f53c5577c60>)
+------------------------------ Captured log call -------------------------------
+WARNING  app.services.file_service:file_service.py:101 upload_rejected workspace_id=1 size_bytes=87 ext=.txt reason=size_exceeded max_bytes=64 http_request_id=3a7a9ead-a909-46c6-a092-f747c924bde8
+=============================== warnings summary ===============================
+tests/release/test_upload_stream.py: 10 warnings
+  /tmp/tc-venv/lib/python3.12/site-packages/sqlalchemy/sql/schema.py:3627: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    return util.wrap_callable(lambda ctx: fn(), fn)  # type: ignore
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/release/test_upload_stream.py::test_proxy_and_api_share_the_upload_limit
+FAILED tests/release/test_upload_stream.py::test_uploads_share_one_bounded_reader
+FAILED tests/release/test_upload_stream.py::test_over_delivery_is_not_retained[raw]
+FAILED tests/release/test_upload_stream.py::test_over_delivery_is_not_retained[trust]
+FAILED tests/release/test_upload_stream.py::test_respecting_stream_stops_at_the_first_extra_byte[raw]
+FAILED tests/release/test_upload_stream.py::test_respecting_stream_stops_at_the_first_extra_byte[trust]
+FAILED tests/release/test_upload_stream.py::test_body_over_the_limit_is_413_and_leaves_nothing[documents]
+FAILED tests/release/test_upload_stream.py::test_body_over_the_limit_is_413_and_leaves_nothing[questionnaires]
+8 failed, 15 passed, 10 warnings in 2.45s
