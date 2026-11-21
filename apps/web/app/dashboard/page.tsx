@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import {
@@ -19,7 +19,13 @@ import { securityNoticeLabel } from '@/components/layout/SecurityAlertsBanner'
 import { useShellAlerts } from '@/components/layout/ShellAlerts'
 import { useAuth } from '@/contexts/AuthContext'
 import type { ApiFailurePresentation } from '@/lib/api-error'
-import { mutationFailureNotice, presentHttpFailure } from '@/lib/api-error'
+import {
+  cardCreateFingerprint,
+  cardSaveRequest,
+  cardSaveResult,
+  nextCardCreateKey,
+  type CardCreateAttempt,
+} from '@/lib/dashboard-card-form'
 import { actionVerb } from '@/lib/action-copy'
 import {
   failureOf,
@@ -41,6 +47,7 @@ type DashboardCard = {
   visibility_scope?: string
   size?: string
   is_builtin?: boolean
+  updated_at?: string | null
 }
 
 type AllowedMeta = {
@@ -518,7 +525,11 @@ function CardFormModal({
   onSaved: () => void
   onError: (msg: string) => void
 }) {
-  const isEdit = card?.id != null
+  const isEdit = card?.id != null && card.is_builtin !== true
+  const createAttempt = useRef<CardCreateAttempt | null>(null)
+  useEffect(() => {
+    if (isOpen) createAttempt.current = null
+  }, [isOpen])
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
   const [icon, setIcon] = useState('document')
@@ -552,40 +563,39 @@ function CardFormModal({
     }
     setSaving(true)
     try {
-      const body: Record<string, unknown> = {
-        title: title.trim(),
-        description: description.trim() || null,
+      const fields = {
+        title,
+        description,
         icon,
-        target_route: targetRoute,
-        visibility_scope: visibility,
+        targetRoute,
+        visibility,
         size,
-        is_enabled: enabled,
+        enabled,
       }
-      const url = isEdit
-        ? `/api/dashboard/cards/${card!.id}`
-        : '/api/dashboard/cards'
-      const method = isEdit ? 'PATCH' : 'POST'
-      const res = await fetch(url, {
-        method,
+      if (!isEdit) {
+        createAttempt.current = nextCardCreateKey(
+          createAttempt.current,
+          cardCreateFingerprint(fields),
+          () => crypto.randomUUID()
+        )
+      }
+      const request = cardSaveRequest({
+        card: isEdit ? card : null,
+        fields,
+        createKey: isEdit ? undefined : createAttempt.current?.key,
+      })
+      const res = await fetch(request.url, {
+        method: request.method,
         credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
+        headers: request.headers,
+        body: JSON.stringify(request.body),
       })
       if (res.ok) {
         onSaved()
       } else {
         const data = await res.json().catch(() => null)
-        const mapped = mutationFailureNotice(
-          res.status,
-          data,
-          'The change was not saved. Try again.'
-        )
-        if (mapped.title === 'Could not complete that') {
-          const failure = presentHttpFailure({ status: res.status })
-          onError(`${failure.title}. ${failure.description}`)
-        } else {
-          onError(`${mapped.title}. ${mapped.message}`)
-        }
+        const outcome = cardSaveResult(res.status, data)
+        if (outcome.saved === false) onError(outcome.message)
       }
     } catch {
       onError('Failed to save card')

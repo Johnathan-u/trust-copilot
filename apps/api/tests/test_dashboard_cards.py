@@ -130,7 +130,10 @@ class TestAdminCRUD:
             },
         )
         card_id = r.json()["id"]
-        r2 = client.patch(f"/api/dashboard/cards/{card_id}", json={"title": "New Title"})
+        r2 = client.patch(
+            f"/api/dashboard/cards/{card_id}",
+            json={"title": "New Title", "updated_at": r.json()["updated_at"]},
+        )
         assert r2.status_code == 200
         assert r2.json()["title"] == "New Title"
 
