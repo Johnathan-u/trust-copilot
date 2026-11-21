@@ -1,7 +1,7 @@
 """Tests for CRM connectors (E1-02, E1-03, TC-20-050)."""
 
 import pytest
-from tests.salesforce_pipeline_fixture import PipelineFixture, opportunity
+from tests.test_salesforce_pipeline_fixture import PipelineFixture, opportunity
 
 from app.models.crm_connection import CrmConnection
 from app.models.deal import Deal

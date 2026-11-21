@@ -12,7 +12,7 @@ import json
 import pytest
 from sqlalchemy import text
 from sqlalchemy.exc import IntegrityError
-from tests.salesforce_pipeline_fixture import PipelineFixture, opportunity
+from tests.test_salesforce_pipeline_fixture import PipelineFixture, opportunity
 
 from app.core.job_errors import RetryableJobError, TerminalJobError
 from app.models.crm_connection import CrmConnection
