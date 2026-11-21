@@ -1,0 +1,19 @@
+Database trustcopilot_test at 127.0.0.1:5432. Revision tc20050_crm_pipeline_sync, parent tc04007b_rate_buckets.
+
+Downgrade to tc04007b_rate_buckets, then insert two deals in workspace 1 with crm_source salesforce and crm_external_id 006DEDUPEFIX0001.
+
+Inserted ids 42 (Dedupe older fixture) and 43 (Dedupe newer fixture).
+
+Upgrade to tc20050_crm_pipeline_sync.
+
+After upgrade:
+- id 42 kept provider salesforce, crm_source salesforce, crm_external_id 006DEDUPEFIX0001, connection_id null
+- id 43 had provider, crm_source, and crm_external_id cleared; company name Dedupe newer fixture remained
+- tc20050_deal_identity_hold held deal_id 43, provider salesforce, external_id 006DEDUPEFIX0001, crm_source salesforce
+- unique index uq_deals_ws_connection_provider_external on (workspace_id, connection_id, provider, crm_external_id) WHERE connection_id, provider, and crm_external_id are not null
+
+Downgrade to tc04007b_rate_buckets.
+
+After downgrade both rows again had crm_source salesforce and crm_external_id 006DEDUPEFIX0001. crm_connections and tc20050_deal_identity_hold were gone.
+
+The two fixture rows were deleted. Upgrade returned the database to tc20050_crm_pipeline_sync. Remaining dedupe fixture rows: 0.

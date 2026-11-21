@@ -1,0 +1,21 @@
+..........                                                               [100%]
+=============================== warnings summary ===============================
+tests/release/test_crm_salesforce_data.py: 83 warnings
+  /tmp/tc-venv/lib/python3.12/site-packages/sqlalchemy/sql/schema.py:3627: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    return util.wrap_callable(lambda ctx: fn(), fn)  # type: ignore
+
+tests/release/test_crm_salesforce_data.py::test_paginated_sync_persists_identity_and_retry_does_not_duplicate
+tests/release/test_crm_salesforce_data.py::test_paginated_sync_persists_identity_and_retry_does_not_duplicate
+tests/release/test_crm_salesforce_data.py::test_manual_edit_survives_and_removed_record_is_tombstoned
+tests/release/test_crm_salesforce_data.py::test_manual_edit_survives_and_removed_record_is_tombstoned
+tests/release/test_crm_salesforce_data.py::test_manual_edit_survives_and_removed_record_is_tombstoned
+tests/release/test_crm_salesforce_data.py::test_interrupted_page_resumes_without_a_second_row
+tests/release/test_crm_salesforce_data.py::test_same_external_id_is_distinct_per_connection_and_provider
+tests/release/test_crm_salesforce_data.py::test_same_external_id_is_distinct_per_connection_and_provider
+tests/release/test_crm_salesforce_data.py::test_job_history_keeps_progress_link_cancel_and_retry
+  /agent/repos/trust-copilot/apps/api/app/services/crm_connector_service.py:208: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    now = datetime.utcnow()
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+10 passed, 92 warnings in 4.96s
+EXIT:0

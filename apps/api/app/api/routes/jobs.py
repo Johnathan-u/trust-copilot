@@ -34,7 +34,7 @@ from app.core.api_errors import (
 from app.core.auth_deps import require_can_admin, require_can_review
 from app.core.database import get_db
 from app.core.job_errors import effective_max_attempts, is_known_code, is_retryable_code
-from app.models import Document, ExportRecord, Job, JobKind, JobStatus, Questionnaire
+from app.models import CrmConnection, Document, ExportRecord, Job, JobKind, JobStatus, Questionnaire
 from app.services.job_control import cancel_job, retry_job
 from app.services.job_effects import charge_uncertain
 
@@ -151,9 +151,31 @@ def _export_artifact_result(db: Session, job: Job) -> dict | None:
     return projected
 
 
+def _history_crm_connection(db: Session | None, job: Job, payload: dict) -> dict | None:
+    """Current CRM connection for a ``crm_sync`` job. Salesforce and HubSpot share this link."""
+    provider = payload.get("provider")
+    connection_id = payload.get("connection_id")
+    if provider not in ("salesforce", "hubspot"):
+        return None
+    if type(connection_id) is not int or not 0 < connection_id <= 2147483647 or db is None:
+        return None
+    row = (
+        db.query(CrmConnection.id)
+        .filter(
+            CrmConnection.id == connection_id,
+            CrmConnection.workspace_id == job.workspace_id,
+            CrmConnection.provider == provider,
+        )
+        .first()
+    )
+    return {"type": "crm_connection", "id": row.id} if row is not None else None
+
+
 def _history_object(db: Session, job: Job, payload: dict) -> dict | None:
     # A job's stored input is not authority. Re-check its current parent; no titles,
     # storage addresses, download grants or arbitrary payload URLs are returned.
+    if job.kind == JobKind.CRM_SYNC.value:
+        return _history_crm_connection(db, job, payload)
     if job.kind in (JobKind.INDEX_DOCUMENT.value, JobKind.PARSE_EVIDENCE.value):
         model, field, object_type = Document, "document_id", "document"
     elif job.kind in (

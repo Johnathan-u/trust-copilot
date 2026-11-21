@@ -504,6 +504,68 @@ it('mutation403 requires a new history acknowledgment before restoring read-only
   expect(screen.queryByRole('button', { name: 'Cancel job' })).toBeNull()
   expect(screen.queryByText('Job cancelled.')).toBeNull()
 })
+it('shows a CRM sync with progress, cancel, retry, and a link that survives reload', async () => {
+  const crm = {
+    ...row,
+    id: 77,
+    kind: 'crm_sync',
+    status: 'running',
+    charge_uncertain: false,
+    progress: { generated: 2, total: 5 },
+    object_ref: { type: 'crm_connection', id: 4 },
+  }
+  fetcher = async () => json({ items: [crm], next_before_id: null })
+  const first = render(createElement(JobsPage))
+  await screen.findByRole('article', { name: 'Sync CRM pipeline' })
+  expect(screen.getByText('2 of 5 records synced')).toBeTruthy()
+  expect(
+    screen
+      .getByRole('progressbar', { name: 'Records synced' })
+      .getAttribute('value')
+  ).toBe('2')
+  expect(
+    screen
+      .getByRole('link', { name: 'Open synced pipeline' })
+      .getAttribute('href')
+  ).toBe('/dashboard/deals?connection_id=4')
+  expect(screen.getByRole('button', { name: 'Cancel job' })).toBeTruthy()
+  first.unmount()
+  render(createElement(JobsPage))
+  await screen.findByRole('article', { name: 'Sync CRM pipeline' })
+  expect(
+    screen
+      .getByRole('link', { name: 'Open synced pipeline' })
+      .getAttribute('href')
+  ).toBe('/dashboard/deals?connection_id=4')
+  expect(screen.getByText('2 of 5 records synced')).toBeTruthy()
+  cleanup()
+  fetcher = async (_url, init) =>
+    init.method === 'POST'
+      ? json({ ...crm, status: 'queued', attempt: 0 })
+      : json({
+          items: [
+            { ...crm, status: 'failed', error_code: 'upstream_unavailable' },
+          ],
+          next_before_id: null,
+        })
+  render(createElement(JobsPage))
+  await screen.findByRole('article', { name: 'Sync CRM pipeline' })
+  expect(
+    screen
+      .getByRole('link', { name: 'Open synced pipeline' })
+      .getAttribute('href')
+  ).toBe('/dashboard/deals?connection_id=4')
+  fireEvent.click(screen.getByRole('button', { name: 'Retry job' }))
+  fireEvent.click(
+    within(
+      screen.getByRole('alertdialog', { name: 'Retry this job?' })
+    ).getByRole('button', { name: 'Retry job' })
+  )
+  await screen.findByText('Another attempt is queued.')
+  expect(calls.some((call) => call.url.includes('/api/jobs/77/retry'))).toBe(
+    true
+  )
+})
 it.each([403, 404, 500])(
   'mutation403 followed by history%s never restores stale rows',
   async (status) => {

@@ -8,10 +8,12 @@ from sqlalchemy import (
     Date,
     DateTime,
     ForeignKey,
+    Index,
     Integer,
     Numeric,
     String,
     Text,
+    text,
 )
 
 from app.core.database import Base
@@ -29,6 +31,20 @@ class Deal(Base):
     __table_args__ = (
         CheckConstraint(STAGE_CHECK_SQL, name=CK_DEALS_STAGE),
         CheckConstraint(CURRENCY_CHECK_SQL, name=CK_DEALS_CURRENCY),
+        # external_id is crm_external_id. Null connection, provider, or external id
+        # stays out of the key so manual deals are not collapsed.
+        Index(
+            "uq_deals_ws_connection_provider_external",
+            "workspace_id",
+            "connection_id",
+            "provider",
+            "crm_external_id",
+            unique=True,
+            postgresql_where=text(
+                "connection_id IS NOT NULL AND provider IS NOT NULL "
+                "AND crm_external_id IS NOT NULL"
+            ),
+        ),
     )
 
     id = Column(Integer, primary_key=True, index=True)
@@ -51,6 +67,21 @@ class Deal(Base):
     room_id = Column(Integer, ForeignKey("shareable_spaces.id", ondelete="SET NULL"), nullable=True)
     crm_source = Column(String(32), nullable=True)  # salesforce, hubspot, manual
     crm_external_id = Column(String(255), nullable=True)
+    connection_id = Column(
+        Integer,
+        ForeignKey(
+            "crm_connections.id",
+            ondelete="SET NULL",
+            name="fk_deals_connection_id_crm_connections",
+        ),
+        nullable=True,
+        index=True,
+    )
+    provider = Column(String(32), nullable=True)
+    # Stable for one (workspace, connection, provider, external id). Not rewritten on retry.
+    crm_stable_id = Column(String(512), nullable=True)
+    crm_manual_fields = Column(Text, nullable=True)
+    crm_removed_at = Column(DateTime, nullable=True)
     owner_user_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
     notes = Column(Text, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)

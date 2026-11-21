@@ -15,6 +15,8 @@ class JobKind(str, Enum):
     INDEX_DOCUMENT = "index_document"
     GENERATE_ANSWERS = "generate_answers"
     EXPORT = "export"
+    # One kind for Salesforce and HubSpot. Payload provider selects the pipeline.
+    CRM_SYNC = "crm_sync"
 
 
 class JobStatus(str, Enum):

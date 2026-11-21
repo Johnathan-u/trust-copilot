@@ -1093,6 +1093,10 @@ def run_job(job: Job, session) -> None:
         run_generate_answers(job, session, payload)
     elif job.kind == "export":
         run_export(job, session, payload)
+    elif job.kind == "crm_sync":
+        from app.services.crm_sync_job import run_crm_sync_job
+
+        run_crm_sync_job(job, session, payload)
     else:
         raise ValueError(f"Unknown job kind: {job.kind}")
 

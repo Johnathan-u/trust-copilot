@@ -366,6 +366,9 @@ class Settings:
         self.stripe_event_retention_seconds: int = retention
         self.stripe_event_retention_valid: bool = retention_ok
         # Sentry: set SENTRY_DSN to enable error tracking (optional)
+        # TC-20-050: fixture origin for the Salesforce pipeline client. Unset refuses sync.
+        # Read again at call time so tests can point at a local server. Salesforce hosts are refused.
+        self.salesforce_api_base_url: str = os.getenv("SALESFORCE_API_BASE_URL", "").strip()
         self.sentry_dsn: str | None = os.getenv("SENTRY_DSN", "").strip() or None
         self.sentry_environment: str = os.getenv("SENTRY_ENVIRONMENT", "").strip() or self.app_env
         self.sentry_release: str | None = os.getenv("SENTRY_RELEASE", "").strip() or None

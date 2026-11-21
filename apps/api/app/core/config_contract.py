@@ -903,6 +903,14 @@ CONTRACT: tuple[ConfigVar, ...] = (
         "unset",
         "Optional contact on invitation screens. An email address or an https URL. Unset hides the link. Any other value is ignored.",
     ),
+    ConfigVar(
+        "SALESFORCE_API_BASE_URL",
+        "http or https origin",
+        "optional",
+        False,
+        "unset",
+        "Fixture origin for Salesforce pipeline sync. Unset refuses a sync. Salesforce hostnames are refused. Not a credential.",
+    ),
 )
 
 CONTRACT_BY_NAME = {v.name: v for v in CONTRACT}
