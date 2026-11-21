@@ -1,0 +1,56 @@
+FFFFFFFF....                                                             [100%]
+=================================== FAILURES ===================================
+E   AssertionError: assert 'This workboo...export again.' == 'File must ha..., .xls, .xlsx'
+
+      - File must have an allowed extension. Allowed: .doc, .docx, .pdf, .txt, .xls, .xlsx
+      + This workbook cannot be exported because it contains unsupported content (macros). That content would be dropped or rewritten. Remove it from the workbook and export again.
+------------------------------ Captured log call -------------------------------
+WARNING  app.services.file_service:file_service.py:111 upload_rejected workspace_id=1 size_bytes=5024 ext=.xlsm reason=extension_not_allowed allowed=['.doc', '.docx', '.pdf', '.txt', '.xls', '.xlsx'] http_request_id=984586af-333e-4dcc-852f-650eef92ab97
+/agent/repos/trust-copilot/apps/api/tests/release/test_workbook_preflight.py:222: AssertionError: assert 'This workboo...export again.' == 'File must ha..., .xls, .xlsx'
+E   AssertionError: {"id":16,"display_id":"QNR-000016","filename":"ebf339c1dc224679a05a35a125bdc544-questionnaire.xlsx","status":"uploaded","storage_key":"raw/1/4f2e8b17a26c4de4bd733eb59a1daa17.xlsx","job_id":16}
+    assert 200 == 400
+     +  where 200 = <Response [200 OK]>.status_code
+/agent/repos/trust-copilot/apps/api/tests/release/test_workbook_preflight.py:249: AssertionError: {"id":16,"display_id":"QNR-000016","filename":"ebf339c1dc224679a05a35a125bdc544-questionnaire.xlsx","status":"uploaded","storage_key":"raw/1/4f2e8b17a26c4de4bd733eb59a1daa17.xlsx","job_id":16}
+E   AssertionError: {"id":17,"display_id":"QNR-000017","filename":"c543d2280d4b4190bc4049b8a02a1575-locked.xlsx","status":"uploaded","storage_key":"raw/1/aa80f569c7d94ebaa595b49281a2334b.xlsx","job_id":17}
+    assert 200 == 400
+     +  where 200 = <Response [200 OK]>.status_code
+/agent/repos/trust-copilot/apps/api/tests/release/test_workbook_preflight.py:249: AssertionError: {"id":17,"display_id":"QNR-000017","filename":"c543d2280d4b4190bc4049b8a02a1575-locked.xlsx","status":"uploaded","storage_key":"raw/1/aa80f569c7d94ebaa595b49281a2334b.xlsx","job_id":17}
+E   AssertionError: {"id":18,"display_id":"QNR-000018","filename":"46b126eccda54191bdf0da78c92eacc8-legacy.xls","status":"uploaded","storage_key":"raw/1/6202798f8dba4c26b58c29b5ed38009f.xls","job_id":18}
+    assert 200 == 400
+     +  where 200 = <Response [200 OK]>.status_code
+/agent/repos/trust-copilot/apps/api/tests/release/test_workbook_preflight.py:249: AssertionError: {"id":18,"display_id":"QNR-000018","filename":"46b126eccda54191bdf0da78c92eacc8-legacy.xls","status":"uploaded","storage_key":"raw/1/6202798f8dba4c26b58c29b5ed38009f.xls","job_id":18}
+E   Failed: DID NOT RAISE UnsupportedWorkbookStructure
+/agent/repos/trust-copilot/apps/api/tests/release/test_workbook_preflight.py:271: Failed: DID NOT RAISE UnsupportedWorkbookStructure
+E   zipfile.BadZipFile: File is not a zip file
+
+The above exception was the direct cause of the following exception:
+E   app.services.xlsx_parser.WorkbookUnreadable: Workbook is corrupt or unreadable. Re-export it as an .xlsx file and upload it again.
+/agent/repos/trust-copilot/apps/api/app/services/xlsx_parser.py:53: app.services.xlsx_parser.WorkbookUnreadable: Workbook is corrupt or unreadable. Re-export it as an .xlsx file and upload it again.
+E   openpyxl.utils.exceptions.InvalidFileException: openpyxl does not support the old .xls file format, please use xlrd to read this file, or convert it to the more recent .xlsx file format.
+
+The above exception was the direct cause of the following exception:
+E   app.services.xlsx_parser.WorkbookUnreadable: Workbook is corrupt or unreadable. Re-export it as an .xlsx file and upload it again.
+/agent/repos/trust-copilot/apps/api/app/services/xlsx_parser.py:53: app.services.xlsx_parser.WorkbookUnreadable: Workbook is corrupt or unreadable. Re-export it as an .xlsx file and upload it again.
+E   AttributeError: '_Effects' object has no attribute 'mark_applied'. Did you mean: 'is_applied'?
+/agent/repos/trust-copilot/apps/api/app/worker.py:523: AttributeError: '_Effects' object has no attribute 'mark_applied'. Did you mean: 'is_applied'?
+=============================== warnings summary ===============================
+tests/release/test_workbook_preflight.py::test_rejected_upload_stores_nothing[xlsm]
+tests/release/test_workbook_preflight.py::test_rejected_upload_stores_nothing[macro-xlsx]
+tests/release/test_workbook_preflight.py::test_rejected_upload_stores_nothing[encrypted]
+tests/release/test_workbook_preflight.py::test_rejected_upload_stores_nothing[legacy-xls]
+tests/release/test_workbook_preflight.py::test_other_workspace_cannot_upload
+tests/release/test_workbook_preflight.py::test_supported_xlsx_is_stored_and_export_keeps_structure
+  /tmp/tc-venv/lib/python3.12/site-packages/sqlalchemy/sql/schema.py:3627: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    return util.wrap_callable(lambda ctx: fn(), fn)  # type: ignore
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/release/test_workbook_preflight.py::test_rejected_upload_stores_nothing[xlsm]
+FAILED tests/release/test_workbook_preflight.py::test_rejected_upload_stores_nothing[macro-xlsx]
+FAILED tests/release/test_workbook_preflight.py::test_rejected_upload_stores_nothing[encrypted]
+FAILED tests/release/test_workbook_preflight.py::test_rejected_upload_stores_nothing[legacy-xls]
+FAILED tests/release/test_workbook_preflight.py::test_parse_rejects_before_questions[macros]
+FAILED tests/release/test_workbook_preflight.py::test_parse_rejects_before_questions[encrypted]
+FAILED tests/release/test_workbook_preflight.py::test_parse_rejects_before_questions[legacy-xls]
+FAILED tests/release/test_workbook_preflight.py::test_worker_does_not_store_questions_for_a_macro_workbook
+8 failed, 4 passed, 6 warnings in 2.20s

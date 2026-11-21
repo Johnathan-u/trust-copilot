@@ -1,10 +1,12 @@
 """Questionnaire API (QNR-01, QNR-02, QNR-13, AI-05)."""
 
+import io
 import json
 import os  # noqa: F401
 import re  # noqa: F401
 import logging
 import time
+from pathlib import Path
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timezone
 
@@ -81,6 +83,7 @@ from app.services.registry_lifecycle import (
     update_metadata_json_fields,
 )
 from app.services.storage import get_storage, StorageClient
+from app.services.xlsx_writer import UnsupportedWorkbookStructure, reject_unsupported_workbook
 from app.services.mapping_llm_classify import (
     classify_and_persist as classify_question_signal,
     _preload_existing_signals,
@@ -147,6 +150,20 @@ def get_file_service(storage: StorageClient = Depends(get_storage)) -> FileServi
     return FileService(storage)
 
 
+_WORKBOOK_UPLOAD_SUFFIXES = frozenset({".xlsx", ".xlsm", ".xls"})
+
+
+def _reject_unsupported_workbook_upload(filename: str | None, content: bytes) -> None:
+    """Raise when a spreadsheet upload is a macro, encrypted, or legacy workbook.
+
+    The exception text is the export preflight message. Other suffixes are left
+    to the extension allowlist and are not inspected here.
+    """
+    if Path(filename or "").suffix.lower() not in _WORKBOOK_UPLOAD_SUFFIXES:
+        return
+    reject_unsupported_workbook(content)
+
+
 @router.post("/upload")
 def upload_questionnaire(
     request: Request,
@@ -160,7 +177,10 @@ def upload_questionnaire(
 ):
     """Upload questionnaire file. Enqueues a parse job.
 
-    The questionnaire, its parse job, and the optional Idempotency-Key response commit once.
+    A macro, encrypted, or legacy workbook is refused before the object, the
+    questionnaire, and the parse job exist. The detail is the export preflight
+    sentence. The questionnaire, its parse job, and the optional Idempotency-Key
+    response commit once.
     A retryable enqueue conflict rolls that transaction back and deletes the stored object
     when no row references it, so the client's retry does not create a second row. A failed
     delete is logged. The orphan sweep removes the object after the grace period.
@@ -187,6 +207,16 @@ def upload_questionnaire(
             )
     stored_key: str | None = None
     try:
+        content = file.file.read()
+        try:
+            file.file.seek(0)
+        except Exception:
+            file.file = io.BytesIO(content)
+        if len(content) <= get_settings().max_upload_bytes:
+            try:
+                _reject_unsupported_workbook_upload(getattr(file, "filename", None), content)
+            except UnsupportedWorkbookStructure as exc:
+                raise HTTPException(status_code=400, detail=str(exc)) from None
         stored_key, filename = file_svc.upload_raw(workspace_id, file)
         fw_list = [f.strip() for f in frameworks.split(",") if f.strip()] or ["Other"]
         sa_list = [s.strip() for s in subject_areas.split(",") if s.strip()] or ["Other"]

@@ -1,0 +1,11 @@
+Python 3.12.3
+pytest 9.1.1
+openpyxl 3.1.5
+SQLAlchemy 2.0.55
+Alembic 1.20.1
+PostgreSQL 16.15 (Ubuntu 16.15-0ubuntu0.24.04.1)
+pgvector 0.6.0
+database trustcopilot_test at 127.0.0.1:5432, user postgres
+Node 24.22.3 (web unit test only)
+Working directory for the backlog command: apps/api
+Failing product code: 75437e34e570a16500cbea5e5c24f9f8578f47f3

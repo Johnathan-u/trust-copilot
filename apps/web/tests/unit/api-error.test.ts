@@ -280,4 +280,25 @@ describe('presentActionFailure', () => {
       message: 'Title is required',
     })
   })
+
+  it('shows the workbook preflight sentence on upload', () => {
+    const features = ['macros', 'encryption', 'legacy .xls']
+    for (const feature of features) {
+      const detail =
+        'This workbook cannot be exported because it contains unsupported content (' +
+        feature +
+        '). That content would be dropped or rewritten. Remove it from the workbook and export again.'
+      expect(presentActionFailure({ status: 400, data: { detail } })).toBeNull()
+      expect(
+        mutationFailureNotice(
+          400,
+          { detail },
+          'The file was not stored. Try again.'
+        )
+      ).toEqual({
+        title: 'Could not complete that',
+        message: detail,
+      })
+    }
+  })
 })

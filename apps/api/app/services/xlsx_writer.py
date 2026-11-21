@@ -2,6 +2,7 @@
 
 import json
 import logging
+import struct
 import zipfile
 from collections.abc import Callable
 from copy import copy, deepcopy
@@ -528,6 +529,126 @@ _DETECTORS: tuple[tuple[str, _Detector], ...] = (
 )
 
 
+_OLE_MAGIC = b"\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1"
+_OLE_SPECIAL = 0xFFFFFFFA
+_OLE_MAX_SECTORS = 4096
+_ENCRYPTION_STREAMS = frozenset({"encryptioninfo", "encryptedpackage"})
+_LEGACY_STREAMS = frozenset({"workbook", "book"})
+
+
+def _ole_u16(data: bytes, offset: int) -> int:
+    return struct.unpack_from("<H", data, offset)[0]
+
+
+def _ole_u32(data: bytes, offset: int) -> int:
+    return struct.unpack_from("<I", data, offset)[0]
+
+
+def _ole_sector(data: bytes, sector: int, sector_size: int) -> bytes | None:
+    if sector >= _OLE_SPECIAL:
+        return None
+    start = 512 + sector * sector_size
+    end = start + sector_size
+    if start < 512 or end > len(data):
+        return None
+    return data[start:end]
+
+
+def _ole_fat(data: bytes, sector_size: int) -> list[int] | None:
+    claimed = _ole_u32(data, 0x2C)
+    if claimed < 1:
+        return None
+    limit = min(claimed, _OLE_MAX_SECTORS, (len(data) // sector_size) + 1)
+    difat: list[int] = [_ole_u32(data, 0x4C + 4 * index) for index in range(109)]
+    next_sector = _ole_u32(data, 0x44)
+    seen: set[int] = set()
+    while next_sector < _OLE_SPECIAL and len(seen) < _OLE_MAX_SECTORS:
+        if next_sector in seen:
+            break
+        seen.add(next_sector)
+        blob = _ole_sector(data, next_sector, sector_size)
+        if blob is None:
+            break
+        count = sector_size // 4
+        for index in range(count - 1):
+            difat.append(struct.unpack_from("<I", blob, index * 4)[0])
+        next_sector = struct.unpack_from("<I", blob, (count - 1) * 4)[0]
+    fat: list[int] = []
+    used = 0
+    for sector in difat:
+        if used >= limit:
+            break
+        if sector >= _OLE_SPECIAL:
+            continue
+        blob = _ole_sector(data, sector, sector_size)
+        if blob is None:
+            return None
+        for index in range(sector_size // 4):
+            fat.append(struct.unpack_from("<I", blob, index * 4)[0])
+        used += 1
+    return fat or None
+
+
+def _ole_chain(fat: list[int], start: int) -> list[int]:
+    chain: list[int] = []
+    seen: set[int] = set()
+    sector = start
+    while sector < _OLE_SPECIAL and len(chain) < _OLE_MAX_SECTORS:
+        if sector in seen or sector >= len(fat):
+            break
+        seen.add(sector)
+        chain.append(sector)
+        sector = fat[sector]
+    return chain
+
+
+def _ole_stream_names(data: bytes) -> set[str]:
+    """Directory entry names from an OLE compound file, or an empty set."""
+    if len(data) < 512 or not data.startswith(_OLE_MAGIC):
+        return set()
+    try:
+        if _ole_u16(data, 0x1C) != 0xFFFE:
+            return set()
+        shift = _ole_u16(data, 0x1E)
+        if shift < 9 or shift > 12:
+            return set()
+        sector_size = 1 << shift
+        fat = _ole_fat(data, sector_size)
+        if not fat:
+            return set()
+        names: set[str] = set()
+        for sector in _ole_chain(fat, _ole_u32(data, 0x30)):
+            blob = _ole_sector(data, sector, sector_size)
+            if blob is None:
+                break
+            for offset in range(0, len(blob) - 127, 128):
+                entry = blob[offset : offset + 128]
+                name_len = struct.unpack_from("<H", entry, 64)[0]
+                kind = entry[66]
+                if kind not in (1, 2, 5) or name_len < 4 or name_len > 64 or name_len % 2:
+                    continue
+                try:
+                    name = entry[: name_len - 2].decode("utf-16le")
+                except UnicodeDecodeError:
+                    continue
+                if name:
+                    names.add(name)
+        return names
+    except (struct.error, IndexError, ValueError):
+        return set()
+
+
+def _compound_workbook_features(data: bytes) -> list[str]:
+    """Feature labels for an encrypted OOXML package or a legacy BIFF workbook."""
+    lowered = {name.lower() for name in _ole_stream_names(data)}
+    found: list[str] = []
+    if lowered & _ENCRYPTION_STREAMS:
+        found.append("encryption")
+    if lowered & _LEGACY_STREAMS:
+        found.append("legacy .xls")
+    return found
+
+
 def _read_ooxml_package(data: bytes) -> _Package | None:
     """Return part names and XML/VML bytes, or None when this is not an OOXML zip."""
     try:
@@ -550,11 +671,13 @@ def unsupported_workbook_features(data: bytes) -> list[str]:
 
     Comment-note VML (ObjectType Note) is not listed: cell-comment text is kept
     and only the note drawing is regenerated. calcChain and printer settings are
-    caches the viewer rebuilds, so they are not listed either.
+    caches the viewer rebuilds, so they are not listed either. A file that is
+    not an OOXML zip is still named when it is an encrypted package
+    (``encryption``) or a legacy BIFF workbook (``legacy .xls``).
     """
     package = _read_ooxml_package(data)
     if package is None:
-        return []
+        return _compound_workbook_features(data)
     names, blobs = package
     if not any(name.lower() == "xl/workbook.xml" for name in names):
         return []
