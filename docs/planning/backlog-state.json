@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
   "scope_version": 1,
-  "revision": 42,
-  "as_of_utc": "2026-11-21T21:27:23Z",
-  "source_sha": "b50d6760579fb8e0f487f6555e602e902d3b7055",
+  "revision": 43,
+  "as_of_utc": "2026-11-21T22:13:09Z",
+  "source_sha": "c44e53b9386d5564781170b19238f7e37dd288ef",
   "baseline_status": "PENDING",
   "scope": {
     "canonical_sha256": "2ec27987ea9b4e3e89f88d409fc817aea22550cae2f2c10f6bd6e3c23190ff5a",
@@ -3324,72 +3324,219 @@
       }
     },
     "TC-03-004": {
-      "status": "IMPLEMENTATION_GAPS_IDENTIFIED",
-      "evidence_state": "IMPLEMENTATION_GAPS_IDENTIFIED",
+      "status": "DONE",
+      "evidence_state": "VERIFIED_ACCEPTED",
       "owner": null,
       "blockers": [],
-      "next_action": "Gaps from docs/release/verification/TC-03-004.md (PARTIAL, accepted by Claude on #85 comment 6929698422; PR #258 merge 5a52580295992bf773a08c2526fc4eac3a621fcd): add an audited-SHA synthetic snapshot (schema plus rows for documents with storage_key, answers, and their foreign keys, stamped at a recorded parent revision) and upgrade it to question_cell_mapping; the fresh empty-database path already runs in CI. Assert survival and write an explicit backfill report comparing table row counts, foreign-key constraints, sampled file keys, and sampled answer text before and after that upgrade. Add apps/api/tests/release/test_migration_baseline.py, artifacts/acceptance/TC-03-004/ (command, SHA, environment, exit status, totals, and the backfill report), and docs/release/tickets/TC-03-004.md. Not accepted.",
-      "updated_at": "2026-11-16T21:29:42Z",
-      "source_sha": "a365c34757800e1f8da58acde155bd3f8e8f8813",
+      "next_action": "Accepted. Claude confirmed AC1 and AC2 meet and DoD1 through DoD5 on #343 comment 7069949472 at c44e53b9386d5564781170b19238f7e37dd288ef. #343 head 0e6368a16bc4db6d89dd5c3ff13781ab87de53ec squash-merged as c44e53b9386d5564781170b19238f7e37dd288ef. No new migration file. Rollback to revision 075 and a second upgrade are in the backfill report. No new follow-up. Reopen only on regression or when change control adds scope.",
+      "updated_at": "2026-11-21T22:13:09Z",
+      "source_sha": "c44e53b9386d5564781170b19238f7e37dd288ef",
       "acceptance": {
-        "state": "PENDING",
-        "assessed_by": null,
-        "assessed_at": null,
-        "assessed_sha": null,
-        "assessment_evidence_urls": [],
-        "tested_sha": null,
-        "implemented_by": [],
-        "independent_reviewer": null,
-        "reviewed_at": null,
-        "reviewed_sha": null,
-        "review_evidence_urls": [],
+        "state": "ACCEPTED",
+        "assessed_by": "claude-review-agent",
+        "assessed_at": "2026-11-21T22:06:56Z",
+        "assessed_sha": "c44e53b9386d5564781170b19238f7e37dd288ef",
+        "assessment_evidence_urls": [
+          "https://github.com/Johnathan-u/trust-copilot/pull/343#issuecomment-7069949472",
+          "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-7069947385",
+          "https://github.com/Johnathan-u/trust-copilot/pull/343",
+          "https://github.com/Johnathan-u/trust-copilot/commit/0e6368a16bc4db6d89dd5c3ff13781ab87de53ec",
+          "https://github.com/Johnathan-u/trust-copilot/commit/c44e53b9386d5564781170b19238f7e37dd288ef",
+          "https://github.com/Johnathan-u/trust-copilot/actions/runs/44952863816",
+          "https://github.com/Johnathan-u/trust-copilot/actions/runs/44952881180",
+          "https://github.com/Johnathan-u/trust-copilot/blob/c44e53b9386d5564781170b19238f7e37dd288ef/docs/release/tickets/TC-03-004.md",
+          "https://github.com/Johnathan-u/trust-copilot/blob/c44e53b9386d5564781170b19238f7e37dd288ef/docs/release/verification/TC-03-004.md",
+          "https://github.com/Johnathan-u/trust-copilot/blob/c44e53b9386d5564781170b19238f7e37dd288ef/artifacts/acceptance/TC-03-004/README.md",
+          "https://github.com/Johnathan-u/trust-copilot/blob/c44e53b9386d5564781170b19238f7e37dd288ef/artifacts/acceptance/TC-03-004/backfill-report.json",
+          "https://github.com/Johnathan-u/trust-copilot/blob/c44e53b9386d5564781170b19238f7e37dd288ef/apps/api/tests/release/test_migration_baseline.py",
+          "https://github.com/Johnathan-u/trust-copilot/blob/c44e53b9386d5564781170b19238f7e37dd288ef/docs/ops/migration-baseline.md",
+          "https://github.com/Johnathan-u/trust-copilot/pull/258",
+          "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-6929698422"
+        ],
+        "tested_sha": "c44e53b9386d5564781170b19238f7e37dd288ef",
+        "implemented_by": [
+          "grok",
+          "Johnathan-u"
+        ],
+        "independent_reviewer": "claude-review-agent",
+        "reviewed_at": "2026-11-21T22:06:56Z",
+        "reviewed_sha": "c44e53b9386d5564781170b19238f7e37dd288ef",
+        "review_evidence_urls": [
+          "https://github.com/Johnathan-u/trust-copilot/pull/343#issuecomment-7069949472",
+          "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-7069947385",
+          "https://github.com/Johnathan-u/trust-copilot/pull/343",
+          "https://github.com/Johnathan-u/trust-copilot/commit/0e6368a16bc4db6d89dd5c3ff13781ab87de53ec",
+          "https://github.com/Johnathan-u/trust-copilot/commit/c44e53b9386d5564781170b19238f7e37dd288ef",
+          "https://github.com/Johnathan-u/trust-copilot/actions/runs/44952863816",
+          "https://github.com/Johnathan-u/trust-copilot/actions/runs/44952881180",
+          "https://github.com/Johnathan-u/trust-copilot/blob/c44e53b9386d5564781170b19238f7e37dd288ef/docs/release/tickets/TC-03-004.md",
+          "https://github.com/Johnathan-u/trust-copilot/blob/c44e53b9386d5564781170b19238f7e37dd288ef/docs/release/verification/TC-03-004.md",
+          "https://github.com/Johnathan-u/trust-copilot/blob/c44e53b9386d5564781170b19238f7e37dd288ef/artifacts/acceptance/TC-03-004/README.md",
+          "https://github.com/Johnathan-u/trust-copilot/blob/c44e53b9386d5564781170b19238f7e37dd288ef/artifacts/acceptance/TC-03-004/backfill-report.json",
+          "https://github.com/Johnathan-u/trust-copilot/blob/c44e53b9386d5564781170b19238f7e37dd288ef/apps/api/tests/release/test_migration_baseline.py",
+          "https://github.com/Johnathan-u/trust-copilot/blob/c44e53b9386d5564781170b19238f7e37dd288ef/docs/ops/migration-baseline.md",
+          "https://github.com/Johnathan-u/trust-copilot/pull/258",
+          "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-6929698422"
+        ],
         "criteria": [
           {
             "id": "TC-03-004-AC1",
-            "status": "NOT_VERIFIED",
-            "evidence_urls": [],
-            "tested_sha": null
+            "status": "PASS",
+            "evidence_urls": [
+              "https://github.com/Johnathan-u/trust-copilot/pull/343#issuecomment-7069949472",
+              "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-7069947385",
+              "https://github.com/Johnathan-u/trust-copilot/pull/343",
+              "https://github.com/Johnathan-u/trust-copilot/commit/0e6368a16bc4db6d89dd5c3ff13781ab87de53ec",
+              "https://github.com/Johnathan-u/trust-copilot/commit/c44e53b9386d5564781170b19238f7e37dd288ef",
+              "https://github.com/Johnathan-u/trust-copilot/actions/runs/44952863816",
+              "https://github.com/Johnathan-u/trust-copilot/actions/runs/44952881180",
+              "https://github.com/Johnathan-u/trust-copilot/blob/c44e53b9386d5564781170b19238f7e37dd288ef/docs/release/tickets/TC-03-004.md",
+              "https://github.com/Johnathan-u/trust-copilot/blob/c44e53b9386d5564781170b19238f7e37dd288ef/docs/release/verification/TC-03-004.md",
+              "https://github.com/Johnathan-u/trust-copilot/blob/c44e53b9386d5564781170b19238f7e37dd288ef/artifacts/acceptance/TC-03-004/README.md",
+              "https://github.com/Johnathan-u/trust-copilot/blob/c44e53b9386d5564781170b19238f7e37dd288ef/artifacts/acceptance/TC-03-004/backfill-report.json",
+              "https://github.com/Johnathan-u/trust-copilot/blob/c44e53b9386d5564781170b19238f7e37dd288ef/apps/api/tests/release/test_migration_baseline.py",
+              "https://github.com/Johnathan-u/trust-copilot/blob/c44e53b9386d5564781170b19238f7e37dd288ef/docs/ops/migration-baseline.md",
+              "https://github.com/Johnathan-u/trust-copilot/pull/258",
+              "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-6929698422"
+            ],
+            "tested_sha": "c44e53b9386d5564781170b19238f7e37dd288ef"
           },
           {
             "id": "TC-03-004-AC2",
-            "status": "NOT_VERIFIED",
-            "evidence_urls": [],
-            "tested_sha": null
+            "status": "PASS",
+            "evidence_urls": [
+              "https://github.com/Johnathan-u/trust-copilot/pull/343#issuecomment-7069949472",
+              "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-7069947385",
+              "https://github.com/Johnathan-u/trust-copilot/pull/343",
+              "https://github.com/Johnathan-u/trust-copilot/commit/0e6368a16bc4db6d89dd5c3ff13781ab87de53ec",
+              "https://github.com/Johnathan-u/trust-copilot/commit/c44e53b9386d5564781170b19238f7e37dd288ef",
+              "https://github.com/Johnathan-u/trust-copilot/actions/runs/44952863816",
+              "https://github.com/Johnathan-u/trust-copilot/actions/runs/44952881180",
+              "https://github.com/Johnathan-u/trust-copilot/blob/c44e53b9386d5564781170b19238f7e37dd288ef/docs/release/tickets/TC-03-004.md",
+              "https://github.com/Johnathan-u/trust-copilot/blob/c44e53b9386d5564781170b19238f7e37dd288ef/docs/release/verification/TC-03-004.md",
+              "https://github.com/Johnathan-u/trust-copilot/blob/c44e53b9386d5564781170b19238f7e37dd288ef/artifacts/acceptance/TC-03-004/README.md",
+              "https://github.com/Johnathan-u/trust-copilot/blob/c44e53b9386d5564781170b19238f7e37dd288ef/artifacts/acceptance/TC-03-004/backfill-report.json",
+              "https://github.com/Johnathan-u/trust-copilot/blob/c44e53b9386d5564781170b19238f7e37dd288ef/apps/api/tests/release/test_migration_baseline.py",
+              "https://github.com/Johnathan-u/trust-copilot/blob/c44e53b9386d5564781170b19238f7e37dd288ef/docs/ops/migration-baseline.md",
+              "https://github.com/Johnathan-u/trust-copilot/pull/258",
+              "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-6929698422"
+            ],
+            "tested_sha": "c44e53b9386d5564781170b19238f7e37dd288ef"
           }
         ],
         "definition_of_done": [
           {
             "id": "TC-03-004-DOD1",
-            "status": "NOT_VERIFIED",
-            "evidence_urls": [],
-            "tested_sha": null
+            "status": "PASS",
+            "evidence_urls": [
+              "https://github.com/Johnathan-u/trust-copilot/pull/343#issuecomment-7069949472",
+              "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-7069947385",
+              "https://github.com/Johnathan-u/trust-copilot/pull/343",
+              "https://github.com/Johnathan-u/trust-copilot/commit/0e6368a16bc4db6d89dd5c3ff13781ab87de53ec",
+              "https://github.com/Johnathan-u/trust-copilot/commit/c44e53b9386d5564781170b19238f7e37dd288ef",
+              "https://github.com/Johnathan-u/trust-copilot/actions/runs/44952863816",
+              "https://github.com/Johnathan-u/trust-copilot/actions/runs/44952881180",
+              "https://github.com/Johnathan-u/trust-copilot/blob/c44e53b9386d5564781170b19238f7e37dd288ef/docs/release/tickets/TC-03-004.md",
+              "https://github.com/Johnathan-u/trust-copilot/blob/c44e53b9386d5564781170b19238f7e37dd288ef/docs/release/verification/TC-03-004.md",
+              "https://github.com/Johnathan-u/trust-copilot/blob/c44e53b9386d5564781170b19238f7e37dd288ef/artifacts/acceptance/TC-03-004/README.md",
+              "https://github.com/Johnathan-u/trust-copilot/blob/c44e53b9386d5564781170b19238f7e37dd288ef/artifacts/acceptance/TC-03-004/backfill-report.json",
+              "https://github.com/Johnathan-u/trust-copilot/blob/c44e53b9386d5564781170b19238f7e37dd288ef/apps/api/tests/release/test_migration_baseline.py",
+              "https://github.com/Johnathan-u/trust-copilot/blob/c44e53b9386d5564781170b19238f7e37dd288ef/docs/ops/migration-baseline.md",
+              "https://github.com/Johnathan-u/trust-copilot/pull/258",
+              "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-6929698422"
+            ],
+            "tested_sha": "c44e53b9386d5564781170b19238f7e37dd288ef"
           },
           {
             "id": "TC-03-004-DOD2",
-            "status": "NOT_VERIFIED",
-            "evidence_urls": [],
-            "tested_sha": null
+            "status": "PASS",
+            "evidence_urls": [
+              "https://github.com/Johnathan-u/trust-copilot/pull/343#issuecomment-7069949472",
+              "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-7069947385",
+              "https://github.com/Johnathan-u/trust-copilot/pull/343",
+              "https://github.com/Johnathan-u/trust-copilot/commit/0e6368a16bc4db6d89dd5c3ff13781ab87de53ec",
+              "https://github.com/Johnathan-u/trust-copilot/commit/c44e53b9386d5564781170b19238f7e37dd288ef",
+              "https://github.com/Johnathan-u/trust-copilot/actions/runs/44952863816",
+              "https://github.com/Johnathan-u/trust-copilot/actions/runs/44952881180",
+              "https://github.com/Johnathan-u/trust-copilot/blob/c44e53b9386d5564781170b19238f7e37dd288ef/docs/release/tickets/TC-03-004.md",
+              "https://github.com/Johnathan-u/trust-copilot/blob/c44e53b9386d5564781170b19238f7e37dd288ef/docs/release/verification/TC-03-004.md",
+              "https://github.com/Johnathan-u/trust-copilot/blob/c44e53b9386d5564781170b19238f7e37dd288ef/artifacts/acceptance/TC-03-004/README.md",
+              "https://github.com/Johnathan-u/trust-copilot/blob/c44e53b9386d5564781170b19238f7e37dd288ef/artifacts/acceptance/TC-03-004/backfill-report.json",
+              "https://github.com/Johnathan-u/trust-copilot/blob/c44e53b9386d5564781170b19238f7e37dd288ef/apps/api/tests/release/test_migration_baseline.py",
+              "https://github.com/Johnathan-u/trust-copilot/blob/c44e53b9386d5564781170b19238f7e37dd288ef/docs/ops/migration-baseline.md",
+              "https://github.com/Johnathan-u/trust-copilot/pull/258",
+              "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-6929698422"
+            ],
+            "tested_sha": "c44e53b9386d5564781170b19238f7e37dd288ef"
           },
           {
             "id": "TC-03-004-DOD3",
-            "status": "NOT_VERIFIED",
-            "evidence_urls": [],
-            "tested_sha": null
+            "status": "PASS",
+            "evidence_urls": [
+              "https://github.com/Johnathan-u/trust-copilot/pull/343#issuecomment-7069949472",
+              "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-7069947385",
+              "https://github.com/Johnathan-u/trust-copilot/pull/343",
+              "https://github.com/Johnathan-u/trust-copilot/commit/0e6368a16bc4db6d89dd5c3ff13781ab87de53ec",
+              "https://github.com/Johnathan-u/trust-copilot/commit/c44e53b9386d5564781170b19238f7e37dd288ef",
+              "https://github.com/Johnathan-u/trust-copilot/actions/runs/44952863816",
+              "https://github.com/Johnathan-u/trust-copilot/actions/runs/44952881180",
+              "https://github.com/Johnathan-u/trust-copilot/blob/c44e53b9386d5564781170b19238f7e37dd288ef/docs/release/tickets/TC-03-004.md",
+              "https://github.com/Johnathan-u/trust-copilot/blob/c44e53b9386d5564781170b19238f7e37dd288ef/docs/release/verification/TC-03-004.md",
+              "https://github.com/Johnathan-u/trust-copilot/blob/c44e53b9386d5564781170b19238f7e37dd288ef/artifacts/acceptance/TC-03-004/README.md",
+              "https://github.com/Johnathan-u/trust-copilot/blob/c44e53b9386d5564781170b19238f7e37dd288ef/artifacts/acceptance/TC-03-004/backfill-report.json",
+              "https://github.com/Johnathan-u/trust-copilot/blob/c44e53b9386d5564781170b19238f7e37dd288ef/apps/api/tests/release/test_migration_baseline.py",
+              "https://github.com/Johnathan-u/trust-copilot/blob/c44e53b9386d5564781170b19238f7e37dd288ef/docs/ops/migration-baseline.md",
+              "https://github.com/Johnathan-u/trust-copilot/pull/258",
+              "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-6929698422"
+            ],
+            "tested_sha": "c44e53b9386d5564781170b19238f7e37dd288ef"
           },
           {
             "id": "TC-03-004-DOD4",
-            "status": "NOT_VERIFIED",
-            "evidence_urls": [],
-            "tested_sha": null
+            "status": "PASS",
+            "evidence_urls": [
+              "https://github.com/Johnathan-u/trust-copilot/pull/343#issuecomment-7069949472",
+              "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-7069947385",
+              "https://github.com/Johnathan-u/trust-copilot/pull/343",
+              "https://github.com/Johnathan-u/trust-copilot/commit/0e6368a16bc4db6d89dd5c3ff13781ab87de53ec",
+              "https://github.com/Johnathan-u/trust-copilot/commit/c44e53b9386d5564781170b19238f7e37dd288ef",
+              "https://github.com/Johnathan-u/trust-copilot/actions/runs/44952863816",
+              "https://github.com/Johnathan-u/trust-copilot/actions/runs/44952881180",
+              "https://github.com/Johnathan-u/trust-copilot/blob/c44e53b9386d5564781170b19238f7e37dd288ef/docs/release/tickets/TC-03-004.md",
+              "https://github.com/Johnathan-u/trust-copilot/blob/c44e53b9386d5564781170b19238f7e37dd288ef/docs/release/verification/TC-03-004.md",
+              "https://github.com/Johnathan-u/trust-copilot/blob/c44e53b9386d5564781170b19238f7e37dd288ef/artifacts/acceptance/TC-03-004/README.md",
+              "https://github.com/Johnathan-u/trust-copilot/blob/c44e53b9386d5564781170b19238f7e37dd288ef/artifacts/acceptance/TC-03-004/backfill-report.json",
+              "https://github.com/Johnathan-u/trust-copilot/blob/c44e53b9386d5564781170b19238f7e37dd288ef/apps/api/tests/release/test_migration_baseline.py",
+              "https://github.com/Johnathan-u/trust-copilot/blob/c44e53b9386d5564781170b19238f7e37dd288ef/docs/ops/migration-baseline.md",
+              "https://github.com/Johnathan-u/trust-copilot/pull/258",
+              "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-6929698422"
+            ],
+            "tested_sha": "c44e53b9386d5564781170b19238f7e37dd288ef"
           },
           {
             "id": "TC-03-004-DOD5",
-            "status": "NOT_VERIFIED",
-            "evidence_urls": [],
-            "tested_sha": null
+            "status": "PASS",
+            "evidence_urls": [
+              "https://github.com/Johnathan-u/trust-copilot/pull/343#issuecomment-7069949472",
+              "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-7069947385",
+              "https://github.com/Johnathan-u/trust-copilot/pull/343",
+              "https://github.com/Johnathan-u/trust-copilot/commit/0e6368a16bc4db6d89dd5c3ff13781ab87de53ec",
+              "https://github.com/Johnathan-u/trust-copilot/commit/c44e53b9386d5564781170b19238f7e37dd288ef",
+              "https://github.com/Johnathan-u/trust-copilot/actions/runs/44952863816",
+              "https://github.com/Johnathan-u/trust-copilot/actions/runs/44952881180",
+              "https://github.com/Johnathan-u/trust-copilot/blob/c44e53b9386d5564781170b19238f7e37dd288ef/docs/release/tickets/TC-03-004.md",
+              "https://github.com/Johnathan-u/trust-copilot/blob/c44e53b9386d5564781170b19238f7e37dd288ef/docs/release/verification/TC-03-004.md",
+              "https://github.com/Johnathan-u/trust-copilot/blob/c44e53b9386d5564781170b19238f7e37dd288ef/artifacts/acceptance/TC-03-004/README.md",
+              "https://github.com/Johnathan-u/trust-copilot/blob/c44e53b9386d5564781170b19238f7e37dd288ef/artifacts/acceptance/TC-03-004/backfill-report.json",
+              "https://github.com/Johnathan-u/trust-copilot/blob/c44e53b9386d5564781170b19238f7e37dd288ef/apps/api/tests/release/test_migration_baseline.py",
+              "https://github.com/Johnathan-u/trust-copilot/blob/c44e53b9386d5564781170b19238f7e37dd288ef/docs/ops/migration-baseline.md",
+              "https://github.com/Johnathan-u/trust-copilot/pull/258",
+              "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-6929698422"
+            ],
+            "tested_sha": "c44e53b9386d5564781170b19238f7e37dd288ef"
           }
         ],
-        "note": "Full original-parent acceptance is pending baseline validation; merged work and artifact presence alone confer no acceptance. Claude accepted the PARTIAL verdict on #85 comment 6929698422. Report docs/release/verification/TC-03-004.md in PR #258 (merge 5a52580295992bf773a08c2526fc4eac3a621fcd). Status is IMPLEMENTATION_GAPS_IDENTIFIED. This record does not accept the ticket. Recorded by Grok (worker) from Claude's review. Grok is not the independent reviewer."
+        "note": "DONE and VERIFIED_ACCEPTED. Claude is the independent reviewer. He accepted TC-03-004 on #343 comment 7069949472 at 2026-11-21T22:06:56Z. The same acceptance is on #85 comment 7069947385. Tested, assessed and reviewed SHA c44e53b9386d5564781170b19238f7e37dd288ef is the squash merge. He confirmed AC1 and AC2 meet. DoD1 through DoD5 meet on #343 comment 7069949472: release test apps/api/tests/release/test_migration_baseline.py ran with the database in CI (4 passed, none skipped), evidence is in artifacts/acceptance/TC-03-004/ (command, SHA, environment, exit status, totals, and the backfill report), the runbook is docs/ops/migration-baseline.md, the ticket file is docs/release/tickets/TC-03-004.md, and the review is independent. #343 head 0e6368a16bc4db6d89dd5c3ff13781ab87de53ec was green on push run 44952863816 and pull_request run 44952881180, and squash-merged as c44e53b9386d5564781170b19238f7e37dd288ef. No new migration file. Rollback to revision 075 and a second upgrade keep the storage keys, the answers and the counts. No new follow-up. The baseline PARTIAL on #85 comment 6929698422 is superseded by this acceptance. Baseline verification of the original plan stays pending. Grok records this review and is not the independent reviewer."
       },
       "pr_links": [
         {
@@ -3407,13 +3554,42 @@
           "mapping_basis": [
             "PR title"
           ]
+        },
+        {
+          "number": 343,
+          "title": "TC-03-004: qualify audited migration snapshot and backfill report",
+          "url": "https://github.com/Johnathan-u/trust-copilot/pull/343",
+          "state": "merged",
+          "draft": false,
+          "head_sha": "0e6368a16bc4db6d89dd5c3ff13781ab87de53ec",
+          "merge_commit_sha": "c44e53b9386d5564781170b19238f7e37dd288ef",
+          "merged_at": "2026-11-21T22:06:26Z",
+          "mapping_basis": [
+            "acceptance"
+          ],
+          "scope_ids": [
+            "TC-03-004"
+          ]
         }
       ],
       "evidence_links": [
         "https://github.com/Johnathan-u/trust-copilot/blob/5a52580295992bf773a08c2526fc4eac3a621fcd/docs/release/verification/TC-03-004.md",
         "https://github.com/Johnathan-u/trust-copilot/pull/258",
         "https://github.com/Johnathan-u/trust-copilot/commit/5a52580295992bf773a08c2526fc4eac3a621fcd",
-        "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-6929698422"
+        "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-6929698422",
+        "https://github.com/Johnathan-u/trust-copilot/pull/343#issuecomment-7069949472",
+        "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-7069947385",
+        "https://github.com/Johnathan-u/trust-copilot/pull/343",
+        "https://github.com/Johnathan-u/trust-copilot/commit/0e6368a16bc4db6d89dd5c3ff13781ab87de53ec",
+        "https://github.com/Johnathan-u/trust-copilot/commit/c44e53b9386d5564781170b19238f7e37dd288ef",
+        "https://github.com/Johnathan-u/trust-copilot/actions/runs/44952863816",
+        "https://github.com/Johnathan-u/trust-copilot/actions/runs/44952881180",
+        "https://github.com/Johnathan-u/trust-copilot/blob/c44e53b9386d5564781170b19238f7e37dd288ef/docs/release/tickets/TC-03-004.md",
+        "https://github.com/Johnathan-u/trust-copilot/blob/c44e53b9386d5564781170b19238f7e37dd288ef/docs/release/verification/TC-03-004.md",
+        "https://github.com/Johnathan-u/trust-copilot/blob/c44e53b9386d5564781170b19238f7e37dd288ef/artifacts/acceptance/TC-03-004/README.md",
+        "https://github.com/Johnathan-u/trust-copilot/blob/c44e53b9386d5564781170b19238f7e37dd288ef/artifacts/acceptance/TC-03-004/backfill-report.json",
+        "https://github.com/Johnathan-u/trust-copilot/blob/c44e53b9386d5564781170b19238f7e37dd288ef/apps/api/tests/release/test_migration_baseline.py",
+        "https://github.com/Johnathan-u/trust-copilot/blob/c44e53b9386d5564781170b19238f7e37dd288ef/docs/ops/migration-baseline.md"
       ],
       "audit": {
         "original_epic": "E03",
@@ -111167,6 +111343,425 @@
             "source_path": {
               "before": null,
               "after": "docs/release/tickets/TC-20-050a.md"
+            }
+          }
+        }
+      }
+    },
+    {
+      "revision": 43,
+      "at": "2026-11-21T22:13:09Z",
+      "actor": "grok",
+      "reason": "Record Claude's acceptance of TC-03-004 on #343 comment 7069949472. No new follow-ups. Grok (worker) records the review and is not the independent reviewer.",
+      "source_sha": "c44e53b9386d5564781170b19238f7e37dd288ef",
+      "before": {
+        "scope_version": 1,
+        "accepted_points": null,
+        "completion_percentage": null,
+        "assessed_tickets": 71,
+        "total_tickets": 384,
+        "total_points": 1864,
+        "state_counts": {
+          "BASELINE_RECONCILIATION": 263,
+          "BLOCKED": 3,
+          "DONE": 70,
+          "EVIDENCE_RECONCILIATION": 12,
+          "IMPLEMENTATION_GAPS_IDENTIFIED": 36
+        },
+        "accepted_claim_points": 311,
+        "accepted_tickets": 70,
+        "baseline_status": "PENDING"
+      },
+      "after": {
+        "scope_version": 1,
+        "accepted_points": null,
+        "completion_percentage": null,
+        "assessed_tickets": 72,
+        "total_tickets": 384,
+        "total_points": 1864,
+        "state_counts": {
+          "BASELINE_RECONCILIATION": 263,
+          "BLOCKED": 3,
+          "DONE": 71,
+          "EVIDENCE_RECONCILIATION": 12,
+          "IMPLEMENTATION_GAPS_IDENTIFIED": 35
+        },
+        "accepted_claim_points": 316,
+        "accepted_tickets": 71,
+        "baseline_status": "PENDING"
+      },
+      "changes": {
+        "tickets": {
+          "TC-03-004": {
+            "status": {
+              "before": "IMPLEMENTATION_GAPS_IDENTIFIED",
+              "after": "DONE"
+            },
+            "evidence_state": {
+              "before": "IMPLEMENTATION_GAPS_IDENTIFIED",
+              "after": "VERIFIED_ACCEPTED"
+            },
+            "next_action": {
+              "before": "Gaps from docs/release/verification/TC-03-004.md (PARTIAL, accepted by Claude on #85 comment 6929698422; PR #258 merge 5a52580295992bf773a08c2526fc4eac3a621fcd): add an audited-SHA synthetic snapshot (schema plus rows for documents with storage_key, answers, and their foreign keys, stamped at a recorded parent revision) and upgrade it to question_cell_mapping; the fresh empty-database path already runs in CI. Assert survival and write an explicit backfill report comparing table row counts, foreign-key constraints, sampled file keys, and sampled answer text before and after that upgrade. Add apps/api/tests/release/test_migration_baseline.py, artifacts/acceptance/TC-03-004/ (command, SHA, environment, exit status, totals, and the backfill report), and docs/release/tickets/TC-03-004.md. Not accepted.",
+              "after": "Accepted. Claude confirmed AC1 and AC2 meet and DoD1 through DoD5 on #343 comment 7069949472 at c44e53b9386d5564781170b19238f7e37dd288ef. #343 head 0e6368a16bc4db6d89dd5c3ff13781ab87de53ec squash-merged as c44e53b9386d5564781170b19238f7e37dd288ef. No new migration file. Rollback to revision 075 and a second upgrade are in the backfill report. No new follow-up. Reopen only on regression or when change control adds scope."
+            },
+            "updated_at": {
+              "before": "2026-11-16T21:29:42Z",
+              "after": "2026-11-21T22:13:09Z"
+            },
+            "source_sha": {
+              "before": "a365c34757800e1f8da58acde155bd3f8e8f8813",
+              "after": "c44e53b9386d5564781170b19238f7e37dd288ef"
+            },
+            "acceptance": {
+              "before": {
+                "state": "PENDING",
+                "assessed_by": null,
+                "assessed_at": null,
+                "assessed_sha": null,
+                "assessment_evidence_urls": [],
+                "tested_sha": null,
+                "implemented_by": [],
+                "independent_reviewer": null,
+                "reviewed_at": null,
+                "reviewed_sha": null,
+                "review_evidence_urls": [],
+                "criteria": [
+                  {
+                    "id": "TC-03-004-AC1",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-03-004-AC2",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  }
+                ],
+                "definition_of_done": [
+                  {
+                    "id": "TC-03-004-DOD1",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-03-004-DOD2",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-03-004-DOD3",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-03-004-DOD4",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-03-004-DOD5",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  }
+                ],
+                "note": "Full original-parent acceptance is pending baseline validation; merged work and artifact presence alone confer no acceptance. Claude accepted the PARTIAL verdict on #85 comment 6929698422. Report docs/release/verification/TC-03-004.md in PR #258 (merge 5a52580295992bf773a08c2526fc4eac3a621fcd). Status is IMPLEMENTATION_GAPS_IDENTIFIED. This record does not accept the ticket. Recorded by Grok (worker) from Claude's review. Grok is not the independent reviewer."
+              },
+              "after": {
+                "state": "ACCEPTED",
+                "assessed_by": "claude-review-agent",
+                "assessed_at": "2026-11-21T22:06:56Z",
+                "assessed_sha": "c44e53b9386d5564781170b19238f7e37dd288ef",
+                "assessment_evidence_urls": [
+                  "https://github.com/Johnathan-u/trust-copilot/pull/343#issuecomment-7069949472",
+                  "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-7069947385",
+                  "https://github.com/Johnathan-u/trust-copilot/pull/343",
+                  "https://github.com/Johnathan-u/trust-copilot/commit/0e6368a16bc4db6d89dd5c3ff13781ab87de53ec",
+                  "https://github.com/Johnathan-u/trust-copilot/commit/c44e53b9386d5564781170b19238f7e37dd288ef",
+                  "https://github.com/Johnathan-u/trust-copilot/actions/runs/44952863816",
+                  "https://github.com/Johnathan-u/trust-copilot/actions/runs/44952881180",
+                  "https://github.com/Johnathan-u/trust-copilot/blob/c44e53b9386d5564781170b19238f7e37dd288ef/docs/release/tickets/TC-03-004.md",
+                  "https://github.com/Johnathan-u/trust-copilot/blob/c44e53b9386d5564781170b19238f7e37dd288ef/docs/release/verification/TC-03-004.md",
+                  "https://github.com/Johnathan-u/trust-copilot/blob/c44e53b9386d5564781170b19238f7e37dd288ef/artifacts/acceptance/TC-03-004/README.md",
+                  "https://github.com/Johnathan-u/trust-copilot/blob/c44e53b9386d5564781170b19238f7e37dd288ef/artifacts/acceptance/TC-03-004/backfill-report.json",
+                  "https://github.com/Johnathan-u/trust-copilot/blob/c44e53b9386d5564781170b19238f7e37dd288ef/apps/api/tests/release/test_migration_baseline.py",
+                  "https://github.com/Johnathan-u/trust-copilot/blob/c44e53b9386d5564781170b19238f7e37dd288ef/docs/ops/migration-baseline.md",
+                  "https://github.com/Johnathan-u/trust-copilot/pull/258",
+                  "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-6929698422"
+                ],
+                "tested_sha": "c44e53b9386d5564781170b19238f7e37dd288ef",
+                "implemented_by": [
+                  "grok",
+                  "Johnathan-u"
+                ],
+                "independent_reviewer": "claude-review-agent",
+                "reviewed_at": "2026-11-21T22:06:56Z",
+                "reviewed_sha": "c44e53b9386d5564781170b19238f7e37dd288ef",
+                "review_evidence_urls": [
+                  "https://github.com/Johnathan-u/trust-copilot/pull/343#issuecomment-7069949472",
+                  "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-7069947385",
+                  "https://github.com/Johnathan-u/trust-copilot/pull/343",
+                  "https://github.com/Johnathan-u/trust-copilot/commit/0e6368a16bc4db6d89dd5c3ff13781ab87de53ec",
+                  "https://github.com/Johnathan-u/trust-copilot/commit/c44e53b9386d5564781170b19238f7e37dd288ef",
+                  "https://github.com/Johnathan-u/trust-copilot/actions/runs/44952863816",
+                  "https://github.com/Johnathan-u/trust-copilot/actions/runs/44952881180",
+                  "https://github.com/Johnathan-u/trust-copilot/blob/c44e53b9386d5564781170b19238f7e37dd288ef/docs/release/tickets/TC-03-004.md",
+                  "https://github.com/Johnathan-u/trust-copilot/blob/c44e53b9386d5564781170b19238f7e37dd288ef/docs/release/verification/TC-03-004.md",
+                  "https://github.com/Johnathan-u/trust-copilot/blob/c44e53b9386d5564781170b19238f7e37dd288ef/artifacts/acceptance/TC-03-004/README.md",
+                  "https://github.com/Johnathan-u/trust-copilot/blob/c44e53b9386d5564781170b19238f7e37dd288ef/artifacts/acceptance/TC-03-004/backfill-report.json",
+                  "https://github.com/Johnathan-u/trust-copilot/blob/c44e53b9386d5564781170b19238f7e37dd288ef/apps/api/tests/release/test_migration_baseline.py",
+                  "https://github.com/Johnathan-u/trust-copilot/blob/c44e53b9386d5564781170b19238f7e37dd288ef/docs/ops/migration-baseline.md",
+                  "https://github.com/Johnathan-u/trust-copilot/pull/258",
+                  "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-6929698422"
+                ],
+                "criteria": [
+                  {
+                    "id": "TC-03-004-AC1",
+                    "status": "PASS",
+                    "evidence_urls": [
+                      "https://github.com/Johnathan-u/trust-copilot/pull/343#issuecomment-7069949472",
+                      "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-7069947385",
+                      "https://github.com/Johnathan-u/trust-copilot/pull/343",
+                      "https://github.com/Johnathan-u/trust-copilot/commit/0e6368a16bc4db6d89dd5c3ff13781ab87de53ec",
+                      "https://github.com/Johnathan-u/trust-copilot/commit/c44e53b9386d5564781170b19238f7e37dd288ef",
+                      "https://github.com/Johnathan-u/trust-copilot/actions/runs/44952863816",
+                      "https://github.com/Johnathan-u/trust-copilot/actions/runs/44952881180",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/c44e53b9386d5564781170b19238f7e37dd288ef/docs/release/tickets/TC-03-004.md",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/c44e53b9386d5564781170b19238f7e37dd288ef/docs/release/verification/TC-03-004.md",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/c44e53b9386d5564781170b19238f7e37dd288ef/artifacts/acceptance/TC-03-004/README.md",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/c44e53b9386d5564781170b19238f7e37dd288ef/artifacts/acceptance/TC-03-004/backfill-report.json",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/c44e53b9386d5564781170b19238f7e37dd288ef/apps/api/tests/release/test_migration_baseline.py",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/c44e53b9386d5564781170b19238f7e37dd288ef/docs/ops/migration-baseline.md",
+                      "https://github.com/Johnathan-u/trust-copilot/pull/258",
+                      "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-6929698422"
+                    ],
+                    "tested_sha": "c44e53b9386d5564781170b19238f7e37dd288ef"
+                  },
+                  {
+                    "id": "TC-03-004-AC2",
+                    "status": "PASS",
+                    "evidence_urls": [
+                      "https://github.com/Johnathan-u/trust-copilot/pull/343#issuecomment-7069949472",
+                      "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-7069947385",
+                      "https://github.com/Johnathan-u/trust-copilot/pull/343",
+                      "https://github.com/Johnathan-u/trust-copilot/commit/0e6368a16bc4db6d89dd5c3ff13781ab87de53ec",
+                      "https://github.com/Johnathan-u/trust-copilot/commit/c44e53b9386d5564781170b19238f7e37dd288ef",
+                      "https://github.com/Johnathan-u/trust-copilot/actions/runs/44952863816",
+                      "https://github.com/Johnathan-u/trust-copilot/actions/runs/44952881180",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/c44e53b9386d5564781170b19238f7e37dd288ef/docs/release/tickets/TC-03-004.md",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/c44e53b9386d5564781170b19238f7e37dd288ef/docs/release/verification/TC-03-004.md",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/c44e53b9386d5564781170b19238f7e37dd288ef/artifacts/acceptance/TC-03-004/README.md",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/c44e53b9386d5564781170b19238f7e37dd288ef/artifacts/acceptance/TC-03-004/backfill-report.json",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/c44e53b9386d5564781170b19238f7e37dd288ef/apps/api/tests/release/test_migration_baseline.py",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/c44e53b9386d5564781170b19238f7e37dd288ef/docs/ops/migration-baseline.md",
+                      "https://github.com/Johnathan-u/trust-copilot/pull/258",
+                      "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-6929698422"
+                    ],
+                    "tested_sha": "c44e53b9386d5564781170b19238f7e37dd288ef"
+                  }
+                ],
+                "definition_of_done": [
+                  {
+                    "id": "TC-03-004-DOD1",
+                    "status": "PASS",
+                    "evidence_urls": [
+                      "https://github.com/Johnathan-u/trust-copilot/pull/343#issuecomment-7069949472",
+                      "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-7069947385",
+                      "https://github.com/Johnathan-u/trust-copilot/pull/343",
+                      "https://github.com/Johnathan-u/trust-copilot/commit/0e6368a16bc4db6d89dd5c3ff13781ab87de53ec",
+                      "https://github.com/Johnathan-u/trust-copilot/commit/c44e53b9386d5564781170b19238f7e37dd288ef",
+                      "https://github.com/Johnathan-u/trust-copilot/actions/runs/44952863816",
+                      "https://github.com/Johnathan-u/trust-copilot/actions/runs/44952881180",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/c44e53b9386d5564781170b19238f7e37dd288ef/docs/release/tickets/TC-03-004.md",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/c44e53b9386d5564781170b19238f7e37dd288ef/docs/release/verification/TC-03-004.md",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/c44e53b9386d5564781170b19238f7e37dd288ef/artifacts/acceptance/TC-03-004/README.md",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/c44e53b9386d5564781170b19238f7e37dd288ef/artifacts/acceptance/TC-03-004/backfill-report.json",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/c44e53b9386d5564781170b19238f7e37dd288ef/apps/api/tests/release/test_migration_baseline.py",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/c44e53b9386d5564781170b19238f7e37dd288ef/docs/ops/migration-baseline.md",
+                      "https://github.com/Johnathan-u/trust-copilot/pull/258",
+                      "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-6929698422"
+                    ],
+                    "tested_sha": "c44e53b9386d5564781170b19238f7e37dd288ef"
+                  },
+                  {
+                    "id": "TC-03-004-DOD2",
+                    "status": "PASS",
+                    "evidence_urls": [
+                      "https://github.com/Johnathan-u/trust-copilot/pull/343#issuecomment-7069949472",
+                      "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-7069947385",
+                      "https://github.com/Johnathan-u/trust-copilot/pull/343",
+                      "https://github.com/Johnathan-u/trust-copilot/commit/0e6368a16bc4db6d89dd5c3ff13781ab87de53ec",
+                      "https://github.com/Johnathan-u/trust-copilot/commit/c44e53b9386d5564781170b19238f7e37dd288ef",
+                      "https://github.com/Johnathan-u/trust-copilot/actions/runs/44952863816",
+                      "https://github.com/Johnathan-u/trust-copilot/actions/runs/44952881180",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/c44e53b9386d5564781170b19238f7e37dd288ef/docs/release/tickets/TC-03-004.md",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/c44e53b9386d5564781170b19238f7e37dd288ef/docs/release/verification/TC-03-004.md",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/c44e53b9386d5564781170b19238f7e37dd288ef/artifacts/acceptance/TC-03-004/README.md",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/c44e53b9386d5564781170b19238f7e37dd288ef/artifacts/acceptance/TC-03-004/backfill-report.json",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/c44e53b9386d5564781170b19238f7e37dd288ef/apps/api/tests/release/test_migration_baseline.py",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/c44e53b9386d5564781170b19238f7e37dd288ef/docs/ops/migration-baseline.md",
+                      "https://github.com/Johnathan-u/trust-copilot/pull/258",
+                      "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-6929698422"
+                    ],
+                    "tested_sha": "c44e53b9386d5564781170b19238f7e37dd288ef"
+                  },
+                  {
+                    "id": "TC-03-004-DOD3",
+                    "status": "PASS",
+                    "evidence_urls": [
+                      "https://github.com/Johnathan-u/trust-copilot/pull/343#issuecomment-7069949472",
+                      "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-7069947385",
+                      "https://github.com/Johnathan-u/trust-copilot/pull/343",
+                      "https://github.com/Johnathan-u/trust-copilot/commit/0e6368a16bc4db6d89dd5c3ff13781ab87de53ec",
+                      "https://github.com/Johnathan-u/trust-copilot/commit/c44e53b9386d5564781170b19238f7e37dd288ef",
+                      "https://github.com/Johnathan-u/trust-copilot/actions/runs/44952863816",
+                      "https://github.com/Johnathan-u/trust-copilot/actions/runs/44952881180",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/c44e53b9386d5564781170b19238f7e37dd288ef/docs/release/tickets/TC-03-004.md",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/c44e53b9386d5564781170b19238f7e37dd288ef/docs/release/verification/TC-03-004.md",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/c44e53b9386d5564781170b19238f7e37dd288ef/artifacts/acceptance/TC-03-004/README.md",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/c44e53b9386d5564781170b19238f7e37dd288ef/artifacts/acceptance/TC-03-004/backfill-report.json",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/c44e53b9386d5564781170b19238f7e37dd288ef/apps/api/tests/release/test_migration_baseline.py",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/c44e53b9386d5564781170b19238f7e37dd288ef/docs/ops/migration-baseline.md",
+                      "https://github.com/Johnathan-u/trust-copilot/pull/258",
+                      "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-6929698422"
+                    ],
+                    "tested_sha": "c44e53b9386d5564781170b19238f7e37dd288ef"
+                  },
+                  {
+                    "id": "TC-03-004-DOD4",
+                    "status": "PASS",
+                    "evidence_urls": [
+                      "https://github.com/Johnathan-u/trust-copilot/pull/343#issuecomment-7069949472",
+                      "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-7069947385",
+                      "https://github.com/Johnathan-u/trust-copilot/pull/343",
+                      "https://github.com/Johnathan-u/trust-copilot/commit/0e6368a16bc4db6d89dd5c3ff13781ab87de53ec",
+                      "https://github.com/Johnathan-u/trust-copilot/commit/c44e53b9386d5564781170b19238f7e37dd288ef",
+                      "https://github.com/Johnathan-u/trust-copilot/actions/runs/44952863816",
+                      "https://github.com/Johnathan-u/trust-copilot/actions/runs/44952881180",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/c44e53b9386d5564781170b19238f7e37dd288ef/docs/release/tickets/TC-03-004.md",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/c44e53b9386d5564781170b19238f7e37dd288ef/docs/release/verification/TC-03-004.md",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/c44e53b9386d5564781170b19238f7e37dd288ef/artifacts/acceptance/TC-03-004/README.md",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/c44e53b9386d5564781170b19238f7e37dd288ef/artifacts/acceptance/TC-03-004/backfill-report.json",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/c44e53b9386d5564781170b19238f7e37dd288ef/apps/api/tests/release/test_migration_baseline.py",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/c44e53b9386d5564781170b19238f7e37dd288ef/docs/ops/migration-baseline.md",
+                      "https://github.com/Johnathan-u/trust-copilot/pull/258",
+                      "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-6929698422"
+                    ],
+                    "tested_sha": "c44e53b9386d5564781170b19238f7e37dd288ef"
+                  },
+                  {
+                    "id": "TC-03-004-DOD5",
+                    "status": "PASS",
+                    "evidence_urls": [
+                      "https://github.com/Johnathan-u/trust-copilot/pull/343#issuecomment-7069949472",
+                      "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-7069947385",
+                      "https://github.com/Johnathan-u/trust-copilot/pull/343",
+                      "https://github.com/Johnathan-u/trust-copilot/commit/0e6368a16bc4db6d89dd5c3ff13781ab87de53ec",
+                      "https://github.com/Johnathan-u/trust-copilot/commit/c44e53b9386d5564781170b19238f7e37dd288ef",
+                      "https://github.com/Johnathan-u/trust-copilot/actions/runs/44952863816",
+                      "https://github.com/Johnathan-u/trust-copilot/actions/runs/44952881180",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/c44e53b9386d5564781170b19238f7e37dd288ef/docs/release/tickets/TC-03-004.md",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/c44e53b9386d5564781170b19238f7e37dd288ef/docs/release/verification/TC-03-004.md",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/c44e53b9386d5564781170b19238f7e37dd288ef/artifacts/acceptance/TC-03-004/README.md",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/c44e53b9386d5564781170b19238f7e37dd288ef/artifacts/acceptance/TC-03-004/backfill-report.json",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/c44e53b9386d5564781170b19238f7e37dd288ef/apps/api/tests/release/test_migration_baseline.py",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/c44e53b9386d5564781170b19238f7e37dd288ef/docs/ops/migration-baseline.md",
+                      "https://github.com/Johnathan-u/trust-copilot/pull/258",
+                      "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-6929698422"
+                    ],
+                    "tested_sha": "c44e53b9386d5564781170b19238f7e37dd288ef"
+                  }
+                ],
+                "note": "DONE and VERIFIED_ACCEPTED. Claude is the independent reviewer. He accepted TC-03-004 on #343 comment 7069949472 at 2026-11-21T22:06:56Z. The same acceptance is on #85 comment 7069947385. Tested, assessed and reviewed SHA c44e53b9386d5564781170b19238f7e37dd288ef is the squash merge. He confirmed AC1 and AC2 meet. DoD1 through DoD5 meet on #343 comment 7069949472: release test apps/api/tests/release/test_migration_baseline.py ran with the database in CI (4 passed, none skipped), evidence is in artifacts/acceptance/TC-03-004/ (command, SHA, environment, exit status, totals, and the backfill report), the runbook is docs/ops/migration-baseline.md, the ticket file is docs/release/tickets/TC-03-004.md, and the review is independent. #343 head 0e6368a16bc4db6d89dd5c3ff13781ab87de53ec was green on push run 44952863816 and pull_request run 44952881180, and squash-merged as c44e53b9386d5564781170b19238f7e37dd288ef. No new migration file. Rollback to revision 075 and a second upgrade keep the storage keys, the answers and the counts. No new follow-up. The baseline PARTIAL on #85 comment 6929698422 is superseded by this acceptance. Baseline verification of the original plan stays pending. Grok records this review and is not the independent reviewer."
+              }
+            },
+            "pr_links": {
+              "before": [
+                {
+                  "number": 258,
+                  "title": "docs: baseline reconciliation batch 1 — TC-03-004, TC-07-006, TC-08-003, TC-08-004",
+                  "url": "https://github.com/Johnathan-u/trust-copilot/pull/258",
+                  "state": "merged",
+                  "draft": false,
+                  "head_sha": "8d360bb1b841e33397afffe783671668439f6c77",
+                  "merge_commit_sha": "5a52580295992bf773a08c2526fc4eac3a621fcd",
+                  "merged_at": "2026-11-16T21:17:00Z",
+                  "scope_ids": [
+                    "TC-03-004"
+                  ],
+                  "mapping_basis": [
+                    "PR title"
+                  ]
+                }
+              ],
+              "after": [
+                {
+                  "number": 258,
+                  "title": "docs: baseline reconciliation batch 1 — TC-03-004, TC-07-006, TC-08-003, TC-08-004",
+                  "url": "https://github.com/Johnathan-u/trust-copilot/pull/258",
+                  "state": "merged",
+                  "draft": false,
+                  "head_sha": "8d360bb1b841e33397afffe783671668439f6c77",
+                  "merge_commit_sha": "5a52580295992bf773a08c2526fc4eac3a621fcd",
+                  "merged_at": "2026-11-16T21:17:00Z",
+                  "scope_ids": [
+                    "TC-03-004"
+                  ],
+                  "mapping_basis": [
+                    "PR title"
+                  ]
+                },
+                {
+                  "number": 343,
+                  "title": "TC-03-004: qualify audited migration snapshot and backfill report",
+                  "url": "https://github.com/Johnathan-u/trust-copilot/pull/343",
+                  "state": "merged",
+                  "draft": false,
+                  "head_sha": "0e6368a16bc4db6d89dd5c3ff13781ab87de53ec",
+                  "merge_commit_sha": "c44e53b9386d5564781170b19238f7e37dd288ef",
+                  "merged_at": "2026-11-21T22:06:26Z",
+                  "mapping_basis": [
+                    "acceptance"
+                  ],
+                  "scope_ids": [
+                    "TC-03-004"
+                  ]
+                }
+              ]
+            },
+            "evidence_links": {
+              "before": [
+                "https://github.com/Johnathan-u/trust-copilot/blob/5a52580295992bf773a08c2526fc4eac3a621fcd/docs/release/verification/TC-03-004.md",
+                "https://github.com/Johnathan-u/trust-copilot/pull/258",
+                "https://github.com/Johnathan-u/trust-copilot/commit/5a52580295992bf773a08c2526fc4eac3a621fcd",
+                "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-6929698422"
+              ],
+              "after": [
+                "https://github.com/Johnathan-u/trust-copilot/blob/5a52580295992bf773a08c2526fc4eac3a621fcd/docs/release/verification/TC-03-004.md",
+                "https://github.com/Johnathan-u/trust-copilot/pull/258",
+                "https://github.com/Johnathan-u/trust-copilot/commit/5a52580295992bf773a08c2526fc4eac3a621fcd",
+                "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-6929698422",
+                "https://github.com/Johnathan-u/trust-copilot/pull/343#issuecomment-7069949472",
+                "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-7069947385",
+                "https://github.com/Johnathan-u/trust-copilot/pull/343",
+                "https://github.com/Johnathan-u/trust-copilot/commit/0e6368a16bc4db6d89dd5c3ff13781ab87de53ec",
+                "https://github.com/Johnathan-u/trust-copilot/commit/c44e53b9386d5564781170b19238f7e37dd288ef",
+                "https://github.com/Johnathan-u/trust-copilot/actions/runs/44952863816",
+                "https://github.com/Johnathan-u/trust-copilot/actions/runs/44952881180",
+                "https://github.com/Johnathan-u/trust-copilot/blob/c44e53b9386d5564781170b19238f7e37dd288ef/docs/release/tickets/TC-03-004.md",
+                "https://github.com/Johnathan-u/trust-copilot/blob/c44e53b9386d5564781170b19238f7e37dd288ef/docs/release/verification/TC-03-004.md",
+                "https://github.com/Johnathan-u/trust-copilot/blob/c44e53b9386d5564781170b19238f7e37dd288ef/artifacts/acceptance/TC-03-004/README.md",
+                "https://github.com/Johnathan-u/trust-copilot/blob/c44e53b9386d5564781170b19238f7e37dd288ef/artifacts/acceptance/TC-03-004/backfill-report.json",
+                "https://github.com/Johnathan-u/trust-copilot/blob/c44e53b9386d5564781170b19238f7e37dd288ef/apps/api/tests/release/test_migration_baseline.py",
+                "https://github.com/Johnathan-u/trust-copilot/blob/c44e53b9386d5564781170b19238f7e37dd288ef/docs/ops/migration-baseline.md"
+              ]
             }
           }
         }
