@@ -353,6 +353,7 @@ def test_history_projects_pairs_for_workers_that_record_them(monkeypatch):
         ("index_document", 2, 3),
         ("export", 5, 5),
         ("generate_answers", 2, 5),
+        ("crm_sync", 2, 4),
     ):
         job = _job(
             kind,

@@ -240,4 +240,5 @@ In the Entra app registration, open Token configuration and add the optional cla
 | `NEXT_PUBLIC_DEMO_LOGIN_EMAIL` | email | forbidden | no | unset | One-click demo login (build-time, local demo only). |  |
 | `NEXT_PUBLIC_DEMO_LOGIN_PASSWORD` | secret string | forbidden | yes | unset | One-click demo login (build-time, local demo only). |  |
 | `NEXT_PUBLIC_SALES_CONTACT` | email or https URL | optional | no | unset | Optional contact on invitation screens. An email address or an https URL. Unset hides the link. Any other value is ignored. |  |
+| `SALESFORCE_API_BASE_URL` | http or https origin | optional | no | unset | Fixture origin for Salesforce pipeline sync. Unset refuses a sync. Salesforce hostnames are refused. Not a credential. |  |
 <!-- END GENERATED CONFIG CONTRACT -->

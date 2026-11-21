@@ -7,6 +7,7 @@ export const JOB_KINDS = {
   index_document: 'Index document',
   generate_answers: 'Generate answers',
   export: 'Export questionnaire',
+  crm_sync: 'Sync CRM pipeline',
 } as const
 export const JOB_STATUSES = {
   queued: 'Queued',
@@ -34,7 +35,10 @@ export type SafeJob = {
   failureMessage: string | null
   progress: { generated: number; total: number } | null
   outcome: 'already_applied' | 'reconciled' | 'superseded' | null
-  objectRef: { type: 'document' | 'questionnaire'; id: number } | null
+  objectRef: {
+    type: 'document' | 'questionnaire' | 'crm_connection'
+    id: number
+  } | null
 }
 export type JobHistory = { items: SafeJob[]; nextBeforeId: number | null }
 function malformed(): never {
@@ -125,8 +129,17 @@ function project(data: unknown, legacy: boolean): SafeJob {
     const type =
       kind === 'index_document' || kind === 'parse_evidence'
         ? 'document'
-        : 'questionnaire'
-    if (ref.type === type && integer(ref.id, 1) && ref.id <= 2147483647)
+        : kind === 'crm_sync'
+          ? 'crm_connection'
+          : 'questionnaire'
+    if (
+      (type === 'document' ||
+        type === 'questionnaire' ||
+        type === 'crm_connection') &&
+      ref.type === type &&
+      integer(ref.id, 1) &&
+      ref.id <= 2147483647
+    )
       objectRef = { type, id: ref.id }
   }
   return {
@@ -201,12 +214,19 @@ export function objectLink(
   job: SafeJob
 ): { href: string; label: string } | null {
   if (!job.objectRef) return null
-  return job.objectRef.type === 'questionnaire'
-    ? {
-        href: `/dashboard/questionnaires/${job.objectRef.id}`,
-        label: 'Open questionnaire',
-      }
-    : { href: '/dashboard/documents', label: 'Open document library' }
+  if (job.objectRef.type === 'questionnaire') {
+    return {
+      href: `/dashboard/questionnaires/${job.objectRef.id}`,
+      label: 'Open questionnaire',
+    }
+  }
+  if (job.objectRef.type === 'crm_connection') {
+    return {
+      href: `/dashboard/deals?connection_id=${job.objectRef.id}`,
+      label: 'Open synced pipeline',
+    }
+  }
+  return { href: '/dashboard/documents', label: 'Open document library' }
 }
 export function jobsHref(
   workspaceId: number,

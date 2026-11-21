@@ -218,15 +218,20 @@ test('current job types expose only checked object links and measured progress',
     'parse_questionnaire',
     'parse_evidence',
     'index_document',
+    'crm_sync',
   ].map((kind, i) => ({
     ...job,
     id: 45 - i,
     kind,
     object_ref:
-      i < 3 ? { type: 'questionnaire', id: 9 } : { type: 'document', id: 8 },
+      kind === 'crm_sync'
+        ? { type: 'crm_connection', id: 4 }
+        : i < 3
+          ? { type: 'questionnaire', id: 9 }
+          : { type: 'document', id: 8 },
   }))
   await open(page)
-  await expect(page.getByRole('article')).toHaveCount(5)
+  await expect(page.getByRole('article')).toHaveCount(6)
   await expect(
     page.getByRole('progressbar', { name: 'Answers generated' })
   ).toHaveAttribute('value', '2')
@@ -244,6 +249,16 @@ test('current job types expose only checked object links and measured progress',
     .getByRole('link', { name: 'Open document library' })
     .all())
     await expect(link).toHaveAttribute('href', '/dashboard/documents')
+  await expect(
+    page.getByRole('link', { name: 'Open synced pipeline' })
+  ).toHaveAttribute('href', '/dashboard/deals?connection_id=4')
+  await expect(
+    page.getByRole('progressbar', { name: 'Records synced' })
+  ).toHaveAttribute('value', '2')
+  await page.reload()
+  await expect(
+    page.getByRole('link', { name: 'Open synced pipeline' })
+  ).toHaveAttribute('href', '/dashboard/deals?connection_id=4')
 })
 test('unknown jobs and missing object references never expose internal fields or actions', async ({
   page,

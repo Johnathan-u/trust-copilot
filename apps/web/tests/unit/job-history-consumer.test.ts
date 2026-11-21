@@ -133,6 +133,15 @@ describe('safe persisted job consumer', () => {
       href: '/dashboard/documents',
       label: 'Open document library',
     })
+    expect(
+      objectLink(read({ type: 'crm_connection', id: 4 }, 'crm_sync'))
+    ).toEqual({
+      href: '/dashboard/deals?connection_id=4',
+      label: 'Open synced pipeline',
+    })
+    expect(
+      objectLink(read({ type: 'questionnaire', id: 4 }, 'crm_sync'))
+    ).toBeNull()
     for (const ref of [
       null,
       { type: 'questionnaire', id: 2 },

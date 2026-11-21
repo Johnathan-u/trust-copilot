@@ -24,6 +24,44 @@ _JSON_LIST_FIELDS = (
     "linked_document_ids",
 )
 _LINK_FIELDS = ("questionnaire_id", "document_id", "room_id")
+_MANUAL_FIELDS = (
+    "company_name",
+    "buyer_contact_name",
+    "buyer_contact_email",
+    "deal_value_arr",
+    "currency",
+    "stage",
+    "close_date",
+    "expected_close_date",
+    "actual_close_date",
+    "notes",
+)
+
+
+def manual_field_names(deal: Deal) -> set[str]:
+    """Field names a person changed on a CRM deal. Sync must not write them again."""
+    raw = deal.crm_manual_fields
+    if not raw:
+        return set()
+    try:
+        value = json.loads(raw)
+    except (TypeError, ValueError):
+        return set()
+    if not isinstance(value, list):
+        return set()
+    return {item for item in value if isinstance(item, str)}
+
+
+def _mark_manual_edits(deal: Deal, payload: dict) -> None:
+    if not deal.provider and not deal.crm_source:
+        return
+    manual = manual_field_names(deal)
+    for key in _MANUAL_FIELDS:
+        if key not in payload:
+            continue
+        if getattr(deal, key) != payload[key]:
+            manual.add(key)
+    deal.crm_manual_fields = json.dumps(sorted(manual)) if manual else None
 
 
 class DealNotFound(LookupError):
@@ -326,6 +364,7 @@ def update_deal(db: Session, deal_id: int, *, workspace_id: int, **updates) -> d
     if "currency" in payload and payload["currency"] is None and payload.get("deal_value_arr"):
         raise CurrencyInvalid("currency is required when an amount is set")
     _validate_refs(db, workspace_id, payload)
+    _mark_manual_edits(deal, payload)
     _assign(deal, payload)
     db.flush()
     return _serialize(deal)
@@ -399,6 +438,10 @@ def _serialize(deal: Deal) -> dict:
         "room_id": deal.room_id,
         "crm_source": deal.crm_source,
         "crm_external_id": deal.crm_external_id,
+        "connection_id": deal.connection_id,
+        "provider": deal.provider,
+        "crm_stable_id": deal.crm_stable_id,
+        "crm_removed_at": deal.crm_removed_at.isoformat() if deal.crm_removed_at else None,
         "owner_user_id": deal.owner_user_id,
         "notes": deal.notes,
         "created_at": deal.created_at.isoformat() if deal.created_at else None,
