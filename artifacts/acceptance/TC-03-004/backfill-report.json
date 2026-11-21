@@ -1,0 +1,1484 @@
+{
+  "audited_sha": "c20f949161ac12a619b396d30904448ffd74d532",
+  "backfills": [
+    {
+      "measurable": true,
+      "revision": "tc21001_framework_catalog_rights",
+      "rows_affected": 9,
+      "table_scope": "named",
+      "tables": [
+        {
+          "deleted": 0,
+          "inserted": 9,
+          "measurable": true,
+          "name": "frameworks",
+          "row_count_after": 9,
+          "row_count_before": 0,
+          "updated": 0
+        }
+      ],
+      "tables_named": [
+        "frameworks"
+      ]
+    },
+    {
+      "measurable": true,
+      "revision": "tc25005_case_study_consent",
+      "rows_affected": 0,
+      "table_scope": "named",
+      "tables": [],
+      "tables_named": [
+        "case_studies",
+        "case_study_organization_consents",
+        "case_study_result_permissions",
+        "overwrites"
+      ]
+    },
+    {
+      "measurable": true,
+      "revision": "tc06001_same_workspace_refs",
+      "rows_affected": 0,
+      "table_scope": "named",
+      "tables": [],
+      "tables_named": [
+        "of"
+      ]
+    },
+    {
+      "measurable": true,
+      "revision": "tc21002a_canonical_uniq",
+      "rows_affected": 0,
+      "table_scope": "named",
+      "tables": [],
+      "tables_named": [
+        "as"
+      ]
+    },
+    {
+      "measurable": true,
+      "revision": "tc21003_evidence_link_uniq",
+      "rows_affected": 0,
+      "table_scope": "named",
+      "tables": [],
+      "tables_named": [
+        "as"
+      ]
+    },
+    {
+      "measurable": true,
+      "revision": "bug018a_gap_closed_at_reason",
+      "rows_affected": 0,
+      "table_scope": "all_public_tables",
+      "tables": [],
+      "tables_named": []
+    },
+    {
+      "measurable": true,
+      "revision": "tc21005_mapping_version",
+      "rows_affected": 0,
+      "table_scope": "named",
+      "tables": [],
+      "tables_named": [
+        "as",
+        "set"
+      ]
+    },
+    {
+      "measurable": true,
+      "revision": "tc21006_gap_evaluation",
+      "rows_affected": 0,
+      "table_scope": "named",
+      "tables": [],
+      "tables_named": [
+        "as"
+      ]
+    },
+    {
+      "measurable": true,
+      "revision": "tc02001a_parent_ws_move",
+      "rows_affected": 0,
+      "table_scope": "named",
+      "tables": [],
+      "tables_named": [
+        "of"
+      ]
+    },
+    {
+      "measurable": true,
+      "revision": "tc18002_vendor_lifecycle",
+      "rows_affected": 0,
+      "table_scope": "named",
+      "tables": [],
+      "tables_named": [
+        "h",
+        "r"
+      ]
+    },
+    {
+      "measurable": true,
+      "revision": "tc18001_reviewed_replies",
+      "rows_affected": 0,
+      "table_scope": "named",
+      "tables": [],
+      "tables_named": [
+        "set",
+        "trust_requests"
+      ]
+    },
+    {
+      "measurable": true,
+      "revision": "tc17004_faq_review",
+      "rows_affected": 0,
+      "table_scope": "named",
+      "tables": [],
+      "tables_named": [
+        "of",
+        "on",
+        "security_faq",
+        "security_faq_revisions",
+        "security_faq_sources"
+      ]
+    },
+    {
+      "measurable": true,
+      "revision": "tc19010_inbox_receipts",
+      "rows_affected": 0,
+      "table_scope": "named",
+      "tables": [],
+      "tables_named": [
+        "in_app_notification_receipts"
+      ]
+    },
+    {
+      "measurable": true,
+      "revision": "tc07002_session_key_id",
+      "rows_affected": 0,
+      "table_scope": "named",
+      "tables": [],
+      "tables_named": [
+        "as",
+        "user_sessions"
+      ]
+    },
+    {
+      "measurable": true,
+      "revision": "tc23001_deal_types",
+      "rows_affected": 0,
+      "table_scope": "named",
+      "tables": [],
+      "tables_named": [
+        "a",
+        "deals",
+        "set",
+        "where"
+      ]
+    },
+    {
+      "measurable": true,
+      "revision": "tc17003_security_claims",
+      "rows_affected": 0,
+      "table_scope": "named",
+      "tables": [],
+      "tables_named": [
+        "a",
+        "security_claims"
+      ]
+    },
+    {
+      "measurable": true,
+      "revision": "question_cell_mapping",
+      "rows_affected": 1,
+      "table_scope": "named",
+      "tables": [
+        {
+          "deleted": 0,
+          "inserted": 0,
+          "measurable": true,
+          "name": "questions",
+          "row_count_after": 1,
+          "row_count_before": 1,
+          "updated": 1
+        }
+      ],
+      "tables_named": [
+        "questions",
+        "where"
+      ]
+    },
+    {
+      "measurable": true,
+      "revision": "tc17005a_share_token",
+      "rows_affected": 0,
+      "table_scope": "named",
+      "tables": [],
+      "tables_named": [
+        "shareable_spaces"
+      ]
+    },
+    {
+      "measurable": true,
+      "revision": "tc17001_article_versions",
+      "rows_affected": 0,
+      "table_scope": "named",
+      "tables": [],
+      "tables_named": [
+        "a",
+        "on",
+        "policy_acknowledgments",
+        "trust_articles"
+      ]
+    },
+    {
+      "measurable": true,
+      "revision": "tc12004a_answer_revisions",
+      "rows_affected": 0,
+      "table_scope": "all_public_tables",
+      "tables": [],
+      "tables_named": []
+    },
+    {
+      "measurable": true,
+      "revision": "tc20050_crm_pipeline_sync",
+      "rows_affected": 0,
+      "table_scope": "named",
+      "tables": [],
+      "tables_named": [
+        "deals"
+      ]
+    }
+  ],
+  "baseline_revision": "075",
+  "foreign_keys_before": [
+    {
+      "definition": "FOREIGN KEY (workspace_id) REFERENCES workspaces(id) ON DELETE CASCADE",
+      "name": "ai_governance_settings_workspace_id_fkey",
+      "table": "ai_governance_settings"
+    },
+    {
+      "definition": "FOREIGN KEY (workspace_id) REFERENCES workspaces(id) ON DELETE CASCADE",
+      "name": "alert_acknowledgments_workspace_id_fkey",
+      "table": "alert_acknowledgments"
+    },
+    {
+      "definition": "FOREIGN KEY (actor_user_id) REFERENCES users(id) ON DELETE SET NULL",
+      "name": "answer_approval_events_actor_user_id_fkey",
+      "table": "answer_approval_events"
+    },
+    {
+      "definition": "FOREIGN KEY (golden_answer_id) REFERENCES golden_answers(id) ON DELETE CASCADE",
+      "name": "answer_approval_events_golden_answer_id_fkey",
+      "table": "answer_approval_events"
+    },
+    {
+      "definition": "FOREIGN KEY (workspace_id) REFERENCES workspaces(id) ON DELETE CASCADE",
+      "name": "answer_cache_workspace_id_fkey",
+      "table": "answer_cache"
+    },
+    {
+      "definition": "FOREIGN KEY (answer_id) REFERENCES answers(id) ON DELETE CASCADE",
+      "name": "answer_delivery_outcomes_answer_id_fkey",
+      "table": "answer_delivery_outcomes"
+    },
+    {
+      "definition": "FOREIGN KEY (created_by_user_id) REFERENCES users(id) ON DELETE SET NULL",
+      "name": "answer_delivery_outcomes_created_by_user_id_fkey",
+      "table": "answer_delivery_outcomes"
+    },
+    {
+      "definition": "FOREIGN KEY (deal_id) REFERENCES deals(id) ON DELETE SET NULL",
+      "name": "answer_delivery_outcomes_deal_id_fkey",
+      "table": "answer_delivery_outcomes"
+    },
+    {
+      "definition": "FOREIGN KEY (golden_answer_id) REFERENCES golden_answers(id) ON DELETE SET NULL",
+      "name": "answer_delivery_outcomes_golden_answer_id_fkey",
+      "table": "answer_delivery_outcomes"
+    },
+    {
+      "definition": "FOREIGN KEY (questionnaire_id) REFERENCES questionnaires(id) ON DELETE SET NULL",
+      "name": "answer_delivery_outcomes_questionnaire_id_fkey",
+      "table": "answer_delivery_outcomes"
+    },
+    {
+      "definition": "FOREIGN KEY (workspace_id) REFERENCES workspaces(id) ON DELETE CASCADE",
+      "name": "answer_delivery_outcomes_workspace_id_fkey",
+      "table": "answer_delivery_outcomes"
+    },
+    {
+      "definition": "FOREIGN KEY (deal_id) REFERENCES deals(id) ON DELETE SET NULL",
+      "name": "answer_reuse_provenance_deal_id_fkey",
+      "table": "answer_reuse_provenance"
+    },
+    {
+      "definition": "FOREIGN KEY (workspace_id) REFERENCES workspaces(id) ON DELETE CASCADE",
+      "name": "answer_reuse_provenance_workspace_id_fkey",
+      "table": "answer_reuse_provenance"
+    },
+    {
+      "definition": "FOREIGN KEY (question_id) REFERENCES questions(id) ON DELETE CASCADE",
+      "name": "answers_question_id_fkey",
+      "table": "answers"
+    },
+    {
+      "definition": "FOREIGN KEY (workspace_id) REFERENCES workspaces(id) ON DELETE CASCADE",
+      "name": "api_keys_workspace_id_fkey",
+      "table": "api_keys"
+    },
+    {
+      "definition": "FOREIGN KEY (recorded_by_user_id) REFERENCES users(id) ON DELETE SET NULL",
+      "name": "artifact_integrity_hashes_recorded_by_user_id_fkey",
+      "table": "artifact_integrity_hashes"
+    },
+    {
+      "definition": "FOREIGN KEY (workspace_id) REFERENCES workspaces(id) ON DELETE CASCADE",
+      "name": "artifact_integrity_hashes_workspace_id_fkey",
+      "table": "artifact_integrity_hashes"
+    },
+    {
+      "definition": "FOREIGN KEY (portal_id) REFERENCES buyer_portals(id) ON DELETE CASCADE",
+      "name": "buyer_change_subscriptions_portal_id_fkey",
+      "table": "buyer_change_subscriptions"
+    },
+    {
+      "definition": "FOREIGN KEY (portal_id) REFERENCES buyer_portals(id) ON DELETE SET NULL",
+      "name": "buyer_escalations_portal_id_fkey",
+      "table": "buyer_escalations"
+    },
+    {
+      "definition": "FOREIGN KEY (workspace_id) REFERENCES workspaces(id) ON DELETE CASCADE",
+      "name": "buyer_escalations_workspace_id_fkey",
+      "table": "buyer_escalations"
+    },
+    {
+      "definition": "FOREIGN KEY (portal_id) REFERENCES buyer_portals(id) ON DELETE CASCADE",
+      "name": "buyer_portal_snapshots_portal_id_fkey",
+      "table": "buyer_portal_snapshots"
+    },
+    {
+      "definition": "FOREIGN KEY (workspace_id) REFERENCES workspaces(id) ON DELETE CASCADE",
+      "name": "buyer_portal_snapshots_workspace_id_fkey",
+      "table": "buyer_portal_snapshots"
+    },
+    {
+      "definition": "FOREIGN KEY (workspace_id) REFERENCES workspaces(id) ON DELETE CASCADE",
+      "name": "buyer_portals_workspace_id_fkey",
+      "table": "buyer_portals"
+    },
+    {
+      "definition": "FOREIGN KEY (portal_id) REFERENCES buyer_portals(id) ON DELETE SET NULL",
+      "name": "buyer_satisfaction_signals_portal_id_fkey",
+      "table": "buyer_satisfaction_signals"
+    },
+    {
+      "definition": "FOREIGN KEY (workspace_id) REFERENCES workspaces(id) ON DELETE CASCADE",
+      "name": "buyer_satisfaction_signals_workspace_id_fkey",
+      "table": "buyer_satisfaction_signals"
+    },
+    {
+      "definition": "FOREIGN KEY (workspace_id) REFERENCES workspaces(id) ON DELETE CASCADE",
+      "name": "case_studies_workspace_id_fkey",
+      "table": "case_studies"
+    },
+    {
+      "definition": "FOREIGN KEY (document_id) REFERENCES documents(id) ON DELETE CASCADE",
+      "name": "chunks_document_id_fkey",
+      "table": "chunks"
+    },
+    {
+      "definition": "FOREIGN KEY (workspace_id) REFERENCES workspaces(id) ON DELETE CASCADE",
+      "name": "chunks_workspace_id_fkey",
+      "table": "chunks"
+    },
+    {
+      "definition": "FOREIGN KEY (workspace_id) REFERENCES workspaces(id) ON DELETE CASCADE",
+      "name": "compliance_webhook_outbox_workspace_id_fkey",
+      "table": "compliance_webhook_outbox"
+    },
+    {
+      "definition": "FOREIGN KEY (uploaded_by_user_id) REFERENCES users(id) ON DELETE SET NULL",
+      "name": "contract_documents_uploaded_by_user_id_fkey",
+      "table": "contract_documents"
+    },
+    {
+      "definition": "FOREIGN KEY (workspace_id) REFERENCES workspaces(id) ON DELETE CASCADE",
+      "name": "contract_documents_workspace_id_fkey",
+      "table": "contract_documents"
+    },
+    {
+      "definition": "FOREIGN KEY (control_id) REFERENCES controls(id) ON DELETE CASCADE",
+      "name": "control_evidence_control_id_fkey",
+      "table": "control_evidence"
+    },
+    {
+      "definition": "FOREIGN KEY (document_id) REFERENCES documents(id) ON DELETE CASCADE",
+      "name": "control_evidence_document_id_fkey",
+      "table": "control_evidence"
+    },
+    {
+      "definition": "FOREIGN KEY (export_record_id) REFERENCES export_records(id) ON DELETE CASCADE",
+      "name": "control_evidence_export_record_id_fkey",
+      "table": "control_evidence"
+    },
+    {
+      "definition": "FOREIGN KEY (trust_article_id) REFERENCES trust_articles(id) ON DELETE CASCADE",
+      "name": "control_evidence_trust_article_id_fkey",
+      "table": "control_evidence"
+    },
+    {
+      "definition": "FOREIGN KEY (control_id) REFERENCES workspace_controls(id) ON DELETE CASCADE",
+      "name": "control_evidence_links_control_id_fkey",
+      "table": "control_evidence_links"
+    },
+    {
+      "definition": "FOREIGN KEY (evidence_id) REFERENCES evidence_items(id) ON DELETE CASCADE",
+      "name": "control_evidence_links_evidence_id_fkey",
+      "table": "control_evidence_links"
+    },
+    {
+      "definition": "FOREIGN KEY (control_id) REFERENCES workspace_controls(id) ON DELETE CASCADE",
+      "name": "control_evidence_mappings_control_id_fkey",
+      "table": "control_evidence_mappings"
+    },
+    {
+      "definition": "FOREIGN KEY (created_by_user_id) REFERENCES users(id) ON DELETE SET NULL",
+      "name": "control_evidence_mappings_created_by_user_id_fkey",
+      "table": "control_evidence_mappings"
+    },
+    {
+      "definition": "FOREIGN KEY (evidence_id) REFERENCES evidence_items(id) ON DELETE CASCADE",
+      "name": "control_evidence_mappings_evidence_id_fkey",
+      "table": "control_evidence_mappings"
+    },
+    {
+      "definition": "FOREIGN KEY (workspace_id) REFERENCES workspaces(id) ON DELETE CASCADE",
+      "name": "control_evidence_mappings_workspace_id_fkey",
+      "table": "control_evidence_mappings"
+    },
+    {
+      "definition": "FOREIGN KEY (workspace_id) REFERENCES workspaces(id) ON DELETE CASCADE",
+      "name": "control_mapping_override_workspace_id_fkey",
+      "table": "control_mapping_override"
+    },
+    {
+      "definition": "FOREIGN KEY (source_control_id) REFERENCES framework_controls(id) ON DELETE CASCADE",
+      "name": "control_mappings_source_control_id_fkey",
+      "table": "control_mappings"
+    },
+    {
+      "definition": "FOREIGN KEY (target_control_id) REFERENCES framework_controls(id) ON DELETE CASCADE",
+      "name": "control_mappings_target_control_id_fkey",
+      "table": "control_mappings"
+    },
+    {
+      "definition": "FOREIGN KEY (control_id) REFERENCES workspace_controls(id) ON DELETE CASCADE",
+      "name": "control_state_snapshots_control_id_fkey",
+      "table": "control_state_snapshots"
+    },
+    {
+      "definition": "FOREIGN KEY (workspace_id) REFERENCES workspaces(id) ON DELETE CASCADE",
+      "name": "control_state_snapshots_workspace_id_fkey",
+      "table": "control_state_snapshots"
+    },
+    {
+      "definition": "FOREIGN KEY (workspace_id) REFERENCES workspaces(id) ON DELETE CASCADE",
+      "name": "controls_workspace_id_fkey",
+      "table": "controls"
+    },
+    {
+      "definition": "FOREIGN KEY (workspace_id) REFERENCES workspaces(id) ON DELETE CASCADE",
+      "name": "credential_store_workspace_id_fkey",
+      "table": "credential_store"
+    },
+    {
+      "definition": "FOREIGN KEY (workspace_id) REFERENCES workspaces(id) ON DELETE CASCADE",
+      "name": "credit_ledgers_workspace_id_fkey",
+      "table": "credit_ledgers"
+    },
+    {
+      "definition": "FOREIGN KEY (questionnaire_id) REFERENCES questionnaires(id) ON DELETE SET NULL",
+      "name": "credit_transactions_questionnaire_id_fkey",
+      "table": "credit_transactions"
+    },
+    {
+      "definition": "FOREIGN KEY (workspace_id) REFERENCES workspaces(id) ON DELETE CASCADE",
+      "name": "credit_transactions_workspace_id_fkey",
+      "table": "credit_transactions"
+    },
+    {
+      "definition": "FOREIGN KEY (workspace_id) REFERENCES workspaces(id) ON DELETE CASCADE",
+      "name": "custom_roles_workspace_id_fkey",
+      "table": "custom_roles"
+    },
+    {
+      "definition": "FOREIGN KEY (workspace_id) REFERENCES workspaces(id) ON DELETE CASCADE",
+      "name": "dashboard_cards_workspace_id_fkey",
+      "table": "dashboard_cards"
+    },
+    {
+      "definition": "FOREIGN KEY (owner_user_id) REFERENCES users(id) ON DELETE SET NULL",
+      "name": "deals_owner_user_id_fkey",
+      "table": "deals"
+    },
+    {
+      "definition": "FOREIGN KEY (workspace_id) REFERENCES workspaces(id) ON DELETE CASCADE",
+      "name": "deals_workspace_id_fkey",
+      "table": "deals"
+    },
+    {
+      "definition": "FOREIGN KEY (created_by_user_id) REFERENCES users(id) ON DELETE SET NULL",
+      "name": "document_tags_created_by_user_id_fkey",
+      "table": "document_tags"
+    },
+    {
+      "definition": "FOREIGN KEY (document_id) REFERENCES documents(id) ON DELETE CASCADE",
+      "name": "document_tags_document_id_fkey",
+      "table": "document_tags"
+    },
+    {
+      "definition": "FOREIGN KEY (tag_id) REFERENCES tags(id) ON DELETE CASCADE",
+      "name": "document_tags_tag_id_fkey",
+      "table": "document_tags"
+    },
+    {
+      "definition": "FOREIGN KEY (workspace_id) REFERENCES workspaces(id) ON DELETE CASCADE",
+      "name": "document_tags_workspace_id_fkey",
+      "table": "document_tags"
+    },
+    {
+      "definition": "FOREIGN KEY (workspace_id) REFERENCES workspaces(id) ON DELETE CASCADE",
+      "name": "documents_workspace_id_fkey",
+      "table": "documents"
+    },
+    {
+      "definition": "FOREIGN KEY (deleted_by) REFERENCES users(id) ON DELETE SET NULL",
+      "name": "fk_documents_deleted_by_users",
+      "table": "documents"
+    },
+    {
+      "definition": "FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE",
+      "name": "email_verification_tokens_user_id_fkey",
+      "table": "email_verification_tokens"
+    },
+    {
+      "definition": "FOREIGN KEY (answer_id) REFERENCES answers(id) ON DELETE SET NULL",
+      "name": "evidence_gaps_answer_id_fkey",
+      "table": "evidence_gaps"
+    },
+    {
+      "definition": "FOREIGN KEY (question_id) REFERENCES questions(id) ON DELETE SET NULL",
+      "name": "evidence_gaps_question_id_fkey",
+      "table": "evidence_gaps"
+    },
+    {
+      "definition": "FOREIGN KEY (questionnaire_id) REFERENCES questionnaires(id) ON DELETE SET NULL",
+      "name": "evidence_gaps_questionnaire_id_fkey",
+      "table": "evidence_gaps"
+    },
+    {
+      "definition": "FOREIGN KEY (workspace_id) REFERENCES workspaces(id) ON DELETE CASCADE",
+      "name": "evidence_gaps_workspace_id_fkey",
+      "table": "evidence_gaps"
+    },
+    {
+      "definition": "FOREIGN KEY (approved_by_user_id) REFERENCES users(id) ON DELETE SET NULL",
+      "name": "evidence_items_approved_by_user_id_fkey",
+      "table": "evidence_items"
+    },
+    {
+      "definition": "FOREIGN KEY (document_id) REFERENCES documents(id) ON DELETE SET NULL",
+      "name": "evidence_items_document_id_fkey",
+      "table": "evidence_items"
+    },
+    {
+      "definition": "FOREIGN KEY (workspace_id) REFERENCES workspaces(id) ON DELETE CASCADE",
+      "name": "evidence_items_workspace_id_fkey",
+      "table": "evidence_items"
+    },
+    {
+      "definition": "FOREIGN KEY (evidence_id) REFERENCES evidence_items(id) ON DELETE CASCADE",
+      "name": "evidence_metadata_evidence_id_fkey",
+      "table": "evidence_metadata"
+    },
+    {
+      "definition": "FOREIGN KEY (created_by_user_id) REFERENCES users(id) ON DELETE SET NULL",
+      "name": "evidence_tag_mappings_created_by_user_id_fkey",
+      "table": "evidence_tag_mappings"
+    },
+    {
+      "definition": "FOREIGN KEY (evidence_id) REFERENCES evidence_items(id) ON DELETE CASCADE",
+      "name": "evidence_tag_mappings_evidence_id_fkey",
+      "table": "evidence_tag_mappings"
+    },
+    {
+      "definition": "FOREIGN KEY (tag_id) REFERENCES tags(id) ON DELETE CASCADE",
+      "name": "evidence_tag_mappings_tag_id_fkey",
+      "table": "evidence_tag_mappings"
+    },
+    {
+      "definition": "FOREIGN KEY (workspace_id) REFERENCES workspaces(id) ON DELETE CASCADE",
+      "name": "evidence_tag_mappings_workspace_id_fkey",
+      "table": "evidence_tag_mappings"
+    },
+    {
+      "definition": "FOREIGN KEY (evidence_id) REFERENCES evidence_items(id) ON DELETE CASCADE",
+      "name": "evidence_versions_evidence_id_fkey",
+      "table": "evidence_versions"
+    },
+    {
+      "definition": "FOREIGN KEY (questionnaire_id) REFERENCES questionnaires(id) ON DELETE SET NULL",
+      "name": "export_records_questionnaire_id_fkey",
+      "table": "export_records"
+    },
+    {
+      "definition": "FOREIGN KEY (workspace_id) REFERENCES workspaces(id) ON DELETE CASCADE",
+      "name": "export_records_workspace_id_fkey",
+      "table": "export_records"
+    },
+    {
+      "definition": "FOREIGN KEY (workspace_id) REFERENCES workspaces(id) ON DELETE CASCADE",
+      "name": "feature_flags_workspace_id_fkey",
+      "table": "feature_flags"
+    },
+    {
+      "definition": "FOREIGN KEY (control_id) REFERENCES workspace_controls(id) ON DELETE CASCADE",
+      "name": "framework_control_mappings_control_id_fkey",
+      "table": "framework_control_mappings"
+    },
+    {
+      "definition": "FOREIGN KEY (created_by_user_id) REFERENCES users(id) ON DELETE SET NULL",
+      "name": "framework_control_mappings_created_by_user_id_fkey",
+      "table": "framework_control_mappings"
+    },
+    {
+      "definition": "FOREIGN KEY (workspace_id) REFERENCES workspaces(id) ON DELETE CASCADE",
+      "name": "framework_control_mappings_workspace_id_fkey",
+      "table": "framework_control_mappings"
+    },
+    {
+      "definition": "FOREIGN KEY (framework_id) REFERENCES frameworks(id) ON DELETE CASCADE",
+      "name": "framework_controls_framework_id_fkey",
+      "table": "framework_controls"
+    },
+    {
+      "definition": "FOREIGN KEY (workspace_id) REFERENCES workspaces(id) ON DELETE CASCADE",
+      "name": "freshness_policies_workspace_id_fkey",
+      "table": "freshness_policies"
+    },
+    {
+      "definition": "FOREIGN KEY (control_id) REFERENCES workspace_controls(id) ON DELETE CASCADE",
+      "name": "gmail_control_suggestions_control_id_fkey",
+      "table": "gmail_control_suggestions"
+    },
+    {
+      "definition": "FOREIGN KEY (evidence_id) REFERENCES evidence_items(id) ON DELETE CASCADE",
+      "name": "gmail_control_suggestions_evidence_id_fkey",
+      "table": "gmail_control_suggestions"
+    },
+    {
+      "definition": "FOREIGN KEY (reviewed_by_user_id) REFERENCES users(id) ON DELETE SET NULL",
+      "name": "gmail_control_suggestions_reviewed_by_user_id_fkey",
+      "table": "gmail_control_suggestions"
+    },
+    {
+      "definition": "FOREIGN KEY (workspace_id) REFERENCES workspaces(id) ON DELETE CASCADE",
+      "name": "gmail_control_suggestions_workspace_id_fkey",
+      "table": "gmail_control_suggestions"
+    },
+    {
+      "definition": "FOREIGN KEY (gmail_integration_id) REFERENCES gmail_integrations(id) ON DELETE CASCADE",
+      "name": "gmail_ingest_labels_gmail_integration_id_fkey",
+      "table": "gmail_ingest_labels"
+    },
+    {
+      "definition": "FOREIGN KEY (workspace_id) REFERENCES workspaces(id) ON DELETE CASCADE",
+      "name": "gmail_ingest_labels_workspace_id_fkey",
+      "table": "gmail_ingest_labels"
+    },
+    {
+      "definition": "FOREIGN KEY (workspace_id) REFERENCES workspaces(id) ON DELETE CASCADE",
+      "name": "gmail_integrations_workspace_id_fkey",
+      "table": "gmail_integrations"
+    },
+    {
+      "definition": "FOREIGN KEY (owner_user_id) REFERENCES users(id) ON DELETE SET NULL",
+      "name": "golden_answers_owner_user_id_fkey",
+      "table": "golden_answers"
+    },
+    {
+      "definition": "FOREIGN KEY (reviewer_user_id) REFERENCES users(id) ON DELETE SET NULL",
+      "name": "golden_answers_reviewer_user_id_fkey",
+      "table": "golden_answers"
+    },
+    {
+      "definition": "FOREIGN KEY (workspace_id) REFERENCES workspaces(id) ON DELETE CASCADE",
+      "name": "golden_answers_workspace_id_fkey",
+      "table": "golden_answers"
+    },
+    {
+      "definition": "FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE",
+      "name": "in_app_notifications_user_id_fkey",
+      "table": "in_app_notifications"
+    },
+    {
+      "definition": "FOREIGN KEY (workspace_id) REFERENCES workspaces(id) ON DELETE CASCADE",
+      "name": "in_app_notifications_workspace_id_fkey",
+      "table": "in_app_notifications"
+    },
+    {
+      "definition": "FOREIGN KEY (created_by_user_id) REFERENCES users(id) ON DELETE SET NULL",
+      "name": "invites_created_by_user_id_fkey",
+      "table": "invites"
+    },
+    {
+      "definition": "FOREIGN KEY (workspace_id) REFERENCES workspaces(id) ON DELETE CASCADE",
+      "name": "invites_workspace_id_fkey",
+      "table": "invites"
+    },
+    {
+      "definition": "FOREIGN KEY (workspace_id) REFERENCES workspaces(id) ON DELETE CASCADE",
+      "name": "jobs_workspace_id_fkey",
+      "table": "jobs"
+    },
+    {
+      "definition": "FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE",
+      "name": "mfa_login_tokens_user_id_fkey",
+      "table": "mfa_login_tokens"
+    },
+    {
+      "definition": "FOREIGN KEY (workspace_id) REFERENCES workspaces(id) ON DELETE CASCADE",
+      "name": "mfa_login_tokens_workspace_id_fkey",
+      "table": "mfa_login_tokens"
+    },
+    {
+      "definition": "FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE",
+      "name": "mfa_recovery_codes_user_id_fkey",
+      "table": "mfa_recovery_codes"
+    },
+    {
+      "definition": "FOREIGN KEY (approved_by_user_id) REFERENCES users(id) ON DELETE SET NULL",
+      "name": "nda_access_requests_approved_by_user_id_fkey",
+      "table": "nda_access_requests"
+    },
+    {
+      "definition": "FOREIGN KEY (workspace_id) REFERENCES workspaces(id) ON DELETE CASCADE",
+      "name": "nda_access_requests_workspace_id_fkey",
+      "table": "nda_access_requests"
+    },
+    {
+      "definition": "FOREIGN KEY (workspace_id) REFERENCES workspaces(id) ON DELETE CASCADE",
+      "name": "notification_log_workspace_id_fkey",
+      "table": "notification_log"
+    },
+    {
+      "definition": "FOREIGN KEY (workspace_id) REFERENCES workspaces(id) ON DELETE CASCADE",
+      "name": "notification_policies_workspace_id_fkey",
+      "table": "notification_policies"
+    },
+    {
+      "definition": "FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE",
+      "name": "notification_unsubscribes_user_id_fkey",
+      "table": "notification_unsubscribes"
+    },
+    {
+      "definition": "FOREIGN KEY (workspace_id) REFERENCES workspaces(id) ON DELETE CASCADE",
+      "name": "notification_unsubscribes_workspace_id_fkey",
+      "table": "notification_unsubscribes"
+    },
+    {
+      "definition": "FOREIGN KEY (questionnaire_id) REFERENCES questionnaires(id) ON DELETE SET NULL",
+      "name": "operator_queue_items_questionnaire_id_fkey",
+      "table": "operator_queue_items"
+    },
+    {
+      "definition": "FOREIGN KEY (workspace_id) REFERENCES workspaces(id) ON DELETE CASCADE",
+      "name": "operator_queue_items_workspace_id_fkey",
+      "table": "operator_queue_items"
+    },
+    {
+      "definition": "FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE",
+      "name": "password_reset_tokens_user_id_fkey",
+      "table": "password_reset_tokens"
+    },
+    {
+      "definition": "FOREIGN KEY (trust_article_id) REFERENCES trust_articles(id) ON DELETE CASCADE",
+      "name": "policy_acknowledgments_trust_article_id_fkey",
+      "table": "policy_acknowledgments"
+    },
+    {
+      "definition": "FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE",
+      "name": "policy_acknowledgments_user_id_fkey",
+      "table": "policy_acknowledgments"
+    },
+    {
+      "definition": "FOREIGN KEY (workspace_id) REFERENCES workspaces(id) ON DELETE CASCADE",
+      "name": "product_events_workspace_id_fkey",
+      "table": "product_events"
+    },
+    {
+      "definition": "FOREIGN KEY (workspace_id) REFERENCES workspaces(id) ON DELETE CASCADE",
+      "name": "proof_graph_diffs_workspace_id_fkey",
+      "table": "proof_graph_diffs"
+    },
+    {
+      "definition": "FOREIGN KEY (from_node_id) REFERENCES proof_graph_nodes(id) ON DELETE CASCADE",
+      "name": "proof_graph_edges_from_node_id_fkey",
+      "table": "proof_graph_edges"
+    },
+    {
+      "definition": "FOREIGN KEY (to_node_id) REFERENCES proof_graph_nodes(id) ON DELETE CASCADE",
+      "name": "proof_graph_edges_to_node_id_fkey",
+      "table": "proof_graph_edges"
+    },
+    {
+      "definition": "FOREIGN KEY (workspace_id) REFERENCES workspaces(id) ON DELETE CASCADE",
+      "name": "proof_graph_edges_workspace_id_fkey",
+      "table": "proof_graph_edges"
+    },
+    {
+      "definition": "FOREIGN KEY (workspace_id) REFERENCES workspaces(id) ON DELETE CASCADE",
+      "name": "proof_graph_nodes_workspace_id_fkey",
+      "table": "proof_graph_nodes"
+    },
+    {
+      "definition": "FOREIGN KEY (workspace_id) REFERENCES workspaces(id) ON DELETE CASCADE",
+      "name": "question_control_log_workspace_id_fkey",
+      "table": "question_control_log"
+    },
+    {
+      "definition": "FOREIGN KEY (created_by_user_id) REFERENCES users(id) ON DELETE SET NULL",
+      "name": "question_mapping_preferences_created_by_user_id_fkey",
+      "table": "question_mapping_preferences"
+    },
+    {
+      "definition": "FOREIGN KEY (preferred_control_id) REFERENCES workspace_controls(id) ON DELETE SET NULL",
+      "name": "question_mapping_preferences_preferred_control_id_fkey",
+      "table": "question_mapping_preferences"
+    },
+    {
+      "definition": "FOREIGN KEY (preferred_tag_id) REFERENCES tags(id) ON DELETE SET NULL",
+      "name": "question_mapping_preferences_preferred_tag_id_fkey",
+      "table": "question_mapping_preferences"
+    },
+    {
+      "definition": "FOREIGN KEY (question_id) REFERENCES questions(id) ON DELETE CASCADE",
+      "name": "question_mapping_preferences_question_id_fkey",
+      "table": "question_mapping_preferences"
+    },
+    {
+      "definition": "FOREIGN KEY (questionnaire_id) REFERENCES questionnaires(id) ON DELETE CASCADE",
+      "name": "question_mapping_preferences_questionnaire_id_fkey",
+      "table": "question_mapping_preferences"
+    },
+    {
+      "definition": "FOREIGN KEY (workspace_id) REFERENCES workspaces(id) ON DELETE CASCADE",
+      "name": "question_mapping_preferences_workspace_id_fkey",
+      "table": "question_mapping_preferences"
+    },
+    {
+      "definition": "FOREIGN KEY (question_id) REFERENCES questions(id) ON DELETE CASCADE",
+      "name": "question_mapping_signals_question_id_fkey",
+      "table": "question_mapping_signals"
+    },
+    {
+      "definition": "FOREIGN KEY (questionnaire_id) REFERENCES questionnaires(id) ON DELETE CASCADE",
+      "name": "question_mapping_signals_questionnaire_id_fkey",
+      "table": "question_mapping_signals"
+    },
+    {
+      "definition": "FOREIGN KEY (workspace_id) REFERENCES workspaces(id) ON DELETE CASCADE",
+      "name": "question_mapping_signals_workspace_id_fkey",
+      "table": "question_mapping_signals"
+    },
+    {
+      "definition": "FOREIGN KEY (deleted_by) REFERENCES users(id) ON DELETE SET NULL",
+      "name": "fk_questionnaires_deleted_by_users",
+      "table": "questionnaires"
+    },
+    {
+      "definition": "FOREIGN KEY (document_id) REFERENCES documents(id) ON DELETE SET NULL",
+      "name": "questionnaires_document_id_fkey",
+      "table": "questionnaires"
+    },
+    {
+      "definition": "FOREIGN KEY (workspace_id) REFERENCES workspaces(id) ON DELETE CASCADE",
+      "name": "questionnaires_workspace_id_fkey",
+      "table": "questionnaires"
+    },
+    {
+      "definition": "FOREIGN KEY (questionnaire_id) REFERENCES questionnaires(id) ON DELETE CASCADE",
+      "name": "questions_questionnaire_id_fkey",
+      "table": "questions"
+    },
+    {
+      "definition": "FOREIGN KEY (actor_user_id) REFERENCES users(id) ON DELETE SET NULL",
+      "name": "remediation_audit_events_actor_user_id_fkey",
+      "table": "remediation_audit_events"
+    },
+    {
+      "definition": "FOREIGN KEY (ticket_id) REFERENCES remediation_tickets(id) ON DELETE SET NULL",
+      "name": "remediation_audit_events_ticket_id_fkey",
+      "table": "remediation_audit_events"
+    },
+    {
+      "definition": "FOREIGN KEY (workspace_id) REFERENCES workspaces(id) ON DELETE CASCADE",
+      "name": "remediation_audit_events_workspace_id_fkey",
+      "table": "remediation_audit_events"
+    },
+    {
+      "definition": "FOREIGN KEY (workspace_id) REFERENCES workspaces(id) ON DELETE CASCADE",
+      "name": "remediation_automation_settings_workspace_id_fkey",
+      "table": "remediation_automation_settings"
+    },
+    {
+      "definition": "FOREIGN KEY (default_assignee_user_id) REFERENCES users(id) ON DELETE SET NULL",
+      "name": "remediation_playbooks_default_assignee_user_id_fkey",
+      "table": "remediation_playbooks"
+    },
+    {
+      "definition": "FOREIGN KEY (workspace_id) REFERENCES workspaces(id) ON DELETE CASCADE",
+      "name": "remediation_playbooks_workspace_id_fkey",
+      "table": "remediation_playbooks"
+    },
+    {
+      "definition": "FOREIGN KEY (assignee_user_id) REFERENCES users(id) ON DELETE SET NULL",
+      "name": "remediation_tickets_assignee_user_id_fkey",
+      "table": "remediation_tickets"
+    },
+    {
+      "definition": "FOREIGN KEY (control_id) REFERENCES workspace_controls(id) ON DELETE SET NULL",
+      "name": "remediation_tickets_control_id_fkey",
+      "table": "remediation_tickets"
+    },
+    {
+      "definition": "FOREIGN KEY (playbook_id) REFERENCES remediation_playbooks(id) ON DELETE SET NULL",
+      "name": "remediation_tickets_playbook_id_fkey",
+      "table": "remediation_tickets"
+    },
+    {
+      "definition": "FOREIGN KEY (workspace_id) REFERENCES workspaces(id) ON DELETE CASCADE",
+      "name": "remediation_tickets_workspace_id_fkey",
+      "table": "remediation_tickets"
+    },
+    {
+      "definition": "FOREIGN KEY (workspace_id) REFERENCES workspaces(id) ON DELETE CASCADE",
+      "name": "retention_policies_workspace_id_fkey",
+      "table": "retention_policies"
+    },
+    {
+      "definition": "FOREIGN KEY (workspace_id) REFERENCES workspaces(id) ON DELETE CASCADE",
+      "name": "retrieval_cache_workspace_id_fkey",
+      "table": "retrieval_cache"
+    },
+    {
+      "definition": "FOREIGN KEY (workspace_id) REFERENCES workspaces(id) ON DELETE CASCADE",
+      "name": "security_faq_workspace_id_fkey",
+      "table": "security_faq"
+    },
+    {
+      "definition": "FOREIGN KEY (created_by_user_id) REFERENCES users(id) ON DELETE SET NULL",
+      "name": "shareable_spaces_created_by_user_id_fkey",
+      "table": "shareable_spaces"
+    },
+    {
+      "definition": "FOREIGN KEY (workspace_id) REFERENCES workspaces(id) ON DELETE CASCADE",
+      "name": "shareable_spaces_workspace_id_fkey",
+      "table": "shareable_spaces"
+    },
+    {
+      "definition": "FOREIGN KEY (control_id) REFERENCES workspace_controls(id) ON DELETE CASCADE",
+      "name": "slack_control_suggestions_control_id_fkey",
+      "table": "slack_control_suggestions"
+    },
+    {
+      "definition": "FOREIGN KEY (evidence_id) REFERENCES evidence_items(id) ON DELETE CASCADE",
+      "name": "slack_control_suggestions_evidence_id_fkey",
+      "table": "slack_control_suggestions"
+    },
+    {
+      "definition": "FOREIGN KEY (reviewed_by_user_id) REFERENCES users(id) ON DELETE SET NULL",
+      "name": "slack_control_suggestions_reviewed_by_user_id_fkey",
+      "table": "slack_control_suggestions"
+    },
+    {
+      "definition": "FOREIGN KEY (workspace_id) REFERENCES workspaces(id) ON DELETE CASCADE",
+      "name": "slack_control_suggestions_workspace_id_fkey",
+      "table": "slack_control_suggestions"
+    },
+    {
+      "definition": "FOREIGN KEY (slack_integration_id) REFERENCES slack_integrations(id) ON DELETE CASCADE",
+      "name": "slack_ingest_channels_slack_integration_id_fkey",
+      "table": "slack_ingest_channels"
+    },
+    {
+      "definition": "FOREIGN KEY (workspace_id) REFERENCES workspaces(id) ON DELETE CASCADE",
+      "name": "slack_ingest_channels_workspace_id_fkey",
+      "table": "slack_ingest_channels"
+    },
+    {
+      "definition": "FOREIGN KEY (workspace_id) REFERENCES workspaces(id) ON DELETE CASCADE",
+      "name": "slack_integrations_workspace_id_fkey",
+      "table": "slack_integrations"
+    },
+    {
+      "definition": "FOREIGN KEY (workspace_id) REFERENCES workspaces(id) ON DELETE CASCADE",
+      "name": "source_registry_workspace_id_fkey",
+      "table": "source_registry"
+    },
+    {
+      "definition": "FOREIGN KEY (workspace_id) REFERENCES workspaces(id) ON DELETE CASCADE",
+      "name": "tags_workspace_id_fkey",
+      "table": "tags"
+    },
+    {
+      "definition": "FOREIGN KEY (workspace_id) REFERENCES workspaces(id) ON DELETE CASCADE",
+      "name": "trust_articles_workspace_id_fkey",
+      "table": "trust_articles"
+    },
+    {
+      "definition": "FOREIGN KEY (contract_document_id) REFERENCES contract_documents(id) ON DELETE SET NULL",
+      "name": "trust_promises_contract_document_id_fkey",
+      "table": "trust_promises"
+    },
+    {
+      "definition": "FOREIGN KEY (deal_id) REFERENCES deals(id) ON DELETE SET NULL",
+      "name": "trust_promises_deal_id_fkey",
+      "table": "trust_promises"
+    },
+    {
+      "definition": "FOREIGN KEY (owner_user_id) REFERENCES users(id) ON DELETE SET NULL",
+      "name": "trust_promises_owner_user_id_fkey",
+      "table": "trust_promises"
+    },
+    {
+      "definition": "FOREIGN KEY (workspace_id) REFERENCES workspaces(id) ON DELETE CASCADE",
+      "name": "trust_promises_workspace_id_fkey",
+      "table": "trust_promises"
+    },
+    {
+      "definition": "FOREIGN KEY (author_id) REFERENCES users(id) ON DELETE SET NULL",
+      "name": "trust_request_notes_author_id_fkey",
+      "table": "trust_request_notes"
+    },
+    {
+      "definition": "FOREIGN KEY (trust_request_id) REFERENCES trust_requests(id) ON DELETE CASCADE",
+      "name": "trust_request_notes_trust_request_id_fkey",
+      "table": "trust_request_notes"
+    },
+    {
+      "definition": "FOREIGN KEY (deleted_by) REFERENCES users(id) ON DELETE SET NULL",
+      "name": "fk_trust_requests_deleted_by_users",
+      "table": "trust_requests"
+    },
+    {
+      "definition": "FOREIGN KEY (assignee_id) REFERENCES users(id) ON DELETE SET NULL",
+      "name": "trust_requests_assignee_id_fkey",
+      "table": "trust_requests"
+    },
+    {
+      "definition": "FOREIGN KEY (workspace_id) REFERENCES workspaces(id) ON DELETE SET NULL",
+      "name": "trust_requests_workspace_id_fkey",
+      "table": "trust_requests"
+    },
+    {
+      "definition": "FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE",
+      "name": "user_mfa_user_id_fkey",
+      "table": "user_mfa"
+    },
+    {
+      "definition": "FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE",
+      "name": "user_oauth_accounts_user_id_fkey",
+      "table": "user_oauth_accounts"
+    },
+    {
+      "definition": "FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE",
+      "name": "user_sessions_user_id_fkey",
+      "table": "user_sessions"
+    },
+    {
+      "definition": "FOREIGN KEY (questionnaire_id) REFERENCES questionnaires(id) ON DELETE SET NULL",
+      "name": "vendor_requests_questionnaire_id_fkey",
+      "table": "vendor_requests"
+    },
+    {
+      "definition": "FOREIGN KEY (workspace_id) REFERENCES workspaces(id) ON DELETE CASCADE",
+      "name": "vendor_requests_workspace_id_fkey",
+      "table": "vendor_requests"
+    },
+    {
+      "definition": "FOREIGN KEY (workspace_id) REFERENCES workspaces(id) ON DELETE CASCADE",
+      "name": "workspace_ai_usage_workspace_id_fkey",
+      "table": "workspace_ai_usage"
+    },
+    {
+      "definition": "FOREIGN KEY (framework_control_id) REFERENCES framework_controls(id) ON DELETE SET NULL",
+      "name": "workspace_controls_framework_control_id_fkey",
+      "table": "workspace_controls"
+    },
+    {
+      "definition": "FOREIGN KEY (owner_user_id) REFERENCES users(id) ON DELETE SET NULL",
+      "name": "workspace_controls_owner_user_id_fkey",
+      "table": "workspace_controls"
+    },
+    {
+      "definition": "FOREIGN KEY (verified_by_user_id) REFERENCES users(id) ON DELETE SET NULL",
+      "name": "workspace_controls_verified_by_user_id_fkey",
+      "table": "workspace_controls"
+    },
+    {
+      "definition": "FOREIGN KEY (workspace_id) REFERENCES workspaces(id) ON DELETE CASCADE",
+      "name": "workspace_controls_workspace_id_fkey",
+      "table": "workspace_controls"
+    },
+    {
+      "definition": "FOREIGN KEY (workspace_id) REFERENCES workspaces(id) ON DELETE CASCADE",
+      "name": "workspace_corpus_versions_workspace_id_fkey",
+      "table": "workspace_corpus_versions"
+    },
+    {
+      "definition": "FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE",
+      "name": "workspace_members_user_id_fkey",
+      "table": "workspace_members"
+    },
+    {
+      "definition": "FOREIGN KEY (workspace_id) REFERENCES workspaces(id) ON DELETE CASCADE",
+      "name": "workspace_members_workspace_id_fkey",
+      "table": "workspace_members"
+    },
+    {
+      "definition": "FOREIGN KEY (workspace_id) REFERENCES workspaces(id) ON DELETE CASCADE",
+      "name": "workspace_quotas_workspace_id_fkey",
+      "table": "workspace_quotas"
+    },
+    {
+      "definition": "FOREIGN KEY (workspace_id) REFERENCES workspaces(id) ON DELETE CASCADE",
+      "name": "workspace_usage_workspace_id_fkey",
+      "table": "workspace_usage"
+    }
+  ],
+  "foreign_keys_missing": [],
+  "head_count": 1,
+  "head_revision": "tc20050_crm_pipeline_sync",
+  "kind": "audited_snapshot",
+  "measurement": "Each revision whose upgrade() reaches INSERT, UPDATE, or DELETE is listed. rows_affected is the count of inserted, deleted, and primary-key-updated rows in the tables named by that SQL. A new column in the same revision counts as an update when the stored row image changes. Tables without a single-column primary key leave rows_affected null.",
+  "ok": true,
+  "reupgrade": {
+    "answer_texts_preserved": true,
+    "ok": true,
+    "revision": "tc20050_crm_pipeline_sync",
+    "storage_keys_preserved": true
+  },
+  "revision_after": "tc20050_crm_pipeline_sync",
+  "revision_before": "075",
+  "rollback": {
+    "answer_texts_preserved": true,
+    "downgrade_to": "075",
+    "ok": true,
+    "revision_after_downgrade": "075",
+    "row_count_deltas": {},
+    "row_counts_match": true,
+    "storage_keys_preserved": true
+  },
+  "row_counts_after": {
+    "ai_governance_settings": 0,
+    "alert_acknowledgments": 0,
+    "answer_approval_events": 0,
+    "answer_cache": 0,
+    "answer_delivery_outcomes": 0,
+    "answer_reuse_provenance": 0,
+    "answer_revisions": 0,
+    "answers": 1,
+    "api_keys": 0,
+    "artifact_integrity_hashes": 0,
+    "audit_events": 0,
+    "buyer_change_subscriptions": 0,
+    "buyer_escalations": 0,
+    "buyer_portal_snapshots": 0,
+    "buyer_portals": 0,
+    "buyer_satisfaction_signals": 0,
+    "case_studies": 0,
+    "case_study_organization_consents": 0,
+    "case_study_result_permissions": 0,
+    "chunks": 0,
+    "compliance_webhook_outbox": 0,
+    "contract_documents": 0,
+    "control_contract_events": 0,
+    "control_evidence": 0,
+    "control_evidence_links": 0,
+    "control_evidence_mappings": 0,
+    "control_mapping_override": 0,
+    "control_mappings": 0,
+    "control_state_snapshots": 0,
+    "controls": 0,
+    "credential_store": 0,
+    "credit_ledgers": 0,
+    "credit_transactions": 0,
+    "crm_connections": 0,
+    "custom_roles": 0,
+    "dashboard_cards": 0,
+    "deals": 0,
+    "demo_proof_summaries": 0,
+    "document_tags": 0,
+    "documents": 1,
+    "email_verification_tokens": 0,
+    "evidence_gaps": 0,
+    "evidence_items": 0,
+    "evidence_metadata": 0,
+    "evidence_tag_mappings": 0,
+    "evidence_versions": 0,
+    "export_records": 0,
+    "feature_flags": 0,
+    "framework_catalog_events": 0,
+    "framework_control_mappings": 0,
+    "framework_controls": 0,
+    "frameworks": 9,
+    "freshness_policies": 0,
+    "gmail_control_suggestions": 0,
+    "gmail_ingest_labels": 0,
+    "gmail_integrations": 0,
+    "golden_answers": 0,
+    "idempotency_keys": 0,
+    "in_app_notification_receipts": 0,
+    "in_app_notifications": 0,
+    "invites": 0,
+    "job_effects": 0,
+    "jobs": 0,
+    "mfa_login_tokens": 0,
+    "mfa_recovery_codes": 0,
+    "nda_access_requests": 0,
+    "notification_channel_preferences": 0,
+    "notification_dedupe_claims": 0,
+    "notification_delivery_attempts": 0,
+    "notification_log": 0,
+    "notification_policies": 0,
+    "notification_unsubscribes": 0,
+    "operator_queue_items": 0,
+    "password_reset_tokens": 0,
+    "policy_acknowledgments": 0,
+    "product_events": 0,
+    "proof_graph_diffs": 0,
+    "proof_graph_edges": 0,
+    "proof_graph_nodes": 0,
+    "question_control_log": 0,
+    "question_mapping_preferences": 0,
+    "question_mapping_signals": 0,
+    "questionnaires": 1,
+    "questions": 1,
+    "rate_limit_buckets": 0,
+    "remediation_audit_events": 0,
+    "remediation_automation_settings": 0,
+    "remediation_playbooks": 0,
+    "remediation_tickets": 0,
+    "retention_policies": 0,
+    "retrieval_cache": 0,
+    "security_claims": 0,
+    "security_faq": 0,
+    "security_faq_revisions": 0,
+    "security_faq_sources": 0,
+    "shareable_spaces": 0,
+    "slack_control_suggestions": 0,
+    "slack_ingest_channels": 0,
+    "slack_integrations": 0,
+    "source_registry": 0,
+    "stripe_webhook_events": 0,
+    "subscriptions": 0,
+    "tags": 23,
+    "tc07002_session_key_archive": 0,
+    "tc18002_vendor_hold": 0,
+    "tc20050_deal_identity_hold": 0,
+    "tc21002a_key_hold": 0,
+    "tc21003_link_hold": 0,
+    "tc21005_mapping_attr_hold": 0,
+    "tc21005_mapping_history": 0,
+    "tc21005_mapping_hold": 0,
+    "tc21006_gap_eval_hold": 0,
+    "tc23001_deal_amount_hold": 0,
+    "tc23001_deal_state_archive": 0,
+    "trust_article_versions": 0,
+    "trust_articles": 0,
+    "trust_promises": 0,
+    "trust_request_notes": 0,
+    "trust_requests": 0,
+    "user_mfa": 0,
+    "user_oauth_accounts": 0,
+    "user_sessions": 0,
+    "users": 1,
+    "vendor_requests": 0,
+    "worker_heartbeat": 1,
+    "workspace_ai_usage": 0,
+    "workspace_controls": 0,
+    "workspace_corpus_versions": 0,
+    "workspace_members": 1,
+    "workspace_quotas": 0,
+    "workspace_usage": 0,
+    "workspaces": 2
+  },
+  "row_counts_before": {
+    "ai_governance_settings": 0,
+    "alert_acknowledgments": 0,
+    "answer_approval_events": 0,
+    "answer_cache": 0,
+    "answer_delivery_outcomes": 0,
+    "answer_reuse_provenance": 0,
+    "answers": 1,
+    "api_keys": 0,
+    "artifact_integrity_hashes": 0,
+    "audit_events": 0,
+    "buyer_change_subscriptions": 0,
+    "buyer_escalations": 0,
+    "buyer_portal_snapshots": 0,
+    "buyer_portals": 0,
+    "buyer_satisfaction_signals": 0,
+    "case_studies": 0,
+    "chunks": 0,
+    "compliance_webhook_outbox": 0,
+    "contract_documents": 0,
+    "control_evidence": 0,
+    "control_evidence_links": 0,
+    "control_evidence_mappings": 0,
+    "control_mapping_override": 0,
+    "control_mappings": 0,
+    "control_state_snapshots": 0,
+    "controls": 0,
+    "credential_store": 0,
+    "credit_ledgers": 0,
+    "credit_transactions": 0,
+    "custom_roles": 0,
+    "dashboard_cards": 0,
+    "deals": 0,
+    "document_tags": 0,
+    "documents": 1,
+    "email_verification_tokens": 0,
+    "evidence_gaps": 0,
+    "evidence_items": 0,
+    "evidence_metadata": 0,
+    "evidence_tag_mappings": 0,
+    "evidence_versions": 0,
+    "export_records": 0,
+    "feature_flags": 0,
+    "framework_control_mappings": 0,
+    "framework_controls": 0,
+    "frameworks": 0,
+    "freshness_policies": 0,
+    "gmail_control_suggestions": 0,
+    "gmail_ingest_labels": 0,
+    "gmail_integrations": 0,
+    "golden_answers": 0,
+    "idempotency_keys": 0,
+    "in_app_notifications": 0,
+    "invites": 0,
+    "jobs": 0,
+    "mfa_login_tokens": 0,
+    "mfa_recovery_codes": 0,
+    "nda_access_requests": 0,
+    "notification_log": 0,
+    "notification_policies": 0,
+    "notification_unsubscribes": 0,
+    "operator_queue_items": 0,
+    "password_reset_tokens": 0,
+    "policy_acknowledgments": 0,
+    "product_events": 0,
+    "proof_graph_diffs": 0,
+    "proof_graph_edges": 0,
+    "proof_graph_nodes": 0,
+    "question_control_log": 0,
+    "question_mapping_preferences": 0,
+    "question_mapping_signals": 0,
+    "questionnaires": 1,
+    "questions": 1,
+    "remediation_audit_events": 0,
+    "remediation_automation_settings": 0,
+    "remediation_playbooks": 0,
+    "remediation_tickets": 0,
+    "retention_policies": 0,
+    "retrieval_cache": 0,
+    "security_faq": 0,
+    "shareable_spaces": 0,
+    "slack_control_suggestions": 0,
+    "slack_ingest_channels": 0,
+    "slack_integrations": 0,
+    "source_registry": 0,
+    "subscriptions": 0,
+    "tags": 23,
+    "trust_articles": 0,
+    "trust_promises": 0,
+    "trust_request_notes": 0,
+    "trust_requests": 0,
+    "user_mfa": 0,
+    "user_oauth_accounts": 0,
+    "user_sessions": 0,
+    "users": 1,
+    "vendor_requests": 0,
+    "worker_heartbeat": 1,
+    "workspace_ai_usage": 0,
+    "workspace_controls": 0,
+    "workspace_corpus_versions": 0,
+    "workspace_members": 1,
+    "workspace_quotas": 0,
+    "workspace_usage": 0,
+    "workspaces": 2
+  },
+  "sampled_answer_texts": [
+    "Access reviews run each quarter."
+  ],
+  "sampled_answer_texts_after": [
+    "Access reviews run each quarter."
+  ],
+  "sampled_storage_keys": [
+    "synthetic/audited-snapshot/policy.pdf",
+    "synthetic/audited-snapshot/questionnaire.xlsx"
+  ],
+  "sampled_storage_keys_after": [
+    "synthetic/audited-snapshot/policy.pdf",
+    "synthetic/audited-snapshot/questionnaire.xlsx"
+  ],
+  "survival": {
+    "answer_texts_preserved": true,
+    "audited_row_count_deltas": {},
+    "foreign_key_count_after": 231,
+    "foreign_key_count_before": 181,
+    "foreign_keys_missing": [],
+    "foreign_keys_preserved": true,
+    "missing_tables": [],
+    "row_count_increases": {
+      "frameworks": {
+        "after": 9,
+        "before": 0
+      }
+    },
+    "row_count_losses": {},
+    "row_counts_match": true,
+    "storage_keys_preserved": true,
+    "tables_added": [
+      "answer_revisions",
+      "case_study_organization_consents",
+      "case_study_result_permissions",
+      "control_contract_events",
+      "crm_connections",
+      "demo_proof_summaries",
+      "framework_catalog_events",
+      "in_app_notification_receipts",
+      "job_effects",
+      "notification_channel_preferences",
+      "notification_dedupe_claims",
+      "notification_delivery_attempts",
+      "rate_limit_buckets",
+      "security_claims",
+      "security_faq_revisions",
+      "security_faq_sources",
+      "stripe_webhook_events",
+      "tc07002_session_key_archive",
+      "tc18002_vendor_hold",
+      "tc20050_deal_identity_hold",
+      "tc21002a_key_hold",
+      "tc21003_link_hold",
+      "tc21005_mapping_attr_hold",
+      "tc21005_mapping_history",
+      "tc21005_mapping_hold",
+      "tc21006_gap_eval_hold",
+      "tc23001_deal_amount_hold",
+      "tc23001_deal_state_archive",
+      "trust_article_versions"
+    ]
+  },
+  "upgrade_exit_code": 0
+}
