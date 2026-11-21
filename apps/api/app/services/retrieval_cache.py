@@ -113,8 +113,8 @@ def set(
 def invalidate_after_document_visibility_change(db: Session, workspace_id: int) -> None:
     """Bump the corpus version and drop this workspace's retrieval and answer caches.
 
-    Call after a document is soft-deleted or restored. The retrieval cache key
-    includes the corpus version. The answer cache does not, so it is cleared too.
+    Call after a document is soft-deleted or restored. Both cache keys include
+    the corpus version. The rows are deleted as well.
     """
     from app.core.corpus_version import bump_corpus_version
     from app.services.answer_cache import invalidate_workspace as invalidate_answers
