@@ -30,9 +30,10 @@ class ModelOutcomeCode(str, Enum):
     """Stable outcome/error codes for model-backed answer generation."""
 
     GROUNDED = "grounded"
-    # Answer-cache hit: the text was reused from an earlier run and its citations were NOT
-    # re-validated against the current evidence. Never reported as "grounded" until
-    # claim-level citation checks (TC-11-003) and version-scoped caches (TC-08-004) land.
+    # Answer-cache hit: the text was reused from an earlier run. The cache key
+    # includes the corpus version, the prompt version, and the model id. Citations
+    # are still not re-checked claim by claim, so a hit stays unverified until
+    # claim-level citation checks (TC-11-003) land.
     GROUNDED_UNVERIFIED = "grounded_unverified"
     NO_EVIDENCE = "no_evidence"
     MODEL_ABSTAINED = "model_abstained"

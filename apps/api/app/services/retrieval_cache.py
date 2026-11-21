@@ -1,4 +1,4 @@
-"""Retrieval cache: keyed by workspace + normalized question + corpus version."""
+"""Retrieval cache: workspace, question, corpus version, scope, and permission policy."""
 
 import json
 import logging
@@ -14,11 +14,18 @@ logger = logging.getLogger(__name__)
 
 
 def _cache_key(
-    workspace_id: int, question_hash: str, corpus_version: str, scope_suffix: str = ""
+    workspace_id: int,
+    question_hash: str,
+    corpus_version: str,
+    scope_suffix: str = "",
+    permission_fingerprint: str = "",
 ) -> str:
     import hashlib
 
-    key = f"{workspace_id}|{question_hash}|{corpus_version}|{scope_suffix or 'all'}"
+    key = (
+        f"{workspace_id}|{question_hash}|{corpus_version}|"
+        f"{scope_suffix or 'all'}|{permission_fingerprint or ''}"
+    )
     return hashlib.sha256(key.encode("utf-8")).hexdigest()[:48]
 
 
@@ -27,10 +34,21 @@ def get(
     workspace_id: int,
     question_normalized_hash: str,
     scope_suffix: str = "",
+    permission_fingerprint: str = "",
 ) -> list[dict] | None:
-    """Return cached retrieval result (list of chunk dicts) if corpus version matches; else None."""
+    """Return cached retrieval rows when the corpus version still matches, else None.
+
+    A stored version that is not the current version is a miss. Rows that cite
+    an ineligible source are a miss even when the version still matches.
+    """
     current_version = get_corpus_version(db, workspace_id)
-    ck = _cache_key(workspace_id, question_normalized_hash, current_version, scope_suffix)
+    ck = _cache_key(
+        workspace_id,
+        question_normalized_hash,
+        current_version,
+        scope_suffix,
+        permission_fingerprint,
+    )
     row = db.execute(
         text(
             "SELECT result_json, corpus_version FROM retrieval_cache WHERE workspace_id = :ws AND cache_key = :ck"
@@ -61,9 +79,16 @@ def set(
     corpus_version: str,
     result: list[dict],
     scope_suffix: str = "",
+    permission_fingerprint: str = "",
 ) -> None:
-    """Store retrieval result for (workspace, question_hash, corpus_version)."""
-    ck = _cache_key(workspace_id, question_normalized_hash, corpus_version, scope_suffix)
+    """Store retrieval result for this workspace, question, version, and policy."""
+    ck = _cache_key(
+        workspace_id,
+        question_normalized_hash,
+        corpus_version,
+        scope_suffix,
+        permission_fingerprint,
+    )
     result_json = json.dumps(result)
     db.execute(
         text("""
@@ -88,8 +113,8 @@ def set(
 def invalidate_after_document_visibility_change(db: Session, workspace_id: int) -> None:
     """Bump the corpus version and drop this workspace's retrieval and answer caches.
 
-    Call after a document is soft-deleted or restored. The retrieval cache key
-    includes the corpus version. The answer cache does not, so it is cleared too.
+    Call after a document is soft-deleted or restored. Both cache keys include
+    the corpus version. The rows are deleted as well.
     """
     from app.core.corpus_version import bump_corpus_version
     from app.services.answer_cache import invalidate_workspace as invalidate_answers

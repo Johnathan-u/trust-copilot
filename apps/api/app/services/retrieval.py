@@ -108,12 +108,18 @@ class RetrievalService:
         min_score: float = 0.0,
         question_id: int | None = None,
         document_ids: list[int] | None = None,
+        permission_policy=None,
     ) -> list[dict]:
         """Return relevant chunks with hybrid semantic + keyword search."""
         started = time.monotonic()
         log_retrieval_start(workspace_id)
-        doc_scope = self._normalize_document_scope(document_ids)
+        allowed, doc_scope = self._scope_for_caller(document_ids, permission_policy)
         try:
+            if not allowed:
+                duration_ms = (time.monotonic() - started) * 1000
+                log_retrieval_success(workspace_id, 0, duration_ms)
+                RETRIEVAL_DURATION_SECONDS.observe(duration_ms / 1000)
+                return []
             if query_embedding and len(query_embedding) > 0:
                 validate_embedding_dimension(query_embedding, context="retrieval_query")
                 results = self._semantic_search(
@@ -142,6 +148,7 @@ class RetrievalService:
         queries: list[tuple[str, list[float] | None]],
         limit: int = 10,
         document_ids: list[int] | None = None,
+        permission_policy=None,
     ) -> list[list[dict]]:
         """Batch search: run semantic + keyword retrieval for many queries.
 
@@ -152,9 +159,9 @@ class RetrievalService:
         serially on the calling thread with the caller's Session. Results are plain dicts, so no
         ORM instances escape a task's Session.
         """
-        doc_scope = self._normalize_document_scope(document_ids)
+        allowed, doc_scope = self._scope_for_caller(document_ids, permission_policy)
         results: list[list[dict]] = [[] for _ in queries]
-        if not queries:
+        if not queries or not allowed:
             return results
 
         def _run(svc: "RetrievalService", idx: int) -> list[dict]:
@@ -201,11 +208,45 @@ class RetrievalService:
 
     @staticmethod
     def _metadata_with_document_id(metadata: dict | None, document_id: int | None) -> dict | None:
-        if document_id is None:
-            return metadata
+        # source_version is the storage key the chunk was indexed from. It stays
+        # in the row so a replaced key can be excluded, and it is not returned.
+        hidden = ("source_version", "retrieval_tombstone", "storage_key")
         md = dict(metadata) if isinstance(metadata, dict) else {}
+        for key in hidden:
+            md.pop(key, None)
+        if document_id is None:
+            return md or None
         md.setdefault("document_id", document_id)
         return md
+
+    @staticmethod
+    def _scope_for_caller(
+        document_ids: list[int] | None, permission_policy
+    ) -> tuple[bool, frozenset[int] | None]:
+        """Return whether this caller may search, and the document ids they may read.
+
+        ``permission_policy`` None keeps the workspace-wide read used by jobs.
+        A policy with neither review nor admin, and no document grant, reads
+        nothing. A grant is the only set returned, even inside the workspace.
+        """
+        requested = RetrievalService._normalize_document_scope(document_ids)
+        if permission_policy is None:
+            return True, requested
+        grant = getattr(permission_policy, "document_ids", None)
+        can_read = bool(
+            getattr(permission_policy, "can_review", False)
+            or getattr(permission_policy, "can_admin", False)
+            or grant is not None
+        )
+        if not can_read:
+            return False, None
+        if grant is None:
+            return True, requested
+        granted = frozenset(int(item) for item in grant)
+        narrowed = granted if requested is None else requested & granted
+        if not narrowed:
+            return False, None
+        return True, narrowed
 
     def _filter_chunks_by_document_scope(
         self, chunks: list[dict], doc_scope: frozenset[int]
@@ -225,7 +266,7 @@ class RetrievalService:
         return out
 
     def _eligible_chunks(self, workspace_id: int, doc_scope: frozenset[int] | None):
-        """Chunks that may be retrieved: this workspace, excluding soft-deleted documents."""
+        """Indexed, current, non-tombstoned chunks in this workspace, plus orphans."""
         query = eligible_chunk_query(self._db, workspace_id)
         if doc_scope:
             query = query.filter(Chunk.document_id.in_(list(doc_scope)))
@@ -294,8 +335,9 @@ class RetrievalService:
     ) -> list[dict]:
         """Use pgvector index: ORDER BY embedding <=> query LIMIT. Cosine distance -> 1-distance for score."""
         vec_str = embedding_to_vector_literal(embedding)
-        # Same eligibility as eligible_chunk_query: this workspace, and the parent
-        # document is not soft-deleted. Orphan chunks (no document_id) stay.
+        # Same eligibility as eligible_chunk_query: this workspace; the parent
+        # document is indexed, not soft-deleted, not tombstoned, and not indexed
+        # from a storage key that has since been replaced. Orphan chunks stay.
         scope_sql = ""
         params: dict = {"vec": vec_str, "ws": workspace_id, "lim": limit * 2}
         if doc_scope:
@@ -313,9 +355,16 @@ class RetrievalService:
                   ON d.id = c.document_id
                  AND d.workspace_id = :ws
                  AND d.deleted_at IS NULL
+                 AND d.status = 'indexed'
                 WHERE c.workspace_id = :ws
                   AND c.embedding IS NOT NULL
                   AND (c.document_id IS NULL OR d.id IS NOT NULL)
+                  AND (c.metadata_->>'retrieval_tombstone') IS NULL
+                  AND (
+                        c.document_id IS NULL
+                        OR (c.metadata_->>'source_version') IS NULL
+                        OR (c.metadata_->>'source_version') = d.storage_key
+                      )
                 {scope_sql}
                 ORDER BY c.embedding <=> CAST(:vec AS vector)
                 LIMIT :lim

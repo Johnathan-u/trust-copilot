@@ -755,10 +755,12 @@ def run_index_document(job: Job, session, payload: dict) -> None:
 def _bump_corpus_version_best_effort(session, workspace_id: int) -> None:
     try:
         from app.core.corpus_version import bump_corpus_version
+        from app.services.answer_cache import invalidate_workspace as invalidate_answers
         from app.services.retrieval_cache import invalidate_workspace
 
         bump_corpus_version(session, workspace_id)
         invalidate_workspace(session, workspace_id)
+        invalidate_answers(session, workspace_id)
     except Exception:
         logging.getLogger(__name__).debug(
             "corpus version bump failed ws=%s", workspace_id, exc_info=True

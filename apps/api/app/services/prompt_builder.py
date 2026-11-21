@@ -7,6 +7,10 @@ Framework metadata shapes answer style but never substitutes for evidence.
 
 from app.services.question_classifier import classify_question
 
+# Bump when ANSWER_SYSTEM_PROMPT or build_prompt changes. The answer cache key
+# includes this value, so a new version does not reuse an older draft.
+ANSWER_PROMPT_VERSION = "answer-prompt-v1"
+
 _FRAMEWORK_STYLE_HINTS: dict[str, str] = {
     "SOC 2": "Use trust-services terminology (availability, processing integrity, confidentiality, privacy) where appropriate.",
     "HIPAA": "Reference applicable safeguard categories (administrative, physical, technical) where supported by evidence.",
