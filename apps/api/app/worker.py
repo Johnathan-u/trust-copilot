@@ -531,11 +531,14 @@ def run_parse_questionnaire(job: Job, session, payload: dict) -> None:
 def apply_questionnaire_parse_failure(qnr, exc: BaseException) -> bool:
     """Store a readable parse failure on the questionnaire.
 
-    Used for an unreadable workbook and for a PDF that has no text, is encrypted
-    or cannot be read. Returns False for any other error so the caller leaves the
-    questionnaire untouched. The stored text is ``str(exc)`` and nothing else.
+    Used for an unreadable workbook, a workbook whose structure export would
+    reject, and for a PDF that has no text, is encrypted or cannot be read.
+    Returns False for any other error so the caller leaves the questionnaire
+    untouched. The stored text is ``str(exc)`` and nothing else.
     """
-    if not isinstance(exc, (PdfTextError, WorkbookUnreadable)):
+    from app.services.xlsx_writer import UnsupportedWorkbookStructure
+
+    if not isinstance(exc, (PdfTextError, WorkbookUnreadable, UnsupportedWorkbookStructure)):
         return False
     qnr.status = "failed"
     qnr.parse_metadata = json.dumps({"count": 0, "error": str(exc)})
@@ -1409,10 +1412,15 @@ def _handle_job_failure(
                 doc.status = "failed"
                 doc.index_error = message[:512] if message else None
                 session.merge(doc)
-    if job.kind == "parse_questionnaire" and isinstance(exc, (PdfTextError, WorkbookUnreadable)):
-        # Image-only / encrypted / corrupt PDF (TC-01-003a), and a workbook that cannot
-        # be opened: surface the readable message on the questionnaire instead of leaving
-        # it "uploaded". Both errors are ValueError, so the job is terminal (bad_input).
+    from app.services.xlsx_writer import UnsupportedWorkbookStructure
+
+    if job.kind == "parse_questionnaire" and isinstance(
+        exc, (PdfTextError, WorkbookUnreadable, UnsupportedWorkbookStructure)
+    ):
+        # Image-only / encrypted / corrupt PDF (TC-01-003a), a workbook that cannot
+        # be opened, and a macro, encrypted, or legacy workbook: surface the readable
+        # message on the questionnaire instead of leaving it "uploaded". These errors
+        # are ValueError, so the job is terminal (bad_input).
         qnr_id = payload.get("questionnaire_id")
         if qnr_id:
             qnr = session.query(Questionnaire).filter(Questionnaire.id == qnr_id).first()

@@ -42,13 +42,19 @@ def iter_sheets(path: str | Path) -> Iterator[tuple[str, list[list]]]:
 def iter_questionnaire_sheets(path: str | Path) -> Iterator[tuple[str, list[list]]]:
     """Yield (sheet_name, rows) for questionnaire parsing.
 
-    A file that cannot be opened, or whose every sheet fails to read, raises
+    A macro, encrypted, or legacy workbook raises UnsupportedWorkbookStructure
+    before any sheet is read. That message is the one export uses. A file that
+    cannot be opened, or whose every sheet fails to read, raises
     WorkbookUnreadable with a fixed message. The message does not include the
     path or the parser's own exception text. A readable workbook with no rows
     yields nothing; that is an empty questionnaire, not a corrupt file.
     """
+    from app.services.xlsx_writer import reject_unsupported_workbook
+
+    file_path = Path(path)
+    reject_unsupported_workbook(file_path.read_bytes())
     try:
-        workbook = openpyxl.load_workbook(path, read_only=True, data_only=True)
+        workbook = openpyxl.load_workbook(file_path, read_only=True, data_only=True)
     except Exception as exc:
         raise WorkbookUnreadable() from exc
     try:

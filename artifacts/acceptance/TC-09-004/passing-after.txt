@@ -1,0 +1,13 @@
+............                                                             [100%]
+=============================== warnings summary ===============================
+tests/release/test_workbook_preflight.py::test_rejected_upload_stores_nothing[xlsm]
+tests/release/test_workbook_preflight.py::test_rejected_upload_stores_nothing[macro-xlsx]
+tests/release/test_workbook_preflight.py::test_rejected_upload_stores_nothing[encrypted]
+tests/release/test_workbook_preflight.py::test_rejected_upload_stores_nothing[legacy-xls]
+tests/release/test_workbook_preflight.py::test_other_workspace_cannot_upload
+tests/release/test_workbook_preflight.py::test_supported_xlsx_is_stored_and_export_keeps_structure
+  /tmp/tc-venv/lib/python3.12/site-packages/sqlalchemy/sql/schema.py:3627: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    return util.wrap_callable(lambda ctx: fn(), fn)  # type: ignore
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+12 passed, 6 warnings in 2.97s
