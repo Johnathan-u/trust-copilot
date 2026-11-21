@@ -243,7 +243,7 @@ def _chunk(workspace_id: int) -> int:
             workspace_id=workspace_id,
             storage_key=f"tc21003/{uuid.uuid4().hex}",
             filename="chunk.txt",
-            status="uploaded",
+            status="indexed",
         )
         session.add(doc)
         session.flush()
@@ -521,7 +521,7 @@ def test_accept_suggested_failure_leaves_no_partial_state(client):
             workspace_id=actors["workspace_id"],
             storage_key=f"tc21003/{uuid.uuid4().hex}",
             filename="chunk.txt",
-            status="uploaded",
+            status="indexed",
         )
         session.add(doc)
         session.flush()

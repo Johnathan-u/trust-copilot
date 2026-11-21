@@ -281,6 +281,11 @@ def approve_draft_revision(
     current.evidence_fingerprint = revision.evidence_fingerprint
     current.outcome_code = revision.outcome_code
     current.status = "approved"
+    from app.services.answer_support import bind_approved_support
+
+    bound = bind_approved_support(db, current, clear_stale=True)
+    if bound is not None:
+        current.citations = bound
     revision.status = REVISION_APPLIED
     revision.updated_at = datetime.utcnow()
     db.flush()

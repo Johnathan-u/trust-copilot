@@ -40,9 +40,11 @@ function json(body: unknown, status = 200) {
 const approved = 'Human approved text'
 const draft = 'Fresh draft from regenerate.'
 let posts: { url: string; method: string }[]
+let showStale = false
 
 beforeEach(() => {
   posts = []
+  showStale = false
   vi.stubGlobal(
     'fetch',
     async (input: string | URL | Request, init: RequestInit = {}) => {
@@ -84,6 +86,7 @@ beforeEach(() => {
                 text: approved,
                 status: 'approved',
                 citations: '[{"chunk_id":1,"snippet":"approved snippet"}]',
+                support_stale: showStale,
                 draft_revision: {
                   id: 4,
                   revision_number: 1,
@@ -124,6 +127,7 @@ describe('approved answer beside a draft revision', () => {
     expect(draftNode.closest('[data-draft-revision="1"]')).toBeTruthy()
     expect(screen.queryByPlaceholderText('Edit draft answer…')).toBeNull()
     expect(screen.getByText(/Export uses this approved answer/)).toBeTruthy()
+    expect(screen.queryByText('Stale source')).toBeNull()
 
     fireEvent.click(screen.getByRole('button', { name: 'Regenerate' }))
     await waitFor(() =>
@@ -138,5 +142,13 @@ describe('approved answer beside a draft revision', () => {
         posts.some((post) => post.url === '/api/answers/11/revisions/4/approve')
       ).toBe(true)
     )
+  })
+
+  it('shows the stale marker when the questionnaire says the revision is stale', async () => {
+    showStale = true
+    render(createElement(ReviewPage))
+    const marker = await screen.findByText('Stale source')
+    expect(marker.getAttribute('data-support-stale')).toBe('true')
+    expect(screen.getByText(approved)).toBeTruthy()
   })
 })

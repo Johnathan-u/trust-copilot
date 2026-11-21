@@ -44,6 +44,7 @@ import {
   formatGenerationElapsed,
   generationPhaseMessage,
   isInsufficientAnswerText,
+  supportStaleLabel,
 } from '@/lib/ai-review-copy'
 import { answerRowAfterSave, answerSaveRequest } from '@/lib/answer-save'
 
@@ -65,6 +66,8 @@ type Question = {
     text: string | null
     status: string
     citations?: string
+    /** True when this revision cites a revoked source or is still marked stale. */
+    support_stale?: boolean
     outcome_code?: string | null
     outcome?: ApiErrorInfo | null
     /** Loaded `updated_at`. The save sends this back as the row revision. */
@@ -1253,6 +1256,9 @@ export default function ReviewPage() {
                 <tbody>
                   {filtered.map((q, i) => {
                     const status = q.answer?.status ?? 'pending'
+                    const staleLabel = supportStaleLabel(
+                      q.answer?.support_stale
+                    )
                     const statusClass =
                       status === 'approved'
                         ? 'tc-status-approved'
@@ -1456,6 +1462,14 @@ export default function ReviewPage() {
                               {answerStatusLabel('flagged')}
                             </option>
                           </select>
+                          {staleLabel ? (
+                            <p
+                              className="mt-1 text-xs font-semibold text-[var(--tc-muted)]"
+                              data-support-stale="true"
+                            >
+                              {staleLabel}
+                            </p>
+                          ) : null}
                         </td>
                         <td className="px-6 py-4">
                           {citations.length > 0 ? (

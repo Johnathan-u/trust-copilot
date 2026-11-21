@@ -19,6 +19,15 @@ export function answerStatusLabel(status: string | undefined): string {
   return ANSWER_STATUS_LABEL[key] ?? key
 }
 
+/** Shown beside an approved answer when the API says its support is stale. */
+export const SUPPORT_STALE_LABEL = 'Stale source'
+
+export function supportStaleLabel(
+  supportStale: boolean | null | undefined
+): string | null {
+  return supportStale === true ? SUPPORT_STALE_LABEL : null
+}
+
 /** Job.status from GET /api/jobs/{id} (lowercase). */
 export function generationPhaseMessage(jobStatus: string | null | undefined): {
   title: string
