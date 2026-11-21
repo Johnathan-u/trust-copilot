@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest'
 import {
   ANSWER_STATUS_LABEL,
   answerStatusLabel,
+  supportStaleLabel,
   formatGenerationElapsed,
   generationPhaseMessage,
   isInsufficientAnswerText,
@@ -20,6 +21,15 @@ describe('answerStatusLabel', () => {
   it('treats a missing status as pending and passes unknown statuses through', () => {
     expect(answerStatusLabel(undefined)).toBe(ANSWER_STATUS_LABEL.pending)
     expect(answerStatusLabel('archived')).toBe('archived')
+  })
+})
+
+describe('supportStaleLabel', () => {
+  it('returns the stale marker only when the API says the revision is stale', () => {
+    expect(supportStaleLabel(true)).toBe('Stale source')
+    expect(supportStaleLabel(false)).toBeNull()
+    expect(supportStaleLabel(undefined)).toBeNull()
+    expect(supportStaleLabel(null)).toBeNull()
   })
 })
 

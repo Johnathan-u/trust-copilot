@@ -29,6 +29,7 @@ from app.core.idempotency import (
     set as idempotency_set,
 )
 from app.models import ExportRecord, Job, Question, Questionnaire
+from app.services.answer_support import ExportBlocked, export_block_detail
 from app.services.export_service import (
     EXPORT_STORAGE_FAILED,
     enqueue_export_job,
@@ -265,6 +266,11 @@ def _export_claimed(questionnaire_id, workspace_id, body, session, db, idem_key,
     fmt = (body.format or "xlsx").lower() if body else "xlsx"
     try:
         job = enqueue_export_job(db, workspace_id, questionnaire_id, format=fmt)
+    except ExportBlocked as exc:
+        detail = export_block_detail(exc.answers)
+        if idem_key:
+            idempotency_set(db, idem_key, 409, {"detail": detail}, owner=idem_owner)
+        raise HTTPException(status_code=409, detail=detail) from None
     except ValueError as e:
         _store_and_raise_client_error(db, idem_key, idem_owner, str(e))
     from app.core.audit import audit_log

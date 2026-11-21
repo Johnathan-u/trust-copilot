@@ -45,6 +45,7 @@ from app.services.registry_lifecycle import (
     update_metadata_json_fields,
 )
 from app.services.active_sources import restore_document_chunks, tombstone_document_chunks
+from app.services.answer_support import mark_answers_stale_for_document
 from app.services.retrieval_cache import invalidate_after_document_visibility_change
 from app.services.storage import StorageClient, get_storage
 from app.services.tag_service import list_tags_for_documents
@@ -539,6 +540,7 @@ def bulk_delete_documents(
     for doc in docs:
         soft_delete_record(doc, session.get("user_id"))
         tombstone_document_chunks(db, doc.id)
+        mark_answers_stale_for_document(db, workspace_id, doc.id)
         persist_audit(
             db,
             "document.soft_delete",
@@ -579,6 +581,7 @@ def delete_document(
     preview = build_delete_preview("document", db, workspace_id, document_id)
     soft_delete_record(doc, session.get("user_id"))
     tombstone_document_chunks(db, doc.id)
+    mark_answers_stale_for_document(db, workspace_id, doc.id)
     db.commit()
     invalidate_after_document_visibility_change(db, workspace_id)
     persist_audit(

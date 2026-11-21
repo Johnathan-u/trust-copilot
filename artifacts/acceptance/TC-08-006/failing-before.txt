@@ -1,0 +1,55 @@
+FF.FFFFFF.                                                               [100%]
+=================================== FAILURES ===================================
+E   AssertionError: assert None == 2
+     +  where None = <built-in method get of dict object at 0x7fe2fbbfa480>('document_id')
+     +    where <built-in method get of dict object at 0x7fe2fbbfa480> = {'chunk_id': 2, 'snippet': 'synthetic evidence'}.get
+     +  and   2 = <app.models.document.Document object at 0x7fe2fc714b00>.id
+/agent/repos/trust-copilot/apps/api/tests/release/test_archive_revalidation.py:267: AssertionError: assert None == 2
+E   assert None is True
+     +  where None = <built-in method get of dict object at 0x7fe2fbbd1800>('support_stale')
+     +    where <built-in method get of dict object at 0x7fe2fbbd1800> = {'id': 2, 'text': 'Access reviews run each quarter.', 'status': 'approved', 'citations': '[{"chunk_id": 2, "document_id": 2, "snippet": "synthetic evidence"}]', ...}.get
+/agent/repos/trust-copilot/apps/api/tests/release/test_archive_revalidation.py:306: assert None is True
+E   assert None is True
+     +  where None = <built-in method get of dict object at 0x7fe2fb963340>('support_stale')
+     +    where <built-in method get of dict object at 0x7fe2fb963340> = {'id': 2, 'text': 'Access reviews run each quarter.', 'status': 'approved', 'citations': '[{"chunk_id": 2, "document_id": 2, "snippet": "synthetic evidence"}]', ...}.get
+/agent/repos/trust-copilot/apps/api/tests/release/test_archive_revalidation.py:369: assert None is True
+E   Failed: DID NOT RAISE HTTPException
+/agent/repos/trust-copilot/apps/api/tests/release/test_archive_revalidation.py:403: Failed: DID NOT RAISE HTTPException
+E   ConnectionRefusedError: [Errno 111] Connection refused
+
+The above exception was the direct cause of the following exception:
+E   urllib3.exceptions.NewConnectionError: AWSHTTPConnection(host='localhost', port=9000): Failed to establish a new connection: [Errno 111] Connection refused
+
+During handling of the above exception, another exception occurred:
+E   botocore.exceptions.EndpointConnectionError: Could not connect to the endpoint URL: "http://localhost:9000/test-raw/synthetic/195e70690898/questionnaire.xlsx"
+/tmp/tc-api/lib/python3.12/site-packages/botocore/httpsession.py:540: botocore.exceptions.EndpointConnectionError: Could not connect to the endpoint URL: "http://localhost:9000/test-raw/synthetic/195e70690898/questionnaire.xlsx"
+E   assert None is True
+     +  where None = <built-in method get of dict object at 0x7fe2fae13b80>('support_stale')
+     +    where <built-in method get of dict object at 0x7fe2fae13b80> = {'id': 2, 'text': 'Access reviews run each quarter.', 'status': 'approved', 'citations': '[{"chunk_id": 2, "document_id": 2, "snippet": "synthetic evidence"}]', ...}.get
+/agent/repos/trust-copilot/apps/api/tests/release/test_archive_revalidation.py:509: assert None is True
+E   Failed: DID NOT RAISE HTTPException
+/agent/repos/trust-copilot/apps/api/tests/release/test_archive_revalidation.py:553: Failed: DID NOT RAISE HTTPException
+E   Failed: DID NOT RAISE HTTPException
+/agent/repos/trust-copilot/apps/api/tests/release/test_archive_revalidation.py:584: Failed: DID NOT RAISE HTTPException
+=============================== warnings summary ===============================
+tests/release/test_archive_revalidation.py: 44 warnings
+  /tmp/tc-api/lib/python3.12/site-packages/sqlalchemy/sql/schema.py:3627: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    return util.wrap_callable(lambda ctx: fn(), fn)  # type: ignore
+
+tests/release/test_archive_revalidation.py::test_accept_suggested_rejects_a_soft_deleted_chunk
+tests/release/test_archive_revalidation.py::test_accept_suggested_rejects_a_chunk_that_is_not_eligible
+tests/release/test_archive_revalidation.py::test_accept_suggested_accepts_an_eligible_chunk
+  /agent/repos/trust-copilot/apps/api/app/api/routes/compliance_controls.py:546: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    now = datetime.utcnow()
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/release/test_archive_revalidation.py::test_approval_binds_the_supporting_document
+FAILED tests/release/test_archive_revalidation.py::test_archive_keeps_the_approved_text_and_marks_it_stale
+FAILED tests/release/test_archive_revalidation.py::test_restored_source_keeps_the_revision_stale
+FAILED tests/release/test_archive_revalidation.py::test_export_blocked_until_new_revision_on_active_source
+FAILED tests/release/test_archive_revalidation.py::test_worker_refuses_export_of_a_stale_revision
+FAILED tests/release/test_archive_revalidation.py::test_replaced_source_marks_the_revision_stale_and_blocks_export
+FAILED tests/release/test_archive_revalidation.py::test_accept_suggested_rejects_a_soft_deleted_chunk
+FAILED tests/release/test_archive_revalidation.py::test_accept_suggested_rejects_a_chunk_that_is_not_eligible
+8 failed, 2 passed, 47 warnings in 9.36s

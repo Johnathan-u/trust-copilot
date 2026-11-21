@@ -42,6 +42,27 @@ Bump `ANSWER_PROMPT_VERSION` when the answer system prompt or `build_prompt`
 changes. The next generation then does not reuse drafts from the previous
 prompt.
 
+## Archive and replacement
+
+Soft-delete (the document archive) tombstones the document's chunks and bumps
+the corpus version. It also marks each answer that cites that document. The
+approved text and `approved` status stay. `GET /api/questionnaires/{id}`
+returns `support_stale: true` on that answer. Restoring the document does not
+clear the marker.
+
+A replaced storage key is the same stale state when a chunk still records the
+previous source version, and a reindex of a new key marks citing answers
+before it deletes those chunks. A reindex of the same key does not.
+
+Final export (`POST /api/exports/export/{id}` and the export worker) returns
+409 while any included answer cites a revoked source or is still that stale
+revision. The body lists answer ids and does not include answer text. An
+insufficient-evidence placeholder is not included. Export proceeds after a new
+revision is approved against a document that is still active.
+
+The marker is a field on the existing citations text. No new column and no
+new configuration key.
+
 ## What a search returns
 
 Keyword and semantic search keep a chunk when it has no document, or when its

@@ -13,3 +13,5 @@ The same per-question advisory lock still serializes answer writes. It does not 
 On HTTP 403, 409, and 500 the review row keeps the typed text and stays on `Not saved yet`. It does not show `Saved`.
 
 Another workspace is still 403, and a missing answer is still 404. Those checks run before the revision check. `POST /api/answers` still creates a row when the question has no answer yet. `PATCH /api/answers/bulk` still updates status without this revision.
+
+Archiving or replacing a cited document rewrites that answer's citations and `updated_at`. The next save of an open editor is 409 until the questionnaire is reloaded. The approved text stays, and the read adds `support_stale`. See `docs/ops/retrieval-cache-keys.md`.

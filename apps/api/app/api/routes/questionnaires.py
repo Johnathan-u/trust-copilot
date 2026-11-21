@@ -52,6 +52,7 @@ from app.models import (
 )
 from app.models.ai_mapping import QuestionMappingPreference
 from app.services.answer_revisions import open_drafts_by_answer, revision_payload
+from app.services.answer_support import support_is_stale
 from app.services.compliance_hooks import (
     get_mapping_timing_snapshot,
     match_keywords_for_mapping_row,
@@ -772,6 +773,10 @@ def get_questionnaire(
                         "draft_revision": revision_payload(drafts.get(answers[q.id].id)),
                         # TC-12-002: updated_at is the revision the editor must send back.
                         "updated_at": answer_revision_token(answers[q.id].updated_at),
+                        # TC-08-006: approved text stays; this marks a revoked source.
+                        "support_stale": support_is_stale(
+                            db, workspace_id, answers[q.id].citations
+                        ),
                     }
                     if q.id in answers
                     else None
