@@ -1,0 +1,17 @@
+...........................................                              [100%]
+=============================== warnings summary ===============================
+tests/test_shareable_spaces.py: 19 warnings
+tests/test_shareable_space_token_gate.py: 687 warnings
+  /tmp/tc-venv/lib/python3.12/site-packages/sqlalchemy/sql/schema.py:3627: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    return util.wrap_callable(lambda ctx: fn(), fn)  # type: ignore
+
+tests/release/test_shareable_space_token_migration.py::test_revision_is_the_single_head
+tests/release/test_shareable_space_token_migration.py::test_revision_is_the_single_head
+tests/release/test_shareable_space_token_migration.py::test_revision_is_the_single_head
+tests/release/test_shareable_space_token_migration.py::test_upgrade_hashes_plaintext_and_downgrade_cannot_restore_it
+tests/release/test_shareable_space_token_migration.py::test_upgrade_hashes_plaintext_and_downgrade_cannot_restore_it
+  /tmp/tc-venv/lib/python3.12/site-packages/alembic/config.py:604: DeprecationWarning: No path_separator found in configuration; falling back to legacy splitting on spaces, commas, and colons for prepend_sys_path.  Consider adding path_separator=os to Alembic config.
+    util.warn_deprecated(
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+43 passed, 711 warnings in 13.09s

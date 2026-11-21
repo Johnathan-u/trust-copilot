@@ -1,0 +1,13 @@
+SHA: 2ac01b027e47ed8b201dc2a263baba2e04c2207e
+Python: 3.12.3
+pytest: 9.1.1
+SQLAlchemy: 2.0.55
+Alembic: 1.20.1
+Starlette: 1.10.0
+PostgreSQL: 16.15 (Ubuntu 16.15-0ubuntu0.24.04.1)
+pgvector: 0.6.0
+Database: trustcopilot_test
+TC_REQUIRE_DB: 1
+Node: 24.22.3
+npm: 11.19.1
+Vitest: 5.0.5
