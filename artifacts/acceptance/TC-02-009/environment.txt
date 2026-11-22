@@ -1,5 +1,32 @@
-SHA: 69a5230ff8f1e197419644ee0cdf5fe326379f41
-Python: 3.12.3
-pytest: 9.1.1
-PostgreSQL: not used (workflow file checks only)
-Database: none
+Command from apps/api:
+
+python -m pytest tests/release/test_ci_evidence.py -q
+
+Failing-before product code: 1593c5b821c140232ae9b867ada936c88d4f3cee (origin/master).
+The test was run against that workflow. Exit 1. 3 failed, 8 passed, 0 skipped.
+Master does not print the evidence block, so the contract test and the shell
+parse failed. Removing a SHA line could not be detected as a missing commit
+line because master never printed one. Log: failing-before.txt.
+
+Passing-after product code: f5ea66eed73be8b0aead933b14d2d20c648e0132.
+Exit 0. 11 passed, 0 failed, 0 skipped. Log: passing-after.txt.
+Both jobs print the commit, the image digest or image: none, the command,
+and passed/failed/skipped totals. A workflow missing the SHA line, missing
+retention-days, or echoing the generated database password fails the checker.
+A Pages deploy on workflow_run that ignores the CI conclusion fails it.
+A Pages deploy that requires a successful conclusion does not. The redactor
+strips a synthetic connection URL, a bearer value, and a cookie from a report
+and a trace zip, and it leaves the PNG bytes in place.
+
+Python 3.12.3
+pytest 9.1.1
+PyYAML 6.0.3
+
+No database. No migration. Fixtures are synthetic. No customer document.
+The logs do not contain a connection URL or a generated password.
+
+CI's build job uses Python 3.11. This local log is Python 3.12.3.
+CI run ids are not recorded here.
+
+The earlier pytest.txt and ci-runs.md are the PARTIAL verification logs.
+They are unchanged. This file does not add a run id.

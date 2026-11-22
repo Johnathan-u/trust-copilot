@@ -218,10 +218,43 @@ jobs:
           # TC-02-005: release tests must execute ruff, mypy and the DB-free unit suite.
           TC_REQUIRE_API_QUALITY: '1'
         # DATABASE_URL / TC_TEST_DATABASE_URL come from the isolated Postgres step via GITHUB_ENV.
-        run: pytest -rs
+        # TC-02-009: print the evidence block even when pytest fails. The digests match
+        # the PG_IMAGE and S3_IMAGE pins above. Generated passwords are not printed.
+        run: |
+          set +e
+          set +o pipefail
+          pytest -rs | tee pytest-evidence.txt
+          pytest_status=${PIPESTATUS[0]}
+          set -o pipefail
+          summary=$(grep -E '[0-9]+ (passed|failed|skipped|error)' pytest-evidence.txt | tail -n 1 || true)
+          passed=$(printf '%s\n' "$summary" | grep -oE '[0-9]+ passed' | grep -oE '[0-9]+' | head -n 1 || true)
+          failed=$(printf '%s\n' "$summary" | grep -oE '[0-9]+ failed' | grep -oE '[0-9]+' | head -n 1 || true)
+          skipped=$(printf '%s\n' "$summary" | grep -oE '[0-9]+ skipped' | grep -oE '[0-9]+' | head -n 1 || true)
+          errors=$(printf '%s\n' "$summary" | grep -oE '[0-9]+ error' | grep -oE '[0-9]+' | head -n 1 || true)
+          passed=${passed:-0}
+          failed=${failed:-0}
+          skipped=${skipped:-0}
+          errors=${errors:-0}
+          failed=$((failed + errors))
+          rm -f pytest-evidence.txt
+          echo "TC-02-009 evidence"
+          echo "commit: ${{ github.sha }}"
+          echo "image: pgvector/pgvector:pg16@sha256:7b822b0aac60967beb1ea5e576b8602c94c300a157d187f385ae3e0da199b90a"
+          echo "image: motoserver/moto:5.2.5@sha256:59a1965d845249b04def37a0e2565f9cc6c44543cb89b68e90f28f344b3b0d1a"
+          echo "command: pytest -rs"
+          echo "totals: passed=${passed} failed=${failed} skipped=${skipped}"
+          exit "$pytest_status"
+
+      - name: Redact Playwright traces and reports
+        id: redact-playwright
+        if: ${{ !cancelled() }}
+        run: |
+          python3 scripts/ci/redact-playwright-artifacts.py \
+            apps/web/playwright-report \
+            apps/web/test-results
 
       - name: Upload integrated inbox restart report
-        if: ${{ !cancelled() }}
+        if: ${{ !cancelled() && steps.redact-playwright.outcome == 'success' }}
         uses: actions/upload-artifact@v4
         with:
           name: inbox-restart-acceptance
@@ -232,7 +265,7 @@ jobs:
           retention-days: 14
 
       - name: Upload integrated trust requests restart report
-        if: ${{ !cancelled() }}
+        if: ${{ !cancelled() && steps.redact-playwright.outcome == 'success' }}
         uses: actions/upload-artifact@v4
         with:
           name: trust-requests-restart-acceptance
@@ -243,7 +276,7 @@ jobs:
           retention-days: 14
 
       - name: Upload logout-all browser acceptance report
-        if: ${{ !cancelled() }}
+        if: ${{ !cancelled() && steps.redact-playwright.outcome == 'success' }}
         uses: actions/upload-artifact@v4
         with:
           name: logout-all-acceptance
@@ -315,7 +348,6 @@ jobs:
           NEXT_TELEMETRY_DISABLED: '1'
           PLAYWRIGHT_HTML_OPEN: never
           PLAYWRIGHT_HTML_OUTPUT_DIR: playwright-report
-          PLAYWRIGHT_JSON_OUTPUT_FILE: test-results/release-e2e.json
         run: |
           set -euo pipefail
           mkdir -p test-results
@@ -372,17 +404,29 @@ jobs:
             echo "Running release spec: $spec"
           done
 
+          # Playwright deletes outputDir (test-results/) at the start of the next
+          # run. Keep the JSON totals and the axe log outside every outputDir.
+          evidence_dir="${RUNNER_TEMP}/tc-02-009"
+          mkdir -p "$evidence_dir"
+          rules_json="${evidence_dir}/rules-evidence.json"
+          release_json="${evidence_dir}/release-e2e.json"
+          axe_log="${evidence_dir}/axe-evidence.txt"
+
           set +e
+          set +o pipefail
           # TC-19-009 writes axe-rules-form-*.json through its own config: a dead
           # local upstream and a separate Next port. Drop the release reporter
-          # paths so this run cannot replace release-e2e.json.
-          env -u PLAYWRIGHT_JSON_OUTPUT_FILE -u PLAYWRIGHT_HTML_OUTPUT_DIR -u PLAYWRIGHT_HTML_OPEN \
-            npx --no-install playwright test --config=playwright.rules-evidence.config.ts --retries=0 --reporter=list
+          # paths so this run cannot replace the release JSON.
+          env -u PLAYWRIGHT_HTML_OUTPUT_DIR -u PLAYWRIGHT_HTML_OPEN \
+            -u PLAYWRIGHT_JSON_OUTPUT_FILE \
+            PLAYWRIGHT_JSON_OUTPUT_FILE="$rules_json" \
+            npx --no-install playwright test --config=playwright.rules-evidence.config.ts --retries=0 --reporter=list,json
           rules_status=$?
-          npx --no-install playwright test "${candidates[@]}" --retries=0 --reporter=list,html,json
+          PLAYWRIGHT_JSON_OUTPUT_FILE="$release_json" \
+            npx --no-install playwright test "${candidates[@]}" --retries=0 --reporter=list,html,json
           playwright_status=$?
           node ../../scripts/ci/check-release-e2e-report.mjs \
-            --report test-results/release-e2e.json \
+            --report "$release_json" \
             --html-report playwright-report \
             --axe-dir ../../artifacts/acceptance/TC-15-049a \
             --axe-dir ../../artifacts/acceptance/TC-15-049 \
@@ -443,16 +487,96 @@ jobs:
             --require-spec e2e/release/screen-jobs.spec.ts \
             --min-tests 39 \
             --require-spec e2e/release/email-verification.spec.ts \
-            --min-tests 4
-          checker_status=$?
-          set -e
+            --min-tests 4 \
+            | tee "$axe_log"
+          checker_status=${PIPESTATUS[0]}
+          set -o pipefail
+          stat_count() {
+            node ../../scripts/ci/read-playwright-stat.mjs "$1" "$2"
+          }
+          # A missing report after a successful command fails this step.
+          # rules_status, playwright_status and checker_status are not replaced.
+          evidence_reader_status=0
+          load_counts() {
+            local file="$1"
+            local run_status="$2"
+            local rc=0
+            COUNT_PASSED=$(stat_count "$file" expected) || rc=$?
+            if [[ "$rc" -eq 0 ]]; then
+              COUNT_UNEXPECTED=$(stat_count "$file" unexpected) || rc=$?
+            fi
+            if [[ "$rc" -eq 0 ]]; then
+              COUNT_FLAKY=$(stat_count "$file" flaky) || rc=$?
+            fi
+            if [[ "$rc" -eq 0 ]]; then
+              COUNT_SKIPPED=$(stat_count "$file" skipped) || rc=$?
+            fi
+            if [[ "$rc" -ne 0 ]]; then
+              COUNT_PASSED=0
+              COUNT_UNEXPECTED=0
+              COUNT_FLAKY=0
+              COUNT_SKIPPED=0
+              if [[ "$run_status" -eq 0 ]]; then
+                echo "ERROR: evidence report is missing or unreadable: $file" >&2
+                evidence_reader_status=1
+              fi
+            fi
+          }
+          load_counts "$rules_json" "$rules_status"
+          rules_passed=$COUNT_PASSED
+          rules_unexpected=$COUNT_UNEXPECTED
+          rules_flaky=$COUNT_FLAKY
+          rules_skipped=$COUNT_SKIPPED
+          load_counts "$release_json" "$playwright_status"
+          pw_passed=$COUNT_PASSED
+          pw_unexpected=$COUNT_UNEXPECTED
+          pw_flaky=$COUNT_FLAKY
+          pw_skipped=$COUNT_SKIPPED
+          rules_failed=$((rules_unexpected + rules_flaky))
+          pw_failed=$((pw_unexpected + pw_flaky))
+          if [[ ! -s "$axe_log" ]]; then
+            axe_passed=0
+            axe_failed=0
+            if [[ "$checker_status" -eq 0 ]]; then
+              echo "ERROR: axe evidence log is missing or empty: $axe_log" >&2
+              evidence_reader_status=1
+            fi
+          else
+            axe_passed=$(grep -c ': 0 violations' "$axe_log" || true)
+            axe_failed=$(grep -Ec ': [1-9][0-9]* violations' "$axe_log" || true)
+            axe_passed=${axe_passed:-0}
+            axe_failed=${axe_failed:-0}
+          fi
+          rm -f "$axe_log"
           echo "rules evidence exit ${rules_status}; playwright exit ${playwright_status}; axe check exit ${checker_status}"
+          if [[ "$evidence_reader_status" -ne 0 ]]; then
+            echo "ERROR: evidence totals were not read after a successful command"
+            exit 1
+          fi
+          # TC-02-009: this job does not start a container. image: none is explicit.
+          echo "TC-02-009 evidence"
+          echo "commit: ${{ github.sha }}"
+          echo "image: none"
+          echo "command: npx --no-install playwright test --config=playwright.rules-evidence.config.ts --retries=0 --reporter=list,json"
+          echo "command: npx --no-install playwright test --retries=0 --reporter=list,html,json"
+          echo "command: node ../../scripts/ci/check-release-e2e-report.mjs"
+          echo "totals: passed=${rules_passed} failed=${rules_failed} skipped=${rules_skipped}"
+          echo "playwright: passed=${pw_passed} failed=${pw_failed} skipped=${pw_skipped}"
+          echo "axe: passed=${axe_passed} failed=${axe_failed} skipped=0"
           if [[ "$rules_status" -ne 0 || "$playwright_status" -ne 0 || "$checker_status" -ne 0 ]]; then
             exit 1
           fi
 
-      - name: Upload deals axe JSON
+      - name: Redact Playwright traces and reports
+        id: redact-playwright
         if: ${{ !cancelled() }}
+        run: |
+          python3 scripts/ci/redact-playwright-artifacts.py \
+            apps/web/playwright-report \
+            apps/web/test-results
+
+      - name: Upload deals axe JSON
+        if: ${{ !cancelled() && steps.redact-playwright.outcome == 'success' }}
         uses: actions/upload-artifact@v4
         with:
           name: deals-axe-json
@@ -461,7 +585,7 @@ jobs:
           retention-days: 14
 
       - name: Upload incoming trust requests axe JSON
-        if: ${{ !cancelled() }}
+        if: ${{ !cancelled() && steps.redact-playwright.outcome == 'success' }}
         uses: actions/upload-artifact@v4
         with:
           name: incoming-trust-requests-axe-json
@@ -470,7 +594,7 @@ jobs:
           retention-days: 14
 
       - name: Upload Playwright HTML report
-        if: ${{ !cancelled() }}
+        if: ${{ !cancelled() && steps.redact-playwright.outcome == 'success' }}
         uses: actions/upload-artifact@v4
         with:
           name: playwright-html-report
@@ -479,7 +603,7 @@ jobs:
           retention-days: 14
 
       - name: Upload axe JSON
-        if: ${{ !cancelled() }}
+        if: ${{ !cancelled() && steps.redact-playwright.outcome == 'success' }}
         uses: actions/upload-artifact@v4
         with:
           name: design-tokens-axe-json
@@ -488,7 +612,7 @@ jobs:
           retention-days: 14
 
       - name: Upload theme screenshots
-        if: ${{ !cancelled() }}
+        if: ${{ !cancelled() && steps.redact-playwright.outcome == 'success' }}
         uses: actions/upload-artifact@v4
         with:
           name: theme-screenshots
@@ -497,7 +621,7 @@ jobs:
           retention-days: 14
 
       - name: Upload responsive shell axe JSON
-        if: ${{ !cancelled() }}
+        if: ${{ !cancelled() && steps.redact-playwright.outcome == 'success' }}
         uses: actions/upload-artifact@v4
         with:
           name: responsive-shell-axe-json
@@ -506,7 +630,7 @@ jobs:
           retention-days: 14
 
       - name: Upload responsive shell screenshots
-        if: ${{ !cancelled() }}
+        if: ${{ !cancelled() && steps.redact-playwright.outcome == 'success' }}
         uses: actions/upload-artifact@v4
         with:
           name: responsive-shell-screenshots
@@ -515,7 +639,7 @@ jobs:
           retention-days: 14
 
       - name: Upload dialog toast axe JSON
-        if: ${{ !cancelled() }}
+        if: ${{ !cancelled() && steps.redact-playwright.outcome == 'success' }}
         uses: actions/upload-artifact@v4
         with:
           name: dialog-toast-axe-json
@@ -524,7 +648,7 @@ jobs:
           retention-days: 14
 
       - name: Upload settings access axe JSON
-        if: ${{ !cancelled() }}
+        if: ${{ !cancelled() && steps.redact-playwright.outcome == 'success' }}
         uses: actions/upload-artifact@v4
         with:
           name: settings-access-axe-json
@@ -533,7 +657,7 @@ jobs:
           retention-days: 14
 
       - name: Upload state components axe JSON
-        if: ${{ !cancelled() }}
+        if: ${{ !cancelled() && steps.redact-playwright.outcome == 'success' }}
         uses: actions/upload-artifact@v4
         with:
           name: state-components-axe-json
@@ -542,7 +666,7 @@ jobs:
           retention-days: 14
 
       - name: Upload state components screenshots
-        if: ${{ !cancelled() }}
+        if: ${{ !cancelled() && steps.redact-playwright.outcome == 'success' }}
         uses: actions/upload-artifact@v4
         with:
           name: state-components-screenshots
@@ -551,7 +675,7 @@ jobs:
           retention-days: 14
 
       - name: Upload drawer follow-up axe JSON
-        if: ${{ !cancelled() }}
+        if: ${{ !cancelled() && steps.redact-playwright.outcome == 'success' }}
         uses: actions/upload-artifact@v4
         with:
           name: drawer-followups-axe-json
@@ -560,7 +684,7 @@ jobs:
           retention-days: 14
 
       - name: Upload workspace creation axe JSON
-        if: ${{ !cancelled() }}
+        if: ${{ !cancelled() && steps.redact-playwright.outcome == 'success' }}
         uses: actions/upload-artifact@v4
         with:
           name: workspace-create-denied-axe-json
@@ -569,7 +693,7 @@ jobs:
           retention-days: 14
 
       - name: Upload workspace creation policy axe JSON
-        if: ${{ !cancelled() }}
+        if: ${{ !cancelled() && steps.redact-playwright.outcome == 'success' }}
         uses: actions/upload-artifact@v4
         with:
           name: workspace-creation-policy-axe-json
@@ -578,7 +702,7 @@ jobs:
           retention-days: 14
 
       - name: Upload control screens axe JSON
-        if: ${{ !cancelled() }}
+        if: ${{ !cancelled() && steps.redact-playwright.outcome == 'success' }}
         uses: actions/upload-artifact@v4
         with:
           name: control-screens-axe-json
@@ -587,7 +711,7 @@ jobs:
           retention-days: 14
 
       - name: Upload microcopy axe JSON
-        if: ${{ !cancelled() }}
+        if: ${{ !cancelled() && steps.redact-playwright.outcome == 'success' }}
         uses: actions/upload-artifact@v4
         with:
           name: microcopy-states-axe-json
@@ -596,7 +720,7 @@ jobs:
           retention-days: 14
 
       - name: Upload jobs axe JSON
-        if: ${{ !cancelled() }}
+        if: ${{ !cancelled() && steps.redact-playwright.outcome == 'success' }}
         uses: actions/upload-artifact@v4
         with:
           name: jobs-axe-json
@@ -605,7 +729,7 @@ jobs:
           retention-days: 14
 
       - name: Upload vendor requests axe JSON
-        if: ${{ !cancelled() }}
+        if: ${{ !cancelled() && steps.redact-playwright.outcome == 'success' }}
         uses: actions/upload-artifact@v4
         with:
           name: vendor-requests-axe-json
@@ -614,7 +738,7 @@ jobs:
           retention-days: 14
 
       - name: Upload compliance gaps evidence
-        if: ${{ !cancelled() }}
+        if: ${{ !cancelled() && steps.redact-playwright.outcome == 'success' }}
         uses: actions/upload-artifact@v4
         with:
           name: compliance-gaps-evidence
@@ -626,7 +750,7 @@ jobs:
           retention-days: 14
 
       - name: Upload deals list and links axe JSON
-        if: ${{ !cancelled() }}
+        if: ${{ !cancelled() && steps.redact-playwright.outcome == 'success' }}
         uses: actions/upload-artifact@v4
         with:
           name: deals-list-links-axe-json
@@ -635,7 +759,7 @@ jobs:
           retention-days: 14
 
       - name: Upload notification delivery axe JSON
-        if: ${{ !cancelled() }}
+        if: ${{ !cancelled() && steps.redact-playwright.outcome == 'success' }}
         uses: actions/upload-artifact@v4
         with:
           name: notification-delivery-axe-json
@@ -644,7 +768,7 @@ jobs:
           retention-days: 14
 
       - name: Upload notification rules axe JSON
-        if: ${{ !cancelled() }}
+        if: ${{ !cancelled() && steps.redact-playwright.outcome == 'success' }}
         uses: actions/upload-artifact@v4
         with:
           name: notification-rules-axe-json
