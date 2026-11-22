@@ -240,6 +240,9 @@ def downloads(client, db_session):
         storage_key=keys["document"],
         filename="owned.pdf",
         content_type="text/html",
+        content_sha256=hashlib.sha256(_OWN_PDF).hexdigest(),
+        object_version=1,
+        object_media_type="application/pdf",
         status="uploaded",
     )
     foreign_document = Document(
@@ -255,6 +258,9 @@ def downloads(client, db_session):
         filename="pack.xlsx",
         status="completed",
         job_id=job.id,
+        content_sha256=digest,
+        object_version=1,
+        content_type=XLSX_MEDIA_TYPE,
     )
     legacy = ExportRecord(
         workspace_id=1,
@@ -412,19 +418,21 @@ def test_owned_downloads_set_nosniff_and_hide_the_object_key(downloads):
     assert exported.headers["content-type"].startswith(XLSX_MEDIA_TYPE)
     assert "pack.xlsx" in exported.headers["content-disposition"]
     _assert_nosniff(exported)
-    assert legacy.status_code == 200, legacy.text
-    assert legacy.content == _OWN_LEGACY
-    assert "legacy.xlsx" in legacy.headers["content-disposition"]
+    assert legacy.status_code == 409, legacy.text
+    assert legacy.content != _OWN_LEGACY
+    assert legacy.json()["error"]["code"] == "export_storage_failed"
+    assert downloads["keys"]["legacy"] not in legacy.text
     _assert_nosniff(legacy)
     assert attachment.status_code == 200, attachment.text
     assert attachment.content == _OWN_ATTACHMENT
     assert attachment.headers["content-type"].startswith("application/octet-stream")
     assert 'filename="note.txt"' in attachment.headers["content-disposition"]
     _assert_nosniff(attachment)
-    for response in (document, exported, legacy, attachment):
+    for response in (document, exported, attachment):
         assert "\r" not in response.headers["content-disposition"]
         assert "\n" not in response.headers["content-disposition"]
         assert "X-Amz-" not in response.text
+    assert "X-Amz-" not in legacy.text
     assert downloads["keys"]["foreign_document"] not in downloads["storage"].reads
     assert downloads["keys"]["foreign_export"] not in downloads["storage"].reads
     assert downloads["keys"]["foreign_attachment"] not in downloads["storage"].reads

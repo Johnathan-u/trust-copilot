@@ -369,6 +369,9 @@ def test_successful_xlsx_records_type_name_and_hash(monkeypatch) -> None:
     assert len(completed) == 1
     assert completed[0].status == "completed"
     assert completed[0].filename == "customer.xlsx"
+    assert completed[0].content_sha256 == _sha256(body)
+    assert completed[0].object_version == 1
+    assert completed[0].content_type == XLSX_MEDIA
 
 
 class _RouteDB:
@@ -432,7 +435,7 @@ def test_download_serves_recorded_hash_type_and_name() -> None:
 
     body = _xlsx_bytes()
     digest = _sha256(body)
-    record = _route_record()
+    record = _route_record(content_sha256=digest, object_version=1, content_type=XLSX_MEDIA)
     job = _route_job({"sha256": digest, "content_type": XLSX_MEDIA, "filename": "customer.xlsx"})
     response = get_download_url(
         record_id=record.id,
@@ -476,7 +479,7 @@ def test_download_rejects_a_hash_mismatch() -> None:
     from app.api.routes.exports import get_download_url
 
     body = _xlsx_bytes()
-    record = _route_record()
+    record = _route_record(content_sha256="ab" * 32, object_version=1, content_type=XLSX_MEDIA)
     job = _route_job({"sha256": "ab" * 32, "content_type": XLSX_MEDIA, "filename": "customer.xlsx"})
     response = get_download_url(
         record_id=record.id,
