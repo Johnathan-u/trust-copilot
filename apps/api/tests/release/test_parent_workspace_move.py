@@ -13,7 +13,7 @@ from urllib.parse import urlparse, urlunparse
 
 import pytest
 from sqlalchemy import bindparam, create_engine, text
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, load_only
 
 from app.core.database import engine
 from app.main import app
@@ -470,10 +470,31 @@ def test_downgrade_round_trip_on_a_fresh_database() -> None:
             down = _alembic("downgrade", _parent_down_revision(), database_url=fresh)
             assert down.returncode == 0, down.stderr[-2000:]
             fresh_db = FreshSession()
-            doc = fresh_db.get(Document, document_id)
+            # TC-10-006 columns are not on this downgraded schema. Load only
+            # the columns this move uses.
+            doc = (
+                fresh_db.query(Document)
+                .options(
+                    load_only(
+                        Document.id,
+                        Document.workspace_id,
+                        Document.storage_key,
+                        Document.filename,
+                        Document.status,
+                    )
+                )
+                .filter(Document.id == document_id)
+                .one()
+            )
             reassign_parent_workspace(fresh_db, doc, workspace_id=away_id)
             fresh_db.commit()
-            assert fresh_db.get(Document, document_id).workspace_id == away_id
+            moved = (
+                fresh_db.query(Document)
+                .options(load_only(Document.id, Document.workspace_id))
+                .filter(Document.id == document_id)
+                .one()
+            )
+            assert moved.workspace_id == away_id
         finally:
             fresh_db.close()
             up = _alembic("upgrade", "head", database_url=fresh)

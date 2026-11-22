@@ -1,5 +1,6 @@
 """TEST-03: Integration test for generate to export flow."""
 
+import hashlib
 import io
 import json
 from pathlib import Path
@@ -32,12 +33,37 @@ def test_generate_to_export_flow(client: TestClient) -> None:
     def fake_download_stream(bucket: str, key: str):
         return io.BytesIO(in_memory_store.get((bucket, key), b""))
 
+    def fake_download_checksummed(bucket: str, key: str):
+        body = in_memory_store.get((bucket, key))
+        if body is None:
+            raise FileNotFoundError(key)
+        digest = hashlib.sha256(body).hexdigest()
+        parts = key.split("/")
+        workspace = parts[1] if len(parts) > 1 and parts[1].isdigit() else "1"
+        if key.endswith(".docx"):
+            media = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+        else:
+            media = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        return body, {
+            "sha256": digest,
+            "version": "1",
+            "workspace-id": workspace,
+            "media-type": media,
+            "content-type": media,
+        }
+
     with patch("app.services.storage.StorageClient.upload", side_effect=fake_upload):
         with patch("app.services.storage.StorageClient.download", side_effect=fake_download):
             with patch("app.services.storage.StorageClient.exists", side_effect=fake_exists):
-                with patch(
-                    "app.services.storage.StorageClient.download_stream",
-                    side_effect=fake_download_stream,
+                with (
+                    patch(
+                        "app.services.storage.StorageClient.download_stream",
+                        side_effect=fake_download_stream,
+                    ),
+                    patch(
+                        "app.services.storage.StorageClient.download_checksummed",
+                        side_effect=fake_download_checksummed,
+                    ),
                 ):
                     r = client.post(
                         "/api/auth/login", json={"email": "demo@trust.local", "password": "j"}
