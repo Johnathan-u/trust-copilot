@@ -177,4 +177,62 @@ describe('safe persisted job consumer', () => {
     expect(actionFor({ ...job, status: 'failed' }, true)).toBe('retry')
     expect(actionFor({ ...job, status: 'completed' }, true)).toBeNull()
   })
+  it('shows input_version_changed with the questionnaire status and clears it', async () => {
+    const mod = await import('@/lib/job-history-consumer')
+    expect(typeof mod.inputVersionNotice).toBe('function')
+    const replaced = parseJobHistory({
+      items: [
+        {
+          ...row,
+          kind: 'parse_questionnaire',
+          status: 'completed',
+          outcome: 'superseded',
+          charge_uncertain: false,
+          input_version_changed: true,
+          questionnaire_status: 'parsed',
+        },
+      ],
+      next_before_id: null,
+    }).items[0]
+    expect(replaced.inputVersionChanged).toBe(true)
+    expect(replaced.questionnaireStatus).toBe('parsed')
+    expect(mod.inputVersionNotice(replaced)).toBe(
+      'input_version_changed. Questionnaire status: Parsed.'
+    )
+    const current = parseJobHistory({
+      items: [
+        {
+          ...row,
+          kind: 'parse_questionnaire',
+          status: 'completed',
+          outcome: null,
+          input_version_changed: false,
+          questionnaire_status: 'parsed',
+          progress: null,
+        },
+      ],
+      next_before_id: null,
+    }).items[0]
+    expect(current.inputVersionChanged).toBe(false)
+    expect(mod.inputVersionNotice(current)).toBe(
+      'Questionnaire status: Parsed.'
+    )
+    expect(mod.inputVersionNotice(current)).not.toContain(
+      'input_version_changed'
+    )
+    const hidden = parseJobHistory({
+      items: [
+        {
+          ...row,
+          kind: 'parse_questionnaire',
+          questionnaire_status: 'PRIVATE status',
+          input_version_changed: 'PRIVATE',
+        },
+      ],
+      next_before_id: null,
+    }).items[0]
+    expect(hidden.questionnaireStatus).toBeNull()
+    expect(hidden.inputVersionChanged).toBe(false)
+    expect(JSON.stringify(hidden)).not.toContain('PRIVATE')
+  })
 })

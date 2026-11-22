@@ -411,6 +411,156 @@ def _job_outcome(job: Job) -> str | None:
 EFFECT_QUESTIONS = "questions"
 EFFECT_CHUNKS = "chunks"
 EFFECT_EXPORT = "export_record"
+# Statuses the jobs page may show next to input_version_changed. An unknown
+# value is omitted so a stored string is not copied into the job result.
+_QUESTIONNAIRE_STATUSES = frozenset(
+    {"uploaded", "parsed", "failed", "draft", "completed", "archived", "needs_review"}
+)
+_APPROVED_ANSWER = "approved"
+
+
+def _known_questionnaire_status(status: str | None) -> str | None:
+    if status in _QUESTIONNAIRE_STATUSES:
+        return status
+    return None
+
+
+def _supersede_parse(job: Job, reason: str, status: str | None) -> None:
+    """Record a superseded parse. ``input_version_changed`` is one reason."""
+    extra: dict = {"reason": reason}
+    known = _known_questionnaire_status(status)
+    if known is not None:
+        extra["questionnaire_status"] = known
+    _set_outcome(job, "superseded", **extra)
+
+
+def _stored_content_hash(row: Question) -> str | None:
+    if isinstance(row.content_hash, str) and row.content_hash:
+        return row.content_hash
+    text = row.text
+    if not isinstance(text, str) or not text:
+        return None
+    from app.services.cell_mapping import content_hash
+
+    return content_hash(text)
+
+
+def _parsed_file_hash(questions: list[dict]) -> str | None:
+    hashes = {item.get("original_file_hash") for item in questions}
+    if len(hashes) != 1:
+        return None
+    value = next(iter(hashes))
+    return value if isinstance(value, str) and value else None
+
+
+def _approved_question_ids(session, rows: list[Question]) -> set[int]:
+    ids = [row.id for row in rows if isinstance(row.id, int)]
+    if not ids:
+        return set()
+    from app.models import Answer
+
+    found = (
+        session.query(Answer.question_id)
+        .filter(Answer.question_id.in_(ids), Answer.status == _APPROVED_ANSWER)
+        .all()
+    )
+    return {item[0] for item in found}
+
+
+def _same_bytes(session, existing: list[Question], parsed: list[dict]) -> bool:
+    """True when the parsed file is the identity already stored.
+
+    Identity is the multiset of ``content_hash`` plus one ``original_file_hash``.
+    Approved answers whose question is no longer in the file stay, and they do
+    not make a later delivery of the new file look like a different file.
+    """
+    file_digest = _parsed_file_hash(parsed)
+    approved = _approved_question_ids(session, existing)
+    if file_digest is None:
+        return bool(existing) and not parsed and all(row.id in approved for row in existing)
+    parsed_hashes = sorted(
+        item.get("content_hash") for item in parsed if isinstance(item.get("content_hash"), str)
+    )
+    if len(parsed_hashes) != len(parsed):
+        return False
+    current = [
+        row
+        for row in existing
+        if row.original_file_hash == file_digest and _stored_content_hash(row)
+    ]
+    current_hashes = sorted(_stored_content_hash(row) for row in current)
+    if current_hashes != parsed_hashes or len(current) != len(parsed):
+        return False
+    current_ids = {row.id for row in current}
+    return all(row.id in approved for row in existing if row.id not in current_ids)
+
+
+def _apply_question_fields(row: Question, item: dict) -> None:
+    row.text = item["text"]
+    row.section = item.get("section")
+    row.answer_type = item.get("answer_type")
+    row.source_location = item.get("source_location")
+    row.content_hash = item.get("content_hash")
+    row.original_file_hash = item.get("original_file_hash")
+    row.sheet = item.get("sheet")
+    row.question_cell = item.get("question_cell")
+    row.answer_cell = item.get("answer_cell")
+    row.mapping_version = item.get("mapping_version") or 0
+    row.confidence = item.get("confidence")
+
+
+def _new_question(questionnaire_id: int, item: dict) -> Question:
+    return Question(
+        questionnaire_id=questionnaire_id,
+        text=item["text"],
+        section=item.get("section"),
+        answer_type=item.get("answer_type"),
+        source_location=item.get("source_location"),
+        content_hash=item.get("content_hash"),
+        original_file_hash=item.get("original_file_hash"),
+        sheet=item.get("sheet"),
+        question_cell=item.get("question_cell"),
+        answer_cell=item.get("answer_cell"),
+        mapping_version=item.get("mapping_version") or 0,
+        confidence=item.get("confidence"),
+    )
+
+
+def _replace_questions(
+    session, questionnaire_id: int, existing: list[Question], parsed: list[dict]
+) -> None:
+    """Match by content hash, insert the rest, and drop questions with no approval.
+
+    An approved answer stays on its question id. A question the new file still
+    asks keeps that id, so the approval is not detached. A question the new
+    file dropped is deleted only when it has no approved answer. Deleting the
+    question removes a draft, because the answer row hangs off the question.
+    """
+    buckets: dict[str, list[Question]] = {}
+    for row in existing:
+        digest = _stored_content_hash(row)
+        if digest:
+            buckets.setdefault(digest, []).append(row)
+    approved = _approved_question_ids(session, existing)
+    used: set[int] = set()
+    for item in parsed:
+        digest = item.get("content_hash")
+        match = None
+        waiting = buckets.get(digest, []) if isinstance(digest, str) else []
+        while waiting:
+            candidate = waiting.pop(0)
+            if candidate.id not in used:
+                match = candidate
+                break
+        if match is None:
+            session.add(_new_question(questionnaire_id, item))
+            continue
+        used.add(match.id)
+        _apply_question_fields(match, item)
+    for row in existing:
+        if row.id in used or row.id in approved:
+            continue
+        session.delete(row)
 
 
 def run_parse_questionnaire(job: Job, session, payload: dict) -> None:
@@ -436,7 +586,7 @@ def run_parse_questionnaire(job: Job, session, payload: dict) -> None:
         return
     stale = _parse_stale_reason(qnr, storage_key)
     if stale:
-        _set_outcome(job, "superseded", reason=stale)
+        _supersede_parse(job, stale, qnr.status)
         return
     ext = Path(qnr.filename or storage_key or "").suffix.lower()
     if ext not in (".xlsx", ".xls", ".docx", ".doc", ".pdf", ".csv"):
@@ -470,59 +620,65 @@ def run_parse_questionnaire(job: Job, session, payload: dict) -> None:
         )
         stale = _parse_stale_reason(qnr, storage_key) if qnr else "questionnaire_missing"
         if stale:
+            status = qnr.status if qnr is not None else None
             session.rollback()
-            _set_outcome(job, "superseded", reason=stale)
+            _supersede_parse(job, stale, status)
             return
-        existing = session.query(Question).filter(Question.questionnaire_id == qnr_id).count()
-        if not questions and ext in (".xlsx", ".xls") and not existing:
+        # The other delivery may have committed while this one parsed the file.
+        if effects.is_applied(EFFECT_QUESTIONS):
+            saved = session.query(Question).filter(Question.questionnaire_id == qnr_id).count()
+            session.rollback()
+            _set_outcome(job, "already_applied", effect=EFFECT_QUESTIONS)
+            _record_progress(job, saved, saved)
+            _auto_classify_questionnaire(session, qnr_id, job.workspace_id, effects)
+            return
+        existing_rows = (
+            session.query(Question)
+            .filter(Question.questionnaire_id == qnr_id)
+            .order_by(Question.id)
+            .all()
+        )
+        if not questions and ext in (".xlsx", ".xls") and not existing_rows:
             mark_workbook_needs_review(qnr)
             effects.mark_applied(EFFECT_QUESTIONS, {"count": 0, "outcome": "needs_review"})
             _set_outcome(job, "needs_review", effect=EFFECT_QUESTIONS, count=0)
             _record_progress(job, 0, 0)
             session.commit()
             return
-        if existing:
-            # Questions already exist (another job, or pre-ledger code): never duplicate them and never
-            # delete them (answers / approvals hang off them). Reconcile instead.
+        if _same_bytes(session, existing_rows, questions):
+            # Same content_hash and original_file_hash. Do not insert again, and
+            # do not delete. Approved answers stay on the question ids they have.
+            count = len(existing_rows)
             if qnr.status != "parsed":
                 qnr.status = "parsed"
-            effects.mark_applied(
-                EFFECT_QUESTIONS, {"reconciled": "existing_questions", "count": existing}
-            )
-            _set_outcome(job, "reconciled", effect=EFFECT_QUESTIONS, count=existing)
-            _record_progress(job, existing, existing)
+            effects.mark_applied(EFFECT_QUESTIONS, {"reconciled": "content_hash", "count": count})
+            _set_outcome(job, "reconciled", effect=EFFECT_QUESTIONS, count=count)
+            _record_progress(job, count, count)
             session.commit()
             _auto_classify_questionnaire(session, qnr_id, job.workspace_id, effects)
             return
+        _replace_questions(session, qnr_id, existing_rows, questions)
         total = len(questions)
         owner = _lease_owner(job)
-        for done, q in enumerate(questions, start=1):
-            session.add(
-                Question(
-                    questionnaire_id=qnr_id,
-                    text=q["text"],
-                    section=q.get("section"),
-                    answer_type=q.get("answer_type"),
-                    source_location=q.get("source_location"),
-                    content_hash=q.get("content_hash"),
-                    original_file_hash=q.get("original_file_hash"),
-                    sheet=q.get("sheet"),
-                    question_cell=q.get("question_cell"),
-                    answer_cell=q.get("answer_cell"),
-                    mapping_version=q.get("mapping_version") or 0,
-                    confidence=q.get("confidence"),
-                )
-            )
-            # Another connection can read this before the question commit.
-            publish_running_progress(job.id, owner, done, total, force=(done == total))
         if total == 0:
             publish_running_progress(job.id, owner, 0, 0, force=True)
+        else:
+            publish_running_progress(job.id, owner, total, total, force=True)
         _record_progress(job, total, total)
+        detail: dict = {"count": total}
+        if existing_rows:
+            detail["replaced"] = True
+        if not questions and ext in (".xlsx", ".xls"):
+            mark_workbook_needs_review(qnr)
+            detail["outcome"] = "needs_review"
+            effects.mark_applied(EFFECT_QUESTIONS, detail)
+            _set_outcome(job, "needs_review", effect=EFFECT_QUESTIONS, count=0)
+            session.commit()
+            return
         qnr.status = "parsed"
-        qnr.parse_metadata = json.dumps({"count": len(questions), "questions": questions[:50]})
-        effects.mark_applied(EFFECT_QUESTIONS, {"count": len(questions)})
+        qnr.parse_metadata = json.dumps({"count": total, "questions": questions[:50]})
+        effects.mark_applied(EFFECT_QUESTIONS, detail)
         session.commit()
-
         _auto_classify_questionnaire(session, qnr_id, job.workspace_id, effects)
     finally:
         Path(path).unlink(missing_ok=True)

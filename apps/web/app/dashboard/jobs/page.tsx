@@ -24,6 +24,7 @@ import {
   JOB_STATUSES,
   jobsHref,
   objectLink,
+  inputVersionNotice,
   parseJobDetail,
   parseJobHistory,
   type JobAction,
@@ -66,6 +67,7 @@ function progressFacts(job: SafeJob): { text: string; label: string } | null {
 }
 function JobFacts({ job }: { job: SafeJob }) {
   const measured = progressFacts(job)
+  const versionNotice = inputVersionNotice(job)
   return (
     <div className="space-y-tc-3 text-tc-label text-tc-text">
       <p className="font-semibold">
@@ -115,6 +117,7 @@ function JobFacts({ job }: { job: SafeJob }) {
       {job.retriesExhausted && <p>Automatic retry limit reached.</p>}
       {job.failureMessage && <p>{job.failureMessage}</p>}
       {job.outcome && <p>{outcomes[job.outcome]}</p>}
+      {versionNotice && <p>{versionNotice}</p>}
       {job.chargeUncertain && (
         <p className="rounded-tc border border-tc-border-strong p-tc-3">
           A previous provider call may have been charged. Review it before

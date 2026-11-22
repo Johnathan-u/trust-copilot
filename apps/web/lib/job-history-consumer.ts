@@ -16,8 +16,18 @@ export const JOB_STATUSES = {
   failed: 'Failed',
   cancelled: 'Cancelled',
 } as const
+const QUESTIONNAIRE_STATUSES = {
+  uploaded: 'Uploaded',
+  parsed: 'Parsed',
+  failed: 'Parsing failed',
+  draft: 'Draft',
+  completed: 'Completed',
+  archived: 'Archived',
+  needs_review: 'Needs review',
+} as const
 type Kind = keyof typeof JOB_KINDS
 type Status = keyof typeof JOB_STATUSES
+type QuestionnaireStatus = keyof typeof QUESTIONNAIRE_STATUSES
 export type JobAction = 'cancel' | 'retry'
 export type SafeJob = {
   id: number
@@ -35,6 +45,8 @@ export type SafeJob = {
   failureMessage: string | null
   progress: { generated: number; total: number } | null
   outcome: 'already_applied' | 'reconciled' | 'superseded' | null
+  inputVersionChanged: boolean
+  questionnaireStatus: QuestionnaireStatus | null
   objectRef: {
     type: 'document' | 'questionnaire' | 'crm_connection'
     id: number
@@ -123,6 +135,17 @@ function project(data: unknown, legacy: boolean): SafeJob {
     rawOutcome === 'superseded'
       ? rawOutcome
       : null
+  const rawStatus = legacy
+    ? result?.questionnaire_status
+    : r.questionnaire_status
+  const questionnaireStatus =
+    typeof rawStatus === 'string' &&
+    Object.hasOwn(QUESTIONNAIRE_STATUSES, rawStatus)
+      ? (rawStatus as QuestionnaireStatus)
+      : null
+  const inputVersionChanged =
+    r.input_version_changed === true ||
+    (legacy && result?.reason === 'input_version_changed')
   let objectRef: SafeJob['objectRef'] = null
   if (!legacy && kind && r.object_ref && typeof r.object_ref === 'object') {
     const ref = r.object_ref as Record<string, unknown>
@@ -161,8 +184,21 @@ function project(data: unknown, legacy: boolean): SafeJob {
     failureMessage: status === 'failed' ? failureMessage(r.error_code) : null,
     progress: kind ? progress(legacy ? result : r.progress) : null,
     outcome,
+    inputVersionChanged,
+    questionnaireStatus,
     objectRef,
   }
+}
+export function inputVersionNotice(job: SafeJob): string | null {
+  const label = job.questionnaireStatus
+    ? QUESTIONNAIRE_STATUSES[job.questionnaireStatus]
+    : null
+  if (job.inputVersionChanged) {
+    return label
+      ? `input_version_changed. Questionnaire status: ${label}.`
+      : 'input_version_changed.'
+  }
+  return label ? `Questionnaire status: ${label}.` : null
 }
 export function parseJobHistory(
   data: unknown,

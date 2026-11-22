@@ -44,6 +44,14 @@ _log = logging.getLogger(__name__)
 _NOT_CANCELLABLE = "This job is already finished and cannot be cancelled."
 _NOT_RETRYABLE = "Only a failed or cancelled job can be retried."
 _PROGRESS_LIMIT = 9007199254740991
+_QUESTIONNAIRE_KINDS = (
+    JobKind.PARSE_QUESTIONNAIRE.value,
+    JobKind.GENERATE_ANSWERS.value,
+    JobKind.EXPORT.value,
+)
+_QUESTIONNAIRE_STATUSES = frozenset(
+    {"uploaded", "parsed", "failed", "draft", "completed", "archived", "needs_review"}
+)
 
 
 def _progress_pair(result: dict) -> dict | None:
@@ -62,6 +70,31 @@ def _conflict(request: Request, code: str, message: str) -> JSONResponse:
         retryable=False,
     )
     return api_error_response(error, 409)
+
+
+def _input_version_changed(result: dict) -> bool:
+    return result.get("reason") == "input_version_changed"
+
+
+def _questionnaire_status(db: Session, job: Job, payload: dict) -> str | None:
+    """Current questionnaire status for a job that points at one. Unknown text is dropped."""
+    if job.kind not in _QUESTIONNAIRE_KINDS:
+        return None
+    object_id = payload.get("questionnaire_id")
+    if type(object_id) is not int or not 0 < object_id <= 2147483647:
+        return None
+    row = (
+        db.query(Questionnaire.status)
+        .filter(
+            Questionnaire.id == object_id,
+            Questionnaire.workspace_id == job.workspace_id,
+            Questionnaire.deleted_at.is_(None),
+        )
+        .first()
+    )
+    if row is None or row[0] not in _QUESTIONNAIRE_STATUSES:
+        return None
+    return row[0]
 
 
 def _public_job(request: Request, db: Session, job: Job) -> dict:
@@ -97,6 +130,9 @@ def _public_job(request: Request, db: Session, job: Job) -> dict:
         "completed_at": job.completed_at.isoformat() if job.completed_at else None,
         # TC-10-003: a provider call of an interrupted/failed attempt may have been charged.
         "charge_uncertain": charge_uncertain(db, job.id),
+        # TC-09-006: a stale parse records this reason. A later parse of the new bytes does not.
+        "input_version_changed": _input_version_changed(_history_json(job.result)),
+        "questionnaire_status": _questionnaire_status(db, job, _history_json(job.payload)),
     }
 
 
@@ -240,6 +276,8 @@ def _history_job(request: Request, db: Session, job: Job) -> dict:
         "progress": progress,
         "outcome": outcome,
         "object_ref": _history_object(db, job, _history_json(job.payload)),
+        "input_version_changed": _input_version_changed(result),
+        "questionnaire_status": _questionnaire_status(db, job, _history_json(job.payload)),
     }
 
 
