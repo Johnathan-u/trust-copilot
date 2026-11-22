@@ -218,14 +218,19 @@ def export_mapping_is_stale(questions: list[dict], workbook: bytes) -> bool:
     A file hash that does not match these bytes is stale. A ruleset of 1 or
     newer is also stale when its question cell text, sheet or answer cell no
     longer matches. Legacy rows (version 0 and no file hash) are not stale:
-    they still use the column offset. This never returns cell text or hashes.
+    they still use the column offset. A question marked ``not_in_current_file``
+    is neither stale nor a legacy offset. This never returns cell text or hashes.
     """
-    from app.services.cell_mapping import content_hash, parse_cell_ref
+    from app.services.cell_mapping import content_hash, omitted_from_current_file, parse_cell_ref
     from app.services.question_normalizer import normalize_question
 
     digest = sha256_hex(workbook)
     explicit: list[dict] = []
     for question in questions:
+        # A retained approval is not a mapping of this workbook. Its old file
+        # hash must not make the export stale, and it is not a legacy offset.
+        if omitted_from_current_file(question):
+            continue
         stored = _valid_sha256(question.get("original_file_hash"))
         if stored is not None and stored != digest:
             return True

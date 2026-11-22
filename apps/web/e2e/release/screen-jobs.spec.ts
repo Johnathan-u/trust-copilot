@@ -642,6 +642,59 @@ test('late history and saved cursor cannot leak across a workspace switch', asyn
     '?workspace_id=8&limit=25'
   )
 })
+test('a replaced file shows input_version_changed with the questionnaire status', async ({
+  page,
+}) => {
+  const { state } = await setup(page)
+  state.rows = [
+    {
+      ...job,
+      id: 45,
+      kind: 'parse_questionnaire',
+      status: 'completed',
+      outcome: 'superseded',
+      charge_uncertain: false,
+      progress: null,
+      input_version_changed: true,
+      questionnaire_status: 'parsed',
+    },
+    {
+      ...job,
+      id: 44,
+      kind: 'parse_questionnaire',
+      status: 'completed',
+      outcome: null,
+      charge_uncertain: false,
+      progress: null,
+      input_version_changed: false,
+      questionnaire_status: 'parsed',
+    },
+    {
+      ...job,
+      id: 43,
+      kind: 'parse_questionnaire',
+      status: 'cancelled',
+      outcome: null,
+      charge_uncertain: false,
+      progress: null,
+      input_version_changed: false,
+      questionnaire_status: 'parsed',
+    },
+  ]
+  await open(page)
+  const region = page.getByRole('region', { name: 'Job history' })
+  await expect(
+    region.getByText('input_version_changed. Questionnaire status: Parsed.', {
+      exact: true,
+    })
+  ).toHaveCount(1)
+  await expect(
+    region.getByText('Questionnaire status: Parsed.', { exact: true })
+  ).toHaveCount(2)
+  await expect(region.getByText('Cancelled', { exact: true })).toBeVisible()
+  await expect(region.getByRole('button', { name: 'Retry job' })).toBeVisible()
+  await expect(region).not.toContainText('PRIVATE')
+})
 test('invalid saved cursor exposes a reset without a business request', async ({
   page,
 }) => {

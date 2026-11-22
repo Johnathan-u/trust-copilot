@@ -174,10 +174,13 @@ def placements_from_questions_and_answers(
     questions: list of {id, source_location, ...}
     question_to_answer: {question_id: answer_text}
     """
+    from app.services.cell_mapping import omitted_from_current_file
+
     placements = []
     for q in questions:
         qid = q.get("id")
-        if qid is None:
+        if qid is None or omitted_from_current_file(q):
+            # Not in the current file: do not write it, and do not step to the next column.
             continue
         text = question_to_answer.get(qid, "")
         loc_raw = q.get("source_location")

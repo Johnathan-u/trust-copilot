@@ -18,12 +18,26 @@ interface ParsedQuestion {
   text: string
   section: string | null
   answer_type: string | null
+  source_location?: string | null
   sheet?: string | null
   question_cell?: string | null
   answer_cell?: string | null
   content_hash?: string | null
   original_file_hash?: string | null
   mapping_version?: number | null
+  answer?: { text?: string | null; status?: string | null } | null
+}
+
+const NOT_IN_CURRENT_FILE = 'not_in_current_file'
+
+export function retainedQuestionLabel(
+  question: Pick<ParsedQuestion, 'source_location' | 'answer'>
+): string | null {
+  if (question.source_location !== NOT_IN_CURRENT_FILE) return null
+  const answer = question.answer
+  if (answer?.status === 'approved' && answer.text)
+    return `Not in the current file. Approved answer: ${answer.text}`
+  return 'Not in the current file.'
 }
 
 function sourceLabel(question: ParsedQuestion): string {
@@ -561,38 +575,51 @@ export default function QuestionnaireDetailPage() {
                 </tr>
               </thead>
               <tbody>
-                {qnr.questions.map((q, i) => (
-                  <tr key={q.id} className="border-t border-[var(--tc-border)]">
-                    <td className="p-3 text-[var(--tc-muted)]">{i + 1}</td>
-                    <td className="p-3 text-[var(--tc-text)]">{q.text}</td>
-                    <td className="p-3 text-[var(--tc-muted)]">
-                      {q.section || '-'}
-                    </td>
-                    <td className="p-3 text-[var(--tc-muted)]">
-                      {q.answer_type || '-'}
-                    </td>
-                    <td
-                      className="p-3 text-[var(--tc-muted)]"
-                      title={[
-                        q.content_hash ? `Text hash ${q.content_hash}` : '',
-                        q.original_file_hash
-                          ? `File hash ${q.original_file_hash}`
-                          : '',
-                        `Mapping version ${q.mapping_version ?? 0}`,
-                      ]
-                        .filter(Boolean)
-                        .join('\n')}
+                {qnr.questions.map((q, i) => {
+                  const retained = retainedQuestionLabel(q)
+                  return (
+                    <tr
+                      key={q.id}
+                      className="border-t border-[var(--tc-border)]"
                     >
-                      <div>{sourceLabel(q)}</div>
-                      <div className="text-xs">
-                        v{q.mapping_version ?? 0}
-                        {q.content_hash
-                          ? ` · ${q.content_hash.slice(0, 8)}`
-                          : ''}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
+                      <td className="p-3 text-[var(--tc-muted)]">{i + 1}</td>
+                      <td className="p-3 text-[var(--tc-text)]">
+                        <div>{q.text}</div>
+                        {retained && (
+                          <div className="mt-1 text-xs text-[var(--tc-muted)]">
+                            {retained}
+                          </div>
+                        )}
+                      </td>
+                      <td className="p-3 text-[var(--tc-muted)]">
+                        {q.section || '-'}
+                      </td>
+                      <td className="p-3 text-[var(--tc-muted)]">
+                        {q.answer_type || '-'}
+                      </td>
+                      <td
+                        className="p-3 text-[var(--tc-muted)]"
+                        title={[
+                          q.content_hash ? `Text hash ${q.content_hash}` : '',
+                          q.original_file_hash
+                            ? `File hash ${q.original_file_hash}`
+                            : '',
+                          `Mapping version ${q.mapping_version ?? 0}`,
+                        ]
+                          .filter(Boolean)
+                          .join('\n')}
+                      >
+                        <div>{sourceLabel(q)}</div>
+                        <div className="text-xs">
+                          v{q.mapping_version ?? 0}
+                          {q.content_hash
+                            ? ` · ${q.content_hash.slice(0, 8)}`
+                            : ''}
+                        </div>
+                      </td>
+                    </tr>
+                  )
+                })}
               </tbody>
             </table>
           </div>
