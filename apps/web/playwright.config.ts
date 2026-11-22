@@ -55,6 +55,8 @@ export default defineConfig({
   reporter: 'list',
   use: {
     baseURL,
+    // TC-02-009: a retried failure still writes a trace. CI redacts trace zips
+    // and HTML/JSON reports before upload (scripts/ci/redact-playwright-artifacts.py).
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
   },

@@ -1,0 +1,42 @@
+FFF........                                                              [100%]
+=================================== FAILURES ===================================
+_____________ test_repository_workflows_meet_the_evidence_contract _____________
+
+    def test_repository_workflows_meet_the_evidence_contract():
+        problems = _problems_for()
+>       assert problems == []
+E       AssertionError: assert ['build does ...ght redactor'] == []
+E         
+E         Left contains 4 more items, first extra item: 'build does not print the evidence block'
+E         Use -v to get more diff
+
+tests/release/test_ci_evidence.py:438: AssertionError
+_____________________ test_evidence_blocks_are_valid_bash ______________________
+
+    def test_evidence_blocks_are_valid_bash():
+        doc = yaml.safe_load((WORKFLOWS / "ci.yml").read_text(encoding="utf-8"))
+        for job_name in CI_JOBS:
+            evidence = _evidence_runs(_jobs(doc)[job_name])
+>           assert evidence.strip(), job_name
+E           AssertionError: build
+E           assert ''
+E            +  where '' = <built-in method strip of str object at 0xb3c3f0>()
+E            +    where <built-in method strip of str object at 0xb3c3f0> = ''.strip
+
+tests/release/test_ci_evidence.py:445: AssertionError
+___________________ test_missing_sha_line_fails_the_checker ____________________
+
+    def test_missing_sha_line_fails_the_checker():
+        workflows = _load_workflows()
+        workflows["ci.yml"] = workflows["ci.yml"].replace('echo "commit: ${{ github.sha }}"\n', "", 1)
+        problems = _problems_for(workflows)
+>       assert any("build" in item and "commit SHA" in item for item in problems)
+E       assert False
+E        +  where False = any(<generator object test_missing_sha_line_fails_the_checker.<locals>.<genexpr> at 0x7feea776b850>)
+
+tests/release/test_ci_evidence.py:461: AssertionError
+=========================== short test summary info ============================
+FAILED tests/release/test_ci_evidence.py::test_repository_workflows_meet_the_evidence_contract
+FAILED tests/release/test_ci_evidence.py::test_evidence_blocks_are_valid_bash
+FAILED tests/release/test_ci_evidence.py::test_missing_sha_line_fails_the_checker
+3 failed, 8 passed in 0.49s
