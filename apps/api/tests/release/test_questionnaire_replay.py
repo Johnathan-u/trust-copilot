@@ -372,7 +372,10 @@ def test_cancel_and_retry_keep_questionnaire_state(db, store):
     assert _history(db, retried)["input_version_changed"] is False
 
 
-def test_concurrent_delivery_of_the_same_job_inserts_once(db, store):
+def test_concurrent_delivery_of_the_same_job_inserts_once(db, store, monkeypatch):
+    from app import worker
+    from app.services.file_service import FileService
+
     blob = _workbook([Q_KEEP, Q_NEW])
     key = _store_file(store, WS, "concurrent.xlsx", blob)
     qnr = _questionnaire(db, WS, key, "concurrent.xlsx")
@@ -381,24 +384,22 @@ def test_concurrent_delivery_of_the_same_job_inserts_once(db, store):
     qnr_id = qnr.id
     barrier = threading.Barrier(2)
     errors: list[BaseException] = []
+    real_download = FileService.download_raw
+
+    def gated(self, storage_key):
+        barrier.wait(timeout=10)
+        return real_download(self, storage_key)
+
+    # One patch on the test thread. Two threads must not each install and undo
+    # the same class attribute, or the undo can leave the gate in place.
+    monkeypatch.setattr(worker, "_auto_classify_questionnaire", lambda *a, **k: None)
+    monkeypatch.setattr(FileService, "download_raw", gated)
 
     def deliver() -> None:
         session = SessionLocal()
         try:
-            from app import worker
-            from app.services.file_service import FileService
-
             running = session.query(Job).filter(Job.id == job_id).one()
-            real = FileService.download_raw
-
-            def gated(self, storage_key):
-                barrier.wait(timeout=10)
-                return real(self, storage_key)
-
-            with pytest.MonkeyPatch.context() as patch:
-                patch.setattr(worker, "_auto_classify_questionnaire", lambda *a, **k: None)
-                patch.setattr(FileService, "download_raw", gated)
-                worker.run_parse_questionnaire(running, session, json.loads(running.payload))
+            worker.run_parse_questionnaire(running, session, json.loads(running.payload))
         except BaseException as exc:  # noqa: BLE001 — the assertion reports the thread error
             errors.append(exc)
         finally:
@@ -408,8 +409,13 @@ def test_concurrent_delivery_of_the_same_job_inserts_once(db, store):
     second = threading.Thread(target=deliver)
     first.start()
     second.start()
-    first.join(timeout=30)
-    second.join(timeout=30)
+    try:
+        first.join(timeout=30)
+        second.join(timeout=30)
+    finally:
+        barrier.abort()
+        first.join(timeout=5)
+        second.join(timeout=5)
     assert not first.is_alive() and not second.is_alive()
     assert errors == []
     rows = _questions(db, qnr_id)
