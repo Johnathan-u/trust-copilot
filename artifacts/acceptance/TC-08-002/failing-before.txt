@@ -1,0 +1,724 @@
+FFFFFFFFFF...FFFF..F.FF                                                  [100%]
+=================================== FAILURES ===================================
+_______________ test_format_failure_is_not_indexed[corrupt.xlsx] _______________
+
+filename = 'corrupt.xlsx', build = <function _corrupt_bytes at 0x7f7b45111b20>
+code = 'workbook_corrupt'
+client = <starlette.testclient.TestClient object at 0x7f7b409000e0>
+storage = {('test-raw', 'raw/1/c24a356c11fb4392ac7bce597a22ad78.xlsx'): b'synthetic-marker-08002 not a package'}
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7f7b3f1e48f0>
+db_session = <sqlalchemy.orm.session.Session object at 0x7f7b3f1e49b0>
+
+    @pytest.mark.parametrize(("filename", "build", "code"), _API_CASES, ids=[c[0] for c in _API_CASES])
+    def test_format_failure_is_not_indexed(filename, build, code, client, storage, monkeypatch, db_session):
+        from unittest.mock import patch
+
+        from app.models import Chunk
+
+        _login(client)
+        payload = build()
+        with patch("app.services.index_service.embed_texts") as embed:
+            uploaded = client.post(
+                "/api/documents/upload",
+                data={"workspace_id": "1"},
+                files={"file": (filename, payload, "application/octet-stream")},
+            )
+            assert uploaded.status_code == 200, uploaded.text
+            doc_id, job_id = uploaded.json()["id"], uploaded.json()["job_id"]
+            _run_worker_on(job_id, monkeypatch)
+            embed.assert_not_called()
+
+        job = client.get(f"/api/jobs/{job_id}?workspace_id=1")
+        assert job.status_code == 200, job.text
+        body = job.json()
+        assert body["kind"] == "index_document"
+        assert body["status"] == "failed"
+        assert body["error_code"] == "bad_input"
+        assert body["retryable"] is False
+>       _assert_clean(body["error"], code)
+
+tests/release/test_evidence_format_errors.py:261:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+text = 'Parse returned no content; document not indexed'
+code = 'workbook_corrupt'
+
+    def _assert_clean(text: str, code: str) -> None:
+        summary, action = REASONS[code]
+>       assert text == _message(code)
+E       AssertionError: assert 'Parse return...t not indexed' == 'Workbook is ...oad it again.'
+E
+E         - Workbook is corrupt or unreadable. Re-export it as an .xlsx file and upload it again.
+E         + Parse returned no content; document not indexed
+
+tests/release/test_evidence_format_errors.py:181: AssertionError
+------------------------------ Captured log call -------------------------------
+WARNING  trustcopilot.pipeline:pipeline_logging.py:117 pipeline index_failure {'event': 'index_failure', 'job_id': 1, 'workspace_id': 1, 'document_id': 1, 'duration_ms': 3.21, 'error': 'Parse returned no content'}
+WARNING  trustcopilot.pipeline:pipeline_logging.py:69 pipeline job_failure {'event': 'job_failure', 'job_id': 1, 'workspace_id': 1, 'document_id': 1, 'duration_ms': 17.68, 'error': 'Parse returned no content; document not indexed', 'kind': 'index_document'}
+WARNING  trustcopilot.alert:worker.py:1383 ALERT_JOB_FAILURE job_id=1 kind=index_document workspace_id=1 error_code=bad_input error=Parse returned no content; document not indexed
+________________ test_format_failure_is_not_indexed[legacy.doc] ________________
+
+filename = 'legacy.doc', build = <function _legacy_bytes at 0x7f7b433118a0>
+code = 'legacy_office'
+client = <starlette.testclient.TestClient object at 0x7f7b3e381130>
+storage = {('test-raw', 'raw/1/f0dfe286ca354d12b7d30a27f0f59673.doc'): b'\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1synthetic-marker-08002 ...0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00'}
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7f7b3e314fb0>
+db_session = <sqlalchemy.orm.session.Session object at 0x7f7b3e386c60>
+
+    @pytest.mark.parametrize(("filename", "build", "code"), _API_CASES, ids=[c[0] for c in _API_CASES])
+    def test_format_failure_is_not_indexed(filename, build, code, client, storage, monkeypatch, db_session):
+        from unittest.mock import patch
+
+        from app.models import Chunk
+
+        _login(client)
+        payload = build()
+        with patch("app.services.index_service.embed_texts") as embed:
+            uploaded = client.post(
+                "/api/documents/upload",
+                data={"workspace_id": "1"},
+                files={"file": (filename, payload, "application/octet-stream")},
+            )
+            assert uploaded.status_code == 200, uploaded.text
+            doc_id, job_id = uploaded.json()["id"], uploaded.json()["job_id"]
+            _run_worker_on(job_id, monkeypatch)
+            embed.assert_not_called()
+
+        job = client.get(f"/api/jobs/{job_id}?workspace_id=1")
+        assert job.status_code == 200, job.text
+        body = job.json()
+        assert body["kind"] == "index_document"
+        assert body["status"] == "failed"
+>       assert body["error_code"] == "bad_input"
+E       AssertionError: assert 'internal_error' == 'bad_input'
+E
+E         - bad_input
+E         + internal_error
+
+tests/release/test_evidence_format_errors.py:259: AssertionError
+------------------------------ Captured log call -------------------------------
+WARNING  trustcopilot.pipeline:pipeline_logging.py:69 pipeline job_failure {'event': 'job_failure', 'job_id': 2, 'workspace_id': 1, 'document_id': 2, 'duration_ms': 124.3, 'error': "Package not found at '/tmp/tmpfjsbqhlf.doc'", 'kind': 'index_document'}
+WARNING  trustcopilot.alert:worker.py:1383 ALERT_JOB_FAILURE job_id=2 kind=index_document workspace_id=1 error_code=internal_error error=Package not found at '/tmp/tmpfjsbqhlf.doc'
+________________ test_format_failure_is_not_indexed[legacy.xls] ________________
+
+filename = 'legacy.xls', build = <function _legacy_bytes at 0x7f7b433118a0>
+code = 'legacy_office'
+client = <starlette.testclient.TestClient object at 0x7f7b3d6a87d0>
+storage = {('test-raw', 'raw/1/28eeddedabfc4488b46f2ced08cfdf17.xls'): b'\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1synthetic-marker-08002 ...0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00'}
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7f7b3d6a4a70>
+db_session = <sqlalchemy.orm.session.Session object at 0x7f7b3d6a4830>
+
+    @pytest.mark.parametrize(("filename", "build", "code"), _API_CASES, ids=[c[0] for c in _API_CASES])
+    def test_format_failure_is_not_indexed(filename, build, code, client, storage, monkeypatch, db_session):
+        from unittest.mock import patch
+
+        from app.models import Chunk
+
+        _login(client)
+        payload = build()
+        with patch("app.services.index_service.embed_texts") as embed:
+            uploaded = client.post(
+                "/api/documents/upload",
+                data={"workspace_id": "1"},
+                files={"file": (filename, payload, "application/octet-stream")},
+            )
+            assert uploaded.status_code == 200, uploaded.text
+            doc_id, job_id = uploaded.json()["id"], uploaded.json()["job_id"]
+            _run_worker_on(job_id, monkeypatch)
+            embed.assert_not_called()
+
+        job = client.get(f"/api/jobs/{job_id}?workspace_id=1")
+        assert job.status_code == 200, job.text
+        body = job.json()
+        assert body["kind"] == "index_document"
+        assert body["status"] == "failed"
+        assert body["error_code"] == "bad_input"
+        assert body["retryable"] is False
+>       _assert_clean(body["error"], code)
+
+tests/release/test_evidence_format_errors.py:261:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+text = 'Parse returned no content; document not indexed', code = 'legacy_office'
+
+    def _assert_clean(text: str, code: str) -> None:
+        summary, action = REASONS[code]
+>       assert text == _message(code)
+E       AssertionError: assert 'Parse return...t not indexed' == 'Legacy .doc ...ad that copy.'
+E
+E         - Legacy .doc and .xls files are not supported. Save the file as .docx or .xlsx and upload that copy.
+E         + Parse returned no content; document not indexed
+
+tests/release/test_evidence_format_errors.py:181: AssertionError
+------------------------------ Captured log call -------------------------------
+WARNING  trustcopilot.pipeline:pipeline_logging.py:117 pipeline index_failure {'event': 'index_failure', 'job_id': 3, 'workspace_id': 1, 'document_id': 3, 'duration_ms': 1.86, 'error': 'Parse returned no content'}
+WARNING  trustcopilot.pipeline:pipeline_logging.py:69 pipeline job_failure {'event': 'job_failure', 'job_id': 3, 'workspace_id': 1, 'document_id': 3, 'duration_ms': 9.15, 'error': 'Parse returned no content; document not indexed', 'kind': 'index_document'}
+WARNING  trustcopilot.alert:worker.py:1383 ALERT_JOB_FAILURE job_id=3 kind=index_document workspace_id=1 error_code=bad_input error=Parse returned no content; document not indexed
+_______________ test_format_failure_is_not_indexed[broken.docx] ________________
+
+filename = 'broken.docx', build = <function _corrupt_bytes at 0x7f7b45111b20>
+code = 'docx_unreadable'
+client = <starlette.testclient.TestClient object at 0x7f7b3d4b3440>
+storage = {('test-raw', 'raw/1/b97b042e9ae1426285112fc482ee090c.docx'): b'synthetic-marker-08002 not a package'}
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7f7b3d4ecbc0>
+db_session = <sqlalchemy.orm.session.Session object at 0x7f7b3d4ec530>
+
+    @pytest.mark.parametrize(("filename", "build", "code"), _API_CASES, ids=[c[0] for c in _API_CASES])
+    def test_format_failure_is_not_indexed(filename, build, code, client, storage, monkeypatch, db_session):
+        from unittest.mock import patch
+
+        from app.models import Chunk
+
+        _login(client)
+        payload = build()
+        with patch("app.services.index_service.embed_texts") as embed:
+            uploaded = client.post(
+                "/api/documents/upload",
+                data={"workspace_id": "1"},
+                files={"file": (filename, payload, "application/octet-stream")},
+            )
+            assert uploaded.status_code == 200, uploaded.text
+            doc_id, job_id = uploaded.json()["id"], uploaded.json()["job_id"]
+            _run_worker_on(job_id, monkeypatch)
+            embed.assert_not_called()
+
+        job = client.get(f"/api/jobs/{job_id}?workspace_id=1")
+        assert job.status_code == 200, job.text
+        body = job.json()
+        assert body["kind"] == "index_document"
+        assert body["status"] == "failed"
+>       assert body["error_code"] == "bad_input"
+E       AssertionError: assert 'internal_error' == 'bad_input'
+E
+E         - bad_input
+E         + internal_error
+
+tests/release/test_evidence_format_errors.py:259: AssertionError
+------------------------------ Captured log call -------------------------------
+WARNING  trustcopilot.pipeline:pipeline_logging.py:69 pipeline job_failure {'event': 'job_failure', 'job_id': 4, 'workspace_id': 1, 'document_id': 4, 'duration_ms': 5.94, 'error': "Package not found at '/tmp/tmp30w8apwk.docx'", 'kind': 'index_document'}
+WARNING  trustcopilot.alert:worker.py:1383 ALERT_JOB_FAILURE job_id=4 kind=index_document workspace_id=1 error_code=internal_error error=Package not found at '/tmp/tmp30w8apwk.docx'
+________________ test_format_failure_is_not_indexed[empty.docx] ________________
+
+filename = 'empty.docx', build = <function _empty_docx at 0x7f7b43311940>
+code = 'empty_evidence'
+client = <starlette.testclient.TestClient object at 0x7f7b3d4ede20>
+storage = {('test-raw', 'raw/1/f083e6abd7d540e2b6a820ace4d06c92.docx'): b'PK\x03\x04\x14\x00\x00\x00\x08\x00\xc7yv]\xadR\xa5\x91...\x01j\x84\x00\x00docProps/thumbnail.jpegPK\x05\x06\x00\x00\x00\x00\x11\x00\x11\x00a\x04\x00\x00\\\x8a\x00\x00\x00\x00'}
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7f7b3d4ea7e0>
+db_session = <sqlalchemy.orm.session.Session object at 0x7f7b3d4ea750>
+
+    @pytest.mark.parametrize(("filename", "build", "code"), _API_CASES, ids=[c[0] for c in _API_CASES])
+    def test_format_failure_is_not_indexed(filename, build, code, client, storage, monkeypatch, db_session):
+        from unittest.mock import patch
+
+        from app.models import Chunk
+
+        _login(client)
+        payload = build()
+        with patch("app.services.index_service.embed_texts") as embed:
+            uploaded = client.post(
+                "/api/documents/upload",
+                data={"workspace_id": "1"},
+                files={"file": (filename, payload, "application/octet-stream")},
+            )
+            assert uploaded.status_code == 200, uploaded.text
+            doc_id, job_id = uploaded.json()["id"], uploaded.json()["job_id"]
+            _run_worker_on(job_id, monkeypatch)
+            embed.assert_not_called()
+
+        job = client.get(f"/api/jobs/{job_id}?workspace_id=1")
+        assert job.status_code == 200, job.text
+        body = job.json()
+        assert body["kind"] == "index_document"
+        assert body["status"] == "failed"
+        assert body["error_code"] == "bad_input"
+        assert body["retryable"] is False
+>       _assert_clean(body["error"], code)
+
+tests/release/test_evidence_format_errors.py:261:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+text = 'Parse returned no content; document not indexed'
+code = 'empty_evidence'
+
+    def _assert_clean(text: str, code: str) -> None:
+        summary, action = REASONS[code]
+>       assert text == _message(code)
+E       AssertionError: assert 'Parse return...t not indexed' == 'This file ha...ontains text.'
+E
+E         - This file has no extractable text. Upload a file that contains text.
+E         + Parse returned no content; document not indexed
+
+tests/release/test_evidence_format_errors.py:181: AssertionError
+------------------------------ Captured log call -------------------------------
+WARNING  trustcopilot.pipeline:pipeline_logging.py:117 pipeline index_failure {'event': 'index_failure', 'job_id': 5, 'workspace_id': 1, 'document_id': 5, 'duration_ms': 7.46, 'error': 'Parse returned no content'}
+WARNING  trustcopilot.pipeline:pipeline_logging.py:69 pipeline job_failure {'event': 'job_failure', 'job_id': 5, 'workspace_id': 1, 'document_id': 5, 'duration_ms': 13.84, 'error': 'Parse returned no content; document not indexed', 'kind': 'index_document'}
+WARNING  trustcopilot.alert:worker.py:1383 ALERT_JOB_FAILURE job_id=5 kind=index_document workspace_id=1 error_code=bad_input error=Parse returned no content; document not indexed
+________________ test_format_failure_is_not_indexed[blank.docx] ________________
+
+filename = 'blank.docx', build = <function _blank_docx at 0x7f7b433119e0>
+code = 'empty_evidence'
+client = <starlette.testclient.TestClient object at 0x7f7b3d569610>
+storage = {('test-raw', 'raw/1/c1cf8c10f06e40cc8dd0305ca9bbfa0a.docx'): b'PK\x03\x04\x14\x00\x00\x00\x08\x00\xc7yv]\xadR\xa5\x91...01\x8b\x84\x00\x00docProps/thumbnail.jpegPK\x05\x06\x00\x00\x00\x00\x11\x00\x11\x00a\x04\x00\x00}\x8a\x00\x00\x00\x00'}
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7f7b3d4f06b0>
+db_session = <sqlalchemy.orm.session.Session object at 0x7f7b3d4f04a0>
+
+    @pytest.mark.parametrize(("filename", "build", "code"), _API_CASES, ids=[c[0] for c in _API_CASES])
+    def test_format_failure_is_not_indexed(filename, build, code, client, storage, monkeypatch, db_session):
+        from unittest.mock import patch
+
+        from app.models import Chunk
+
+        _login(client)
+        payload = build()
+        with patch("app.services.index_service.embed_texts") as embed:
+            uploaded = client.post(
+                "/api/documents/upload",
+                data={"workspace_id": "1"},
+                files={"file": (filename, payload, "application/octet-stream")},
+            )
+            assert uploaded.status_code == 200, uploaded.text
+            doc_id, job_id = uploaded.json()["id"], uploaded.json()["job_id"]
+            _run_worker_on(job_id, monkeypatch)
+            embed.assert_not_called()
+
+        job = client.get(f"/api/jobs/{job_id}?workspace_id=1")
+        assert job.status_code == 200, job.text
+        body = job.json()
+        assert body["kind"] == "index_document"
+        assert body["status"] == "failed"
+        assert body["error_code"] == "bad_input"
+        assert body["retryable"] is False
+>       _assert_clean(body["error"], code)
+
+tests/release/test_evidence_format_errors.py:261:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+text = 'Parse returned no content; document not indexed'
+code = 'empty_evidence'
+
+    def _assert_clean(text: str, code: str) -> None:
+        summary, action = REASONS[code]
+>       assert text == _message(code)
+E       AssertionError: assert 'Parse return...t not indexed' == 'This file ha...ontains text.'
+E
+E         - This file has no extractable text. Upload a file that contains text.
+E         + Parse returned no content; document not indexed
+
+tests/release/test_evidence_format_errors.py:181: AssertionError
+------------------------------ Captured log call -------------------------------
+WARNING  trustcopilot.pipeline:pipeline_logging.py:117 pipeline index_failure {'event': 'index_failure', 'job_id': 6, 'workspace_id': 1, 'document_id': 6, 'duration_ms': 10.0, 'error': 'Parse returned no content'}
+WARNING  trustcopilot.pipeline:pipeline_logging.py:69 pipeline job_failure {'event': 'job_failure', 'job_id': 6, 'workspace_id': 1, 'document_id': 6, 'duration_ms': 16.37, 'error': 'Parse returned no content; document not indexed', 'kind': 'index_document'}
+WARNING  trustcopilot.alert:worker.py:1383 ALERT_JOB_FAILURE job_id=6 kind=index_document workspace_id=1 error_code=bad_input error=Parse returned no content; document not indexed
+________________ test_format_failure_is_not_indexed[empty.xlsx] ________________
+
+filename = 'empty.xlsx', build = <function _empty_xlsx at 0x7f7b43311a80>
+code = 'empty_evidence'
+client = <starlette.testclient.TestClient object at 0x7f7b3d4ea9f0>
+storage = {('test-raw', 'raw/1/cc0555ca25df4bbe86cd53590d34de2d.xlsx'): b'PK\x03\x04\x14\x00\x00\x00\x08\x00\xc7yv]F\xc7MH\x95\x...00\x80\x01\x11\x0f\x00\x00[Content_Types].xmlPK\x05\x06\x00\x00\x00\x00\t\x00\t\x00>\x02\x00\x00[\x10\x00\x00\x00\x00'}
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7f7b3d557020>
+db_session = <sqlalchemy.orm.session.Session object at 0x7f7b3d5578c0>
+
+    @pytest.mark.parametrize(("filename", "build", "code"), _API_CASES, ids=[c[0] for c in _API_CASES])
+    def test_format_failure_is_not_indexed(filename, build, code, client, storage, monkeypatch, db_session):
+        from unittest.mock import patch
+
+        from app.models import Chunk
+
+        _login(client)
+        payload = build()
+        with patch("app.services.index_service.embed_texts") as embed:
+            uploaded = client.post(
+                "/api/documents/upload",
+                data={"workspace_id": "1"},
+                files={"file": (filename, payload, "application/octet-stream")},
+            )
+            assert uploaded.status_code == 200, uploaded.text
+            doc_id, job_id = uploaded.json()["id"], uploaded.json()["job_id"]
+            _run_worker_on(job_id, monkeypatch)
+            embed.assert_not_called()
+
+        job = client.get(f"/api/jobs/{job_id}?workspace_id=1")
+        assert job.status_code == 200, job.text
+        body = job.json()
+        assert body["kind"] == "index_document"
+        assert body["status"] == "failed"
+        assert body["error_code"] == "bad_input"
+        assert body["retryable"] is False
+>       _assert_clean(body["error"], code)
+
+tests/release/test_evidence_format_errors.py:261:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+text = 'Parse returned no content; document not indexed'
+code = 'empty_evidence'
+
+    def _assert_clean(text: str, code: str) -> None:
+        summary, action = REASONS[code]
+>       assert text == _message(code)
+E       AssertionError: assert 'Parse return...t not indexed' == 'This file ha...ontains text.'
+E
+E         - This file has no extractable text. Upload a file that contains text.
+E         + Parse returned no content; document not indexed
+
+tests/release/test_evidence_format_errors.py:181: AssertionError
+------------------------------ Captured log call -------------------------------
+WARNING  trustcopilot.pipeline:pipeline_logging.py:117 pipeline index_failure {'event': 'index_failure', 'job_id': 7, 'workspace_id': 1, 'document_id': 7, 'duration_ms': 4.6, 'error': 'Parse returned no content'}
+WARNING  trustcopilot.pipeline:pipeline_logging.py:69 pipeline job_failure {'event': 'job_failure', 'job_id': 7, 'workspace_id': 1, 'document_id': 7, 'duration_ms': 9.91, 'error': 'Parse returned no content; document not indexed', 'kind': 'index_document'}
+WARNING  trustcopilot.alert:worker.py:1383 ALERT_JOB_FAILURE job_id=7 kind=index_document workspace_id=1 error_code=bad_input error=Parse returned no content; document not indexed
+________________ test_format_failure_is_not_indexed[blank.xlsx] ________________
+
+filename = 'blank.xlsx', build = <function _blank_xlsx at 0x7f7b43311b20>
+code = 'empty_evidence'
+client = <starlette.testclient.TestClient object at 0x7f7b3d56f320>
+storage = {('test-raw', 'raw/1/2228aa64f08b46d69550f16dca70b40b.xlsx'): b'PK\x03\x04\x14\x00\x00\x00\x08\x00\xc7yv]F\xc7MH\x95\x...00\x80\x01W\x0f\x00\x00[Content_Types].xmlPK\x05\x06\x00\x00\x00\x00\t\x00\t\x00>\x02\x00\x00\xa1\x10\x00\x00\x00\x00'}
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7f7b3d3aa8a0>
+db_session = <sqlalchemy.orm.session.Session object at 0x7f7b3d3aa960>
+
+    @pytest.mark.parametrize(("filename", "build", "code"), _API_CASES, ids=[c[0] for c in _API_CASES])
+    def test_format_failure_is_not_indexed(filename, build, code, client, storage, monkeypatch, db_session):
+        from unittest.mock import patch
+
+        from app.models import Chunk
+
+        _login(client)
+        payload = build()
+        with patch("app.services.index_service.embed_texts") as embed:
+            uploaded = client.post(
+                "/api/documents/upload",
+                data={"workspace_id": "1"},
+                files={"file": (filename, payload, "application/octet-stream")},
+            )
+            assert uploaded.status_code == 200, uploaded.text
+            doc_id, job_id = uploaded.json()["id"], uploaded.json()["job_id"]
+            _run_worker_on(job_id, monkeypatch)
+            embed.assert_not_called()
+
+        job = client.get(f"/api/jobs/{job_id}?workspace_id=1")
+        assert job.status_code == 200, job.text
+        body = job.json()
+        assert body["kind"] == "index_document"
+        assert body["status"] == "failed"
+        assert body["error_code"] == "bad_input"
+        assert body["retryable"] is False
+>       _assert_clean(body["error"], code)
+
+tests/release/test_evidence_format_errors.py:261:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+text = 'Parse returned no content; document not indexed'
+code = 'empty_evidence'
+
+    def _assert_clean(text: str, code: str) -> None:
+        summary, action = REASONS[code]
+>       assert text == _message(code)
+E       AssertionError: assert 'Parse return...t not indexed' == 'This file ha...ontains text.'
+E
+E         - This file has no extractable text. Upload a file that contains text.
+E         + Parse returned no content; document not indexed
+
+tests/release/test_evidence_format_errors.py:181: AssertionError
+------------------------------ Captured log call -------------------------------
+WARNING  trustcopilot.pipeline:pipeline_logging.py:117 pipeline index_failure {'event': 'index_failure', 'job_id': 8, 'workspace_id': 1, 'document_id': 8, 'duration_ms': 4.11, 'error': 'Parse returned no content'}
+WARNING  trustcopilot.pipeline:pipeline_logging.py:69 pipeline job_failure {'event': 'job_failure', 'job_id': 8, 'workspace_id': 1, 'document_id': 8, 'duration_ms': 10.37, 'error': 'Parse returned no content; document not indexed', 'kind': 'index_document'}
+WARNING  trustcopilot.alert:worker.py:1383 ALERT_JOB_FAILURE job_id=8 kind=index_document workspace_id=1 error_code=bad_input error=Parse returned no content; document not indexed
+________________ test_format_failure_is_not_indexed[empty.txt] _________________
+
+filename = 'empty.txt', build = <function <lambda> at 0x7f7b43311ee0>
+code = 'empty_evidence'
+client = <starlette.testclient.TestClient object at 0x7f7b3d3fc2f0>
+storage = {('test-raw', 'raw/1/ec9ce1b9142645b0bb4f6114205af801.txt'): b''}
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7f7b3d3fdf40>
+db_session = <sqlalchemy.orm.session.Session object at 0x7f7b3d3fe570>
+
+    @pytest.mark.parametrize(("filename", "build", "code"), _API_CASES, ids=[c[0] for c in _API_CASES])
+    def test_format_failure_is_not_indexed(filename, build, code, client, storage, monkeypatch, db_session):
+        from unittest.mock import patch
+
+        from app.models import Chunk
+
+        _login(client)
+        payload = build()
+        with patch("app.services.index_service.embed_texts") as embed:
+            uploaded = client.post(
+                "/api/documents/upload",
+                data={"workspace_id": "1"},
+                files={"file": (filename, payload, "application/octet-stream")},
+            )
+            assert uploaded.status_code == 200, uploaded.text
+            doc_id, job_id = uploaded.json()["id"], uploaded.json()["job_id"]
+            _run_worker_on(job_id, monkeypatch)
+            embed.assert_not_called()
+
+        job = client.get(f"/api/jobs/{job_id}?workspace_id=1")
+        assert job.status_code == 200, job.text
+        body = job.json()
+        assert body["kind"] == "index_document"
+        assert body["status"] == "failed"
+        assert body["error_code"] == "bad_input"
+        assert body["retryable"] is False
+>       _assert_clean(body["error"], code)
+
+tests/release/test_evidence_format_errors.py:261:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+text = 'Parse returned no content; document not indexed'
+code = 'empty_evidence'
+
+    def _assert_clean(text: str, code: str) -> None:
+        summary, action = REASONS[code]
+>       assert text == _message(code)
+E       AssertionError: assert 'Parse return...t not indexed' == 'This file ha...ontains text.'
+E
+E         - This file has no extractable text. Upload a file that contains text.
+E         + Parse returned no content; document not indexed
+
+tests/release/test_evidence_format_errors.py:181: AssertionError
+------------------------------ Captured log call -------------------------------
+WARNING  trustcopilot.pipeline:pipeline_logging.py:117 pipeline index_failure {'event': 'index_failure', 'job_id': 9, 'workspace_id': 1, 'document_id': 9, 'duration_ms': 1.81, 'error': 'Parse returned no content'}
+WARNING  trustcopilot.pipeline:pipeline_logging.py:69 pipeline job_failure {'event': 'job_failure', 'job_id': 9, 'workspace_id': 1, 'document_id': 9, 'duration_ms': 8.95, 'error': 'Parse returned no content; document not indexed', 'kind': 'index_document'}
+WARNING  trustcopilot.alert:worker.py:1383 ALERT_JOB_FAILURE job_id=9 kind=index_document workspace_id=1 error_code=bad_input error=Parse returned no content; document not indexed
+________________ test_format_failure_is_not_indexed[blank.txt] _________________
+
+filename = 'blank.txt', build = <function <lambda> at 0x7f7b43311f80>
+code = 'empty_evidence'
+client = <starlette.testclient.TestClient object at 0x7f7b3d434830>
+storage = {('test-raw', 'raw/1/218bab1f68c74068b2e9cbbc80bb0645.txt'): b' \n\t '}
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7f7b3d407380>
+db_session = <sqlalchemy.orm.session.Session object at 0x7f7b3d407470>
+
+    @pytest.mark.parametrize(("filename", "build", "code"), _API_CASES, ids=[c[0] for c in _API_CASES])
+    def test_format_failure_is_not_indexed(filename, build, code, client, storage, monkeypatch, db_session):
+        from unittest.mock import patch
+
+        from app.models import Chunk
+
+        _login(client)
+        payload = build()
+        with patch("app.services.index_service.embed_texts") as embed:
+            uploaded = client.post(
+                "/api/documents/upload",
+                data={"workspace_id": "1"},
+                files={"file": (filename, payload, "application/octet-stream")},
+            )
+            assert uploaded.status_code == 200, uploaded.text
+            doc_id, job_id = uploaded.json()["id"], uploaded.json()["job_id"]
+            _run_worker_on(job_id, monkeypatch)
+            embed.assert_not_called()
+
+        job = client.get(f"/api/jobs/{job_id}?workspace_id=1")
+        assert job.status_code == 200, job.text
+        body = job.json()
+        assert body["kind"] == "index_document"
+        assert body["status"] == "failed"
+        assert body["error_code"] == "bad_input"
+        assert body["retryable"] is False
+>       _assert_clean(body["error"], code)
+
+tests/release/test_evidence_format_errors.py:261:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+text = 'Parse returned no content; document not indexed'
+code = 'empty_evidence'
+
+    def _assert_clean(text: str, code: str) -> None:
+        summary, action = REASONS[code]
+>       assert text == _message(code)
+E       AssertionError: assert 'Parse return...t not indexed' == 'This file ha...ontains text.'
+E
+E         - This file has no extractable text. Upload a file that contains text.
+E         + Parse returned no content; document not indexed
+
+tests/release/test_evidence_format_errors.py:181: AssertionError
+------------------------------ Captured log call -------------------------------
+WARNING  trustcopilot.pipeline:pipeline_logging.py:117 pipeline index_failure {'event': 'index_failure', 'job_id': 10, 'workspace_id': 1, 'document_id': 10, 'duration_ms': 1.73, 'error': 'Parse returned no content'}
+WARNING  trustcopilot.pipeline:pipeline_logging.py:69 pipeline job_failure {'event': 'job_failure', 'job_id': 10, 'workspace_id': 1, 'document_id': 10, 'duration_ms': 8.99, 'error': 'Parse returned no content; document not indexed', 'kind': 'index_document'}
+WARNING  trustcopilot.alert:worker.py:1383 ALERT_JOB_FAILURE job_id=10 kind=index_document workspace_id=1 error_code=bad_input error=Parse returned no content; document not indexed
+________________ test_legacy_office_ignores_installed_libraries ________________
+
+tmp_path = PosixPath('/tmp/pytest-of-ubuntu/pytest-0/test_legacy_office_ignores_ins0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7f7b3d46a8a0>
+
+    def test_legacy_office_ignores_installed_libraries(tmp_path, monkeypatch):
+        import docx
+        import openpyxl
+
+        def boom(*args, **kwargs):
+            raise RuntimeError(f"leak {tmp_path} {MARKER}")
+
+        monkeypatch.setattr(docx, "Document", boom)
+        monkeypatch.setattr(openpyxl, "load_workbook", boom)
+        for name in ("legacy.doc", "legacy.xls"):
+            path = tmp_path / name
+            path.write_bytes(_legacy_bytes())
+            with pytest.raises(Exception) as caught:
+                parse_evidence(path)
+            err = caught.value
+>           assert getattr(err, "code", None) == "legacy_office"
+E           AssertionError: assert None == 'legacy_office'
+E            +  where None = getattr(RuntimeError('leak /tmp/pytest-of-ubuntu/pytest-0/test_legacy_office_ignores_ins0 synthetic-marker-08002'), 'code', None)
+
+tests/release/test_evidence_format_errors.py:302: AssertionError
+_________________ test_legacy_office_ignores_a_missing_library _________________
+
+tmp_path = PosixPath('/tmp/pytest-of-ubuntu/pytest-0/test_legacy_office_ignores_a_m0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7f7b3d2afdd0>
+
+    def test_legacy_office_ignores_a_missing_library(tmp_path, monkeypatch):
+        import builtins
+        import sys
+
+        real_import = builtins.__import__
+
+        def guarded(name, globals=None, locals=None, fromlist=(), level=0):
+            if name == "docx" or name.startswith("docx.") or name == "openpyxl":
+                raise ImportError(f"missing {name} {MARKER}")
+            return real_import(name, globals, locals, fromlist, level)
+
+        monkeypatch.setattr(builtins, "__import__", guarded)
+        for module in ("docx", "openpyxl"):
+            monkeypatch.delitem(sys.modules, module, raising=False)
+        for name in ("legacy.doc", "legacy.xls"):
+            path = tmp_path / name
+            path.write_bytes(_legacy_bytes())
+>           with pytest.raises(Exception) as caught:
+E           Failed: DID NOT RAISE Exception
+
+tests/release/test_evidence_format_errors.py:325: Failed
+____________________ test_corrupt_workbook_hides_the_bytes _____________________
+
+tmp_path = PosixPath('/tmp/pytest-of-ubuntu/pytest-0/test_corrupt_workbook_hides_th0')
+
+    def test_corrupt_workbook_hides_the_bytes(tmp_path):
+        path = tmp_path / "corrupt.xlsx"
+        path.write_bytes(_corrupt_bytes())
+>       with pytest.raises(Exception) as caught:
+E       Failed: DID NOT RAISE Exception
+
+tests/release/test_evidence_format_errors.py:334: Failed
+_______________________ test_corrupt_docx_hides_the_path _______________________
+
+tmp_path = PosixPath('/tmp/pytest-of-ubuntu/pytest-0/test_corrupt_docx_hides_the_pa0')
+
+    def test_corrupt_docx_hides_the_path(tmp_path):
+        path = tmp_path / "broken.docx"
+        path.write_bytes(_corrupt_bytes())
+        with pytest.raises(Exception) as caught:
+            parse_evidence(path)
+>       assert getattr(caught.value, "code", None) == "docx_unreadable"
+E       AssertionError: assert None == 'docx_unreadable'
+E        +  where None = getattr(BadZipFile('File is not a zip file'), 'code', None)
+E        +    where BadZipFile('File is not a zip file') = <ExceptionInfo BadZipFile('File is not a zip file') tblen=9>.value
+
+tests/release/test_evidence_format_errors.py:346: AssertionError
+______________ test_stored_csv_and_unknown_bytes_are_not_indexed _______________
+
+client = <starlette.testclient.TestClient object at 0x7f7b3d2d0bc0>
+db_session = <sqlalchemy.orm.session.Session object at 0x7f7b3d2d1070>
+
+    def test_stored_csv_and_unknown_bytes_are_not_indexed(client, db_session):
+        from app.models import Chunk, Document
+        from app.services.file_service import FileService
+        from app.services.index_service import index_document
+
+        _login(client)
+
+        class _Store:
+            bucket_raw = "raw"
+
+            def __init__(self):
+                self.objects: dict[tuple[str, str], bytes] = {}
+
+            def download(self, bucket, key):
+                return self.objects[(bucket, key)]
+
+        samples = {
+            "empty.csv": b"",
+            "words.csv": f"{MARKER},alpha,beta\n".encode(),
+            "empty.rtf": b"",
+            "words.rtf": f"{{\\rtf1 {MARKER}}}".encode(),
+        }
+        for name, payload in samples.items():
+            store = _Store()
+            key = f"raw/1/{name}"
+            store.objects[("raw", key)] = payload
+            doc = Document(
+                workspace_id=1,
+                storage_key=key,
+                filename=name,
+                status="uploaded",
+            )
+            db_session.add(doc)
+            db_session.commit()
+            db_session.refresh(doc)
+            with pytest.raises(Exception) as caught:
+                index_document(db_session, doc.id, store, FileService(store))
+            db_session.expire_all()
+            stored = db_session.get(Document, doc.id)
+            assert stored.status == "failed", name
+            assert stored.status != "indexed"
+>           _assert_clean(stored.index_error, "empty_evidence")
+
+tests/release/test_evidence_format_errors.py:423:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+text = 'Parse returned no content; document not indexed'
+code = 'empty_evidence'
+
+    def _assert_clean(text: str, code: str) -> None:
+        summary, action = REASONS[code]
+>       assert text == _message(code)
+E       AssertionError: assert 'Parse return...t not indexed' == 'This file ha...ontains text.'
+E
+E         - This file has no extractable text. Upload a file that contains text.
+E         + Parse returned no content; document not indexed
+
+tests/release/test_evidence_format_errors.py:181: AssertionError
+------------------------------ Captured log call -------------------------------
+WARNING  trustcopilot.pipeline:pipeline_logging.py:117 pipeline index_failure {'event': 'index_failure', 'workspace_id': 1, 'document_id': 14, 'duration_ms': 2.64, 'error': 'Parse returned no content'}
+______________________ test_reason_codes_match_the_module ______________________
+
+    def test_reason_codes_match_the_module():
+>       from app.services.evidence_format import (
+            DocxUnreadableError,
+            EmptyEvidenceError,
+            LegacyOfficeError,
+            WorkbookCorruptError,
+        )
+E       ModuleNotFoundError: No module named 'app.services.evidence_format'
+
+tests/release/test_evidence_format_errors.py:449: ModuleNotFoundError
+___________________ test_messages_do_not_embed_a_caller_path ___________________
+
+tmp_path = PosixPath('/tmp/pytest-of-ubuntu/pytest-0/test_messages_do_not_embed_a_c0')
+
+    def test_messages_do_not_embed_a_caller_path(tmp_path: Path):
+>       from app.services.evidence_format import LegacyOfficeError
+E       ModuleNotFoundError: No module named 'app.services.evidence_format'
+
+tests/release/test_evidence_format_errors.py:477: ModuleNotFoundError
+=============================== warnings summary ===============================
+tests/release/test_evidence_format_errors.py: 28 warnings
+  /tmp/tc-venv/lib/python3.12/site-packages/sqlalchemy/sql/schema.py:3627: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    return util.wrap_callable(lambda ctx: fn(), fn)  # type: ignore
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/release/test_evidence_format_errors.py::test_format_failure_is_not_indexed[corrupt.xlsx]
+FAILED tests/release/test_evidence_format_errors.py::test_format_failure_is_not_indexed[legacy.doc]
+FAILED tests/release/test_evidence_format_errors.py::test_format_failure_is_not_indexed[legacy.xls]
+FAILED tests/release/test_evidence_format_errors.py::test_format_failure_is_not_indexed[broken.docx]
+FAILED tests/release/test_evidence_format_errors.py::test_format_failure_is_not_indexed[empty.docx]
+FAILED tests/release/test_evidence_format_errors.py::test_format_failure_is_not_indexed[blank.docx]
+FAILED tests/release/test_evidence_format_errors.py::test_format_failure_is_not_indexed[empty.xlsx]
+FAILED tests/release/test_evidence_format_errors.py::test_format_failure_is_not_indexed[blank.xlsx]
+FAILED tests/release/test_evidence_format_errors.py::test_format_failure_is_not_indexed[empty.txt]
+FAILED tests/release/test_evidence_format_errors.py::test_format_failure_is_not_indexed[blank.txt]
+FAILED tests/release/test_evidence_format_errors.py::test_legacy_office_ignores_installed_libraries
+FAILED tests/release/test_evidence_format_errors.py::test_legacy_office_ignores_a_missing_library
+FAILED tests/release/test_evidence_format_errors.py::test_corrupt_workbook_hides_the_bytes
+FAILED tests/release/test_evidence_format_errors.py::test_corrupt_docx_hides_the_path
+FAILED tests/release/test_evidence_format_errors.py::test_stored_csv_and_unknown_bytes_are_not_indexed
+FAILED tests/release/test_evidence_format_errors.py::test_reason_codes_match_the_module
+FAILED tests/release/test_evidence_format_errors.py::test_messages_do_not_embed_a_caller_path
+17 failed, 6 passed, 28 warnings in 4.36s
+EXIT:1
