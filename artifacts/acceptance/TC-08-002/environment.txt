@@ -1,6 +1,36 @@
-SHA: 69a5230ff8f1e197419644ee0cdf5fe326379f41
-Python: 3.12.3
-pytest: 9.1.1
-PostgreSQL: 16.15 (Ubuntu 16.15-0ubuntu0.24.04.1)
-pgvector: 0.6.0
-Database: trustcopilot_test on 127.0.0.1:5432
+Command from apps/api:
+
+python -m pytest tests/release/test_evidence_format_errors.py -q
+
+This run set TC_REQUIRE_DB=1 so a missing database fails instead of skipping.
+
+Failing-before product code: 34041ee0eefebface47424eb1d61e3a5b323c2f8 (origin/master).
+The new test was run against that code.
+Exit 1. 17 failed, 6 passed, 0 skipped. Log: failing-before.txt.
+A corrupt xlsx and an empty file stored "Parse returned no content; document not indexed".
+A .doc with python-docx installed was internal_error. A .xls was swallowed.
+The three PDF cases passed, as did a readable text file and a refused csv upload.
+
+Passing-after product code: 8624eca676041359e7cff947974a12cbcfc16cf6.
+Exit 0. 23 passed, 0 failed, 0 skipped. 28 warnings from datetime.utcnow deprecation in existing models. Log: passing-after.txt.
+
+Python 3.12.3
+pytest 9.1.1
+SQLAlchemy 2.0.55
+Alembic 1.20.1
+openpyxl 3.1.5
+python-docx 1.2.0
+pypdf 6.21.3
+PostgreSQL 16.15 (Ubuntu 16.15-0ubuntu0.24.04.1)
+pgvector 0.6.0
+
+Database trustcopilot_test on 127.0.0.1:5432, user postgres.
+The password is the local development default and is not copied here.
+
+No migration in this change. Fixtures are synthetic. No customer document.
+The logs do not contain a connection URL.
+
+CI's build job uses Python 3.11. This local log is Python 3.12.3. CI run ids are not recorded here.
+
+The earlier pytest.txt and ci-runs.md are the PARTIAL verification logs.
+They are unchanged. This file does not add a run id.
