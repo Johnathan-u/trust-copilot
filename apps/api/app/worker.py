@@ -557,8 +557,18 @@ def _replace_questions(
             continue
         used.add(match.id)
         _apply_question_fields(match, item)
+    from app.services.cell_mapping import NOT_IN_CURRENT_FILE
+
     for row in existing:
-        if row.id in used or row.id in approved:
+        if row.id in used:
+            continue
+        if row.id in approved:
+            # The approval stays. The row is not a cell in the current file, so
+            # export must not treat the old hash or the old answer cell as a target.
+            row.source_location = NOT_IN_CURRENT_FILE
+            row.sheet = None
+            row.question_cell = None
+            row.answer_cell = None
             continue
         session.delete(row)
 

@@ -18,7 +18,7 @@ from sqlalchemy.orm import Session
 
 from app.core.database import SessionLocal
 from app.models import Answer, Job, Question, Questionnaire
-from app.services.cell_mapping import content_hash, file_hash
+from app.services.cell_mapping import NOT_IN_CURRENT_FILE, content_hash, file_hash
 from app.services.job_control import cancel_job, retry_job
 from app.services.question_normalizer import normalize_question
 
@@ -268,7 +268,10 @@ def test_replaced_file_parses_once_and_keeps_approved_answers(db, store):
     assert kept_answer.text == "Approved answer stays"
     dropped = _by_hash(parsed, Q_APPROVED_DROPPED)
     assert len(dropped) == 1 and dropped[0].id == approved.id
-    assert dropped[0].original_file_hash == file_hash(original)
+    assert dropped[0].source_location == NOT_IN_CURRENT_FILE
+    assert dropped[0].sheet is None
+    assert dropped[0].question_cell is None
+    assert dropped[0].answer_cell is None
     dropped_answer = db.query(Answer).filter(Answer.question_id == approved.id).one()
     assert dropped_answer.status == "approved"
     assert dropped_answer.text == "Approval survives the drop"
@@ -422,6 +425,114 @@ def test_concurrent_delivery_of_the_same_job_inserts_once(db, store, monkeypatch
     assert len(rows) == 2
     assert {row.original_file_hash for row in rows} == {file_hash(blob)}
     assert len({row.content_hash for row in rows}) == 2
+
+
+def _question_payload(row: Question) -> dict:
+    return {
+        "id": row.id,
+        "text": row.text or "",
+        "source_location": row.source_location,
+        "content_hash": row.content_hash,
+        "original_file_hash": row.original_file_hash,
+        "sheet": row.sheet,
+        "question_cell": row.question_cell,
+        "answer_cell": row.answer_cell,
+        "mapping_version": row.mapping_version,
+    }
+
+
+def _workbook_text(blob: bytes) -> list[str]:
+    from openpyxl import load_workbook
+
+    book = load_workbook(io.BytesIO(blob), data_only=False)
+    try:
+        found: list[str] = []
+        for sheet in book.worksheets:
+            for row in sheet.iter_rows():
+                for cell in row:
+                    if cell.value is not None:
+                        found.append(str(cell.value))
+        return found
+    finally:
+        book.close()
+
+
+def test_replaced_file_exports_without_the_dropped_approval(db, store):
+    """A retained approval does not make the new workbook's export stale."""
+    from app import worker
+    from app.models import JobStatus
+    from app.services.export_service import export_mapping_is_stale
+
+    kept_answer = "Approved answer stays on the question that remains"
+    dropped_answer = "Approved answer stays off the current file"
+    original = _workbook([Q_KEEP, Q_APPROVED_DROPPED])
+    old_key = _store_file(store, WS, "export-original.xlsx", original)
+    qnr = _questionnaire(db, WS, old_key, "export-original.xlsx")
+    _parse(db, _job(db, WS, qnr.id, old_key))
+    rows = _questions(db, qnr.id)
+    kept = _by_hash(rows, Q_KEEP)[0]
+    dropped = _by_hash(rows, Q_APPROVED_DROPPED)[0]
+    db.add_all(
+        [
+            Answer(question_id=kept.id, text=kept_answer, status="approved"),
+            Answer(question_id=dropped.id, text=dropped_answer, status="approved"),
+        ]
+    )
+    db.commit()
+    replacement = _workbook([Q_KEEP, Q_NEW])
+    new_key = _store_file(store, WS, "export-replacement.xlsx", replacement)
+    qnr.storage_key = new_key
+    qnr.filename = "export-replacement.xlsx"
+    db.commit()
+    _parse(db, _job(db, WS, qnr.id, new_key))
+    parsed = _questions(db, qnr.id)
+    kept_after = _by_hash(parsed, Q_KEEP)[0]
+    dropped_after = _by_hash(parsed, Q_APPROVED_DROPPED)[0]
+    added = _by_hash(parsed, Q_NEW)[0]
+    assert dropped_after.source_location == NOT_IN_CURRENT_FILE
+    assert kept_after.answer_cell
+    assert added.answer_cell
+    payloads = [_question_payload(row) for row in parsed]
+    assert export_mapping_is_stale(payloads, replacement) is False
+    stale = dict(_question_payload(kept_after))
+    stale["original_file_hash"] = "ab" * 32
+    assert export_mapping_is_stale([stale, _question_payload(dropped_after)], replacement) is True
+
+    payload = {"questionnaire_id": qnr.id, "workspace_id": WS, "format": "xlsx"}
+    export_job = Job(
+        workspace_id=WS,
+        kind="export",
+        status=JobStatus.RUNNING.value,
+        payload=json.dumps(payload),
+        attempt=1,
+    )
+    db.add(export_job)
+    db.commit()
+    db.refresh(export_job)
+    worker.run_export(export_job, db, payload)
+    exported = [
+        body for (bucket, key), body in store.data.items() if str(key).startswith(f"exports/{WS}/")
+    ]
+    assert len(exported) == 1
+    written = _workbook_text(exported[0])
+    assert Q_KEEP in written
+    assert Q_NEW in written
+    assert Q_APPROVED_DROPPED not in written
+    assert kept_answer in written
+    assert dropped_answer not in written
+    from openpyxl import load_workbook
+
+    book = load_workbook(io.BytesIO(exported[0]), data_only=False)
+    try:
+        sheet = book[kept_after.sheet]
+        assert sheet[kept_after.answer_cell].value == kept_answer
+        assert sheet[added.answer_cell].value != dropped_answer
+    finally:
+        book.close()
+    db.expire_all()
+    still = db.query(Answer).filter(Answer.question_id == dropped.id).one()
+    assert still.status == "approved"
+    assert still.text == dropped_answer
 
 
 def test_history_hides_an_unknown_questionnaire_status(db, store):

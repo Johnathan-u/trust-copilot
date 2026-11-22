@@ -1,15 +1,8 @@
-.......                                                                  [100%]
+........                                                                 [100%]
 =============================== warnings summary ===============================
-tests/release/test_questionnaire_replay.py::test_replaced_file_parses_once_and_keeps_approved_answers
-tests/release/test_questionnaire_replay.py::test_replaced_file_parses_once_and_keeps_approved_answers
-tests/release/test_questionnaire_replay.py::test_replaced_file_parses_once_and_keeps_approved_answers
-tests/release/test_questionnaire_replay.py::test_replaced_file_parses_once_and_keeps_approved_answers
-tests/release/test_questionnaire_replay.py::test_replaced_file_parses_once_and_keeps_approved_answers
-tests/release/test_questionnaire_replay.py::test_replaced_file_parses_once_and_keeps_approved_answers
-tests/release/test_questionnaire_replay.py::test_cancel_and_retry_keep_questionnaire_state
-tests/release/test_questionnaire_replay.py::test_cancel_and_retry_keep_questionnaire_state
+tests/release/test_questionnaire_replay.py: 13 warnings
   /tmp/tc-venv/lib/python3.12/site-packages/sqlalchemy/sql/schema.py:3627: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
     return util.wrap_callable(lambda ctx: fn(), fn)  # type: ignore
 
 -- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
-7 passed, 8 warnings in 1.12s
+8 passed, 13 warnings in 1.08s

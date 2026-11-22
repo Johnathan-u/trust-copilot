@@ -32,6 +32,16 @@ from app.services.question_normalizer import normalize_question as normalize
 
 # Ruleset that selects an explicit answer cell. Legacy rows stay at 0.
 CELL_MAPPING_VERSION = 1
+# A question kept only because an approved answer must survive a file replace.
+# It is not in the workbook being exported. mapping_version cannot be negative:
+# ck_questions_mapping_version_nonneg forbids that, and this marker adds no migration.
+NOT_IN_CURRENT_FILE = "not_in_current_file"
+
+
+def omitted_from_current_file(question: dict) -> bool:
+    """True when the row is retained off the current file and must not be exported."""
+    return question.get("source_location") == NOT_IN_CURRENT_FILE
+
 
 SourceBuilder = Callable[[int, int], dict[str, Any]]
 CellNamer = Callable[[int, int], str]

@@ -12,8 +12,8 @@ A replaced file left the old original_file_hash on the kept question.
 Two deliveries of the same job hit the existing job_effects unique key.
 The cross-workspace case passed.
 
-Passing-after product code: 4bd721d1a280ef26d74f01962e2694d731c9d504.
-Exit 0. 7 passed, 0 failed, 0 skipped. 8 warnings from datetime.utcnow deprecation in existing models. Log: passing-after.txt.
+Passing-after product code includes the not_in_current_file export marker.
+Exit 0. 8 passed, 0 failed, 0 skipped. Warnings from datetime.utcnow deprecation in existing models. Log: passing-after.txt.
 
 From apps/web, before the fix:
 npx vitest run tests/unit/job-history-consumer.test.ts

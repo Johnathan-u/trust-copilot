@@ -25,10 +25,18 @@ questions. A new job for the new key parses those bytes once.
 Questions whose text is still in the new file keep their ids. Their file hash
 and cells are updated. An approved answer on that id stays, including its text
 and status. A question the new file dropped is removed when it has no approved
-answer, and a draft answer on it is removed with it. A question the new file
-dropped that has an approved answer is kept, with the old file hash, so the
-approval is not deleted. A later delivery of the same new bytes sees that
-survivor and does not insert the new questions again.
+answer. A draft on that question is deleted with it: a draft can be generated
+again, and the question is gone from the file. A question the new file dropped
+that has an approved answer is kept. Its `source_location` becomes
+`not_in_current_file`, and its sheet and cells are cleared. The approval stays
+on that answer row. `mapping_version` stays non-negative because the existing
+check constraint forbids a negative value, and this change adds no migration.
+Export skips that marker. It does not write the question into the workbook, it
+does not use the legacy column offset for it, and the old file hash does not
+make `export_mapping_is_stale` true. The review page still shows the question
+and its approved answer, labelled as not in the current file. A later delivery
+of the same new bytes sees that survivor and does not insert the new questions
+again.
 
 ## What the jobs page shows
 

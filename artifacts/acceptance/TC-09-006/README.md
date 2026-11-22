@@ -24,7 +24,7 @@ Exit 1. 6 failed, 1 passed, 0 skipped. The history response had no `input_versio
 
 Same command on product code `4bd721d1a280ef26d74f01962e2694d731c9d504`. Log: `passing-after.txt`.
 
-7 passed, 0 failed, 0 skipped, exit 0. Pytest also printed 8 warnings from `datetime.utcnow` in existing models. The same bytes do not duplicate questions. A replaced file is parsed once. An approved answer stays. A draft on a dropped question is removed. `input_version_changed` is set on the stale job and clear on the new parse. Workspace 2 is untouched by a workspace 1 job. Cancel and retry leave the questionnaire parsed. Two concurrent deliveries insert one set of questions.
+8 passed, 0 failed, 0 skipped, exit 0. Pytest also printed warnings from `datetime.utcnow` in existing models. The same bytes do not duplicate questions. A replaced file is parsed once. An approved answer stays. A dropped approved question is marked `not_in_current_file` and the real export of the new file succeeds. The dropped approval is not written into the workbook and remains on the answer row. A genuinely stale mapping is still rejected. A draft on a dropped question is removed. `input_version_changed` is set on the stale job and clear on the new parse. Workspace 2 is untouched by a workspace 1 job. Cancel and retry leave the questionnaire parsed. Two concurrent deliveries insert one set of questions.
 
 From `apps/web`, `npx vitest run tests/unit/job-history-consumer.test.ts` was 1 failed and 17 passed before `inputVersionNotice` existed, and 18 passed after. `npx playwright test e2e/release/screen-jobs.spec.ts --grep input_version_changed` passed 1 test. The page shows `input_version_changed. Questionnaire status: Parsed.`
 
