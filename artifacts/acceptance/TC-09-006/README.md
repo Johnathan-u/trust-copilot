@@ -22,7 +22,7 @@ Exit 1. 6 failed, 1 passed, 0 skipped. The history response had no `input_versio
 
 ## Passing after
 
-Same command on product code `dd31ebaddf400077ca0faf1ee19edf9163f34851`. Log: `passing-after.txt`.
+Same command on product code `4bd721d1a280ef26d74f01962e2694d731c9d504`. Log: `passing-after.txt`.
 
 7 passed, 0 failed, 0 skipped, exit 0. Pytest also printed 8 warnings from `datetime.utcnow` in existing models. The same bytes do not duplicate questions. A replaced file is parsed once. An approved answer stays. A draft on a dropped question is removed. `input_version_changed` is set on the stale job and clear on the new parse. Workspace 2 is untouched by a workspace 1 job. Cancel and retry leave the questionnaire parsed. Two concurrent deliveries insert one set of questions.
 
