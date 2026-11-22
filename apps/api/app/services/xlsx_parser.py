@@ -6,6 +6,8 @@ from typing import Iterator
 
 import openpyxl
 
+from app.services.evidence_format import WorkbookCorruptError
+
 UNREADABLE_WORKBOOK = (
     "Workbook is corrupt or unreadable. Re-export it as an .xlsx file and upload it again."
 )
@@ -22,19 +24,33 @@ class WorkbookUnreadable(ValueError):
 
 
 def iter_sheets(path: str | Path) -> Iterator[tuple[str, list[list]]]:
-    """Yield (sheet_name, rows) for each sheet. Handles corrupt/empty files (RES-01)."""
+    """Yield (sheet_name, rows) for each sheet.
+
+    A file that cannot be opened, or whose every sheet fails to read, raises
+    WorkbookCorruptError. The message does not include the path or the parser
+    exception. A readable workbook with no rows yields nothing; that is an
+    empty file, not a corrupt one.
+    """
     try:
         wb = openpyxl.load_workbook(path, read_only=True, data_only=True)
-    except Exception:
-        return
+    except Exception as exc:
+        raise WorkbookCorruptError(detail=type(exc).__name__) from exc
     try:
-        for sheet in wb.worksheets:
+        try:
+            sheets = list(wb.worksheets)
+        except Exception as exc:
+            raise WorkbookCorruptError(detail=type(exc).__name__) from exc
+        failed = 0
+        for sheet in sheets:
             try:
                 rows = [list(row) for row in sheet.iter_rows(values_only=True)]
-                if rows:
-                    yield sheet.title, rows
             except Exception:
+                failed += 1
                 continue
+            if rows:
+                yield sheet.title, rows
+        if sheets and failed == len(sheets):
+            raise WorkbookCorruptError()
     finally:
         wb.close()
 

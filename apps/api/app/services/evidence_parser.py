@@ -3,6 +3,7 @@
 from pathlib import Path
 from typing import Iterator
 
+from app.services.evidence_format import DocxUnreadableError, EvidenceFormatError, LegacyOfficeError
 from app.services.pdf_text import extract_page_texts, require_text
 
 
@@ -21,12 +22,20 @@ def parse_pdf(path: str | Path) -> Iterator[dict]:
 
 
 def parse_docx(path: str | Path) -> Iterator[dict]:
-    """Extract text from DOCX (DOC-04)."""
+    """Extract text from DOCX (DOC-04).
+
+    A package that cannot be opened raises DocxUnreadableError. Its message is
+    fixed and has no path. A missing python-docx install yields nothing. Legacy
+    .doc is rejected by parse_evidence and is not passed here.
+    """
     try:
         from docx import Document
     except ImportError:
         return
-    doc = Document(path)
+    try:
+        doc = Document(path)
+    except Exception as exc:
+        raise DocxUnreadableError(detail=type(exc).__name__) from exc
     for i, para in enumerate(doc.paragraphs):
         if para.text.strip():
             yield {"section": i, "text": para.text.strip()}
@@ -60,16 +69,28 @@ def parse_plain_text(path: str | Path) -> list[dict]:
 
 
 def parse_evidence(path: str | Path) -> list[dict]:
-    """Dispatch to appropriate parser by extension."""
+    """Dispatch to the parser for this extension.
+
+    .doc and .xls raise LegacyOfficeError before any office library is imported,
+    whether or not python-docx or openpyxl is installed. A .docx that is not a
+    readable package raises DocxUnreadableError. A readable file with no text
+    returns an empty list.
+    """
     p = Path(path)
     ext = p.suffix.lower()
-    results = []
     if ext == ".pdf":
-        results = list(parse_pdf(path))
-    elif ext in (".docx", ".doc"):
-        results = list(parse_docx(path))
-    elif ext in (".xlsx", ".xls"):
-        results = list(parse_xlsx_evidence(path))
-    elif ext == ".txt":
-        results = parse_plain_text(path)
-    return results
+        return list(parse_pdf(path))
+    if ext in {".doc", ".xls"}:
+        raise LegacyOfficeError()
+    if ext == ".docx":
+        try:
+            return list(parse_docx(path))
+        except EvidenceFormatError:
+            raise
+        except Exception as exc:
+            raise DocxUnreadableError(detail=type(exc).__name__) from exc
+    if ext == ".xlsx":
+        return list(parse_xlsx_evidence(path))
+    if ext == ".txt":
+        return parse_plain_text(path)
+    return []

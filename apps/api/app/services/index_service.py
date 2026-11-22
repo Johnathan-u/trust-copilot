@@ -15,6 +15,7 @@ from app.core.metrics import INDEX_DOCUMENT_TOTAL, INDEX_DURATION_SECONDS  # noq
 from app.models import Chunk, Document  # noqa: E402
 from app.services.chunking import chunk_evidence  # noqa: E402
 from app.services.embedding_service import EMBEDDING_DIM, embed_texts  # noqa: E402, F401
+from app.services.evidence_format import EmptyEvidenceError, EvidenceFormatError  # noqa: E402
 from app.services.evidence_parser import parse_evidence  # noqa: E402
 from app.services.file_service import FileService  # noqa: E402
 from app.services.pdf_text import PdfTextError  # noqa: E402
@@ -80,6 +81,23 @@ def index_document(
     db.query(Chunk).filter(Chunk.document_id == document_id).delete()
     db.flush()
 
+    def _record_parse_failure(exc: BaseException, reason: str) -> None:
+        # str(exc) is the fixed reason and next action. The log reason is the
+        # class name only, so a path or file byte never reaches the log line.
+        doc.status = "failed"
+        doc.index_error = str(exc)[:512]
+        db.commit()
+        duration_ms = (time.monotonic() - started) * 1000
+        log_index_failure(
+            document_id,
+            doc.workspace_id,
+            reason,
+            duration_ms,
+            job_id=job_id,
+        )
+        INDEX_DOCUMENT_TOTAL.labels(status="failure").inc()
+        INDEX_DURATION_SECONDS.observe(duration_ms / 1000)
+
     content = file_svc.download_raw(doc.storage_key)
     ext = Path(doc.filename or "").suffix or ".bin"
     suffix = ext if ext.startswith(".") else f".{ext}"
@@ -89,39 +107,16 @@ def index_document(
     try:
         try:
             parsed = parse_evidence(path)
-        except PdfTextError as e:
-            # Image-only, encrypted or corrupt PDF (TC-01-003a). str(e) is a fixed,
-            # user-readable message (no path, no backend exception text).
-            doc.status = "failed"
-            doc.index_error = str(e)[:512]
-            db.commit()
-            duration_ms = (time.monotonic() - started) * 1000
-            log_index_failure(
-                document_id,
-                doc.workspace_id,
-                type(e).__name__,
-                duration_ms,
-                job_id=job_id,
-            )
-            INDEX_DOCUMENT_TOTAL.labels(status="failure").inc()
-            INDEX_DURATION_SECONDS.observe(duration_ms / 1000)
+        except (PdfTextError, EvidenceFormatError) as e:
+            # Image-only, encrypted or corrupt PDF (TC-01-003a), or a corrupt,
+            # legacy, or unreadable office file (TC-08-002). str(e) is fixed.
+            _record_parse_failure(e, type(e).__name__)
             raise
         if not parsed:
-            # No false "indexed": 0 chunks => mark failed (Fix 2).
-            doc.status = "failed"
-            doc.index_error = ("Parse returned no content; document not indexed")[:512]
-            db.commit()
-            duration_ms = (time.monotonic() - started) * 1000
-            log_index_failure(
-                document_id,
-                doc.workspace_id,
-                "Parse returned no content",
-                duration_ms,
-                job_id=job_id,
-            )
-            INDEX_DOCUMENT_TOTAL.labels(status="failure").inc()
-            INDEX_DURATION_SECONDS.observe(duration_ms / 1000)
-            raise ValueError("Parse returned no content; document not indexed")
+            # No false "indexed": 0 chunks => mark failed (Fix 2, TC-08-002).
+            empty = EmptyEvidenceError()
+            _record_parse_failure(empty, type(empty).__name__)
+            raise empty
 
         chunked = chunk_evidence(parsed)
         chunk_ids = []
