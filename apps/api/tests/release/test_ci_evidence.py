@@ -562,3 +562,79 @@ def test_redactor_strips_report_text_and_trace_zip(tmp_path):
         assert "redacted" in network
         assert archive.read("resources/page.png") == b"\x89PNG\r\nnot-really"
     assert shot.read_bytes() == b"\x89PNG\r\nkeep"
+
+
+STAT_READER = ROOT / "scripts" / "ci" / "read-playwright-stat.mjs"
+
+
+def _e2e_script() -> str:
+    doc = yaml.safe_load((WORKFLOWS / "ci.yml").read_text(encoding="utf-8"))
+    job = _jobs(doc)["web-release-e2e"]
+    return _step_run(job, "Run release Playwright specs")
+
+
+def _assigned(script: str, name: str) -> str:
+    match = re.search(rf'(?m)^[ \t]*{name}="([^"]*)"', script)
+    assert match, name
+    return match.group(1)
+
+
+def test_rules_json_is_outside_playwright_output_dirs():
+    script = _e2e_script()
+    evidence_dir = _assigned(script, "evidence_dir")
+    rules_json = _assigned(script, "rules_json").replace("${evidence_dir}", evidence_dir)
+    release_json = _assigned(script, "release_json").replace("${evidence_dir}", evidence_dir)
+    axe_log = _assigned(script, "axe_log").replace("${evidence_dir}", evidence_dir)
+    assert "RUNNER_TEMP" in evidence_dir
+    for path in (rules_json, release_json, axe_log):
+        assert "test-results" not in path, path
+        assert "playwright-report" not in path, path
+    assert 'PLAYWRIGHT_JSON_OUTPUT_FILE="$rules_json"' in script
+    assert 'PLAYWRIGHT_JSON_OUTPUT_FILE="$release_json"' in script
+    assert '--report "$release_json"' in script
+    assert 'load_counts "$rules_json" "$rules_status"' in script
+    assert 'load_counts "$release_json" "$playwright_status"' in script
+    for text in _load_configs().values():
+        for output in re.findall(r"outputDir:\s*[`'\"]([^`'\"]+)", text):
+            root_name = output.split("/", 1)[0]
+            assert root_name not in rules_json
+            assert root_name not in release_json
+    reader_fail = script.index('if [[ "$evidence_reader_status" -ne 0 ]]')
+    totals = script.index('echo "totals:')
+    assert reader_fail < totals
+    assert "rules evidence exit ${rules_status}" in script
+    assert '"$rules_status" -ne 0' in script
+
+
+def _read_stat(path: Path, field: str) -> subprocess.CompletedProcess[str]:
+    return subprocess.run(
+        ["node", str(STAT_READER), str(path), field],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+
+
+def test_stat_reader_fails_when_the_report_is_missing(tmp_path):
+    proc = _read_stat(tmp_path / "missing.json", "expected")
+    assert proc.returncode != 0
+    assert proc.stdout == ""
+
+
+def test_stat_reader_fails_when_the_report_is_unreadable(tmp_path):
+    bad = tmp_path / "bad.json"
+    bad.write_text("{", encoding="utf-8")
+    proc = _read_stat(bad, "expected")
+    assert proc.returncode != 0
+    assert proc.stdout == ""
+
+
+def test_stat_reader_prints_a_readable_count(tmp_path):
+    report = tmp_path / "ok.json"
+    report.write_text(
+        '{"stats":{"expected":3,"unexpected":0,"flaky":0,"skipped":1}}',
+        encoding="utf-8",
+    )
+    proc = _read_stat(report, "expected")
+    assert proc.returncode == 0, proc.stderr
+    assert proc.stdout == "3"

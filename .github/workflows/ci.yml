@@ -348,7 +348,6 @@ jobs:
           NEXT_TELEMETRY_DISABLED: '1'
           PLAYWRIGHT_HTML_OPEN: never
           PLAYWRIGHT_HTML_OUTPUT_DIR: playwright-report
-          PLAYWRIGHT_JSON_OUTPUT_FILE: test-results/release-e2e.json
         run: |
           set -euo pipefail
           mkdir -p test-results
@@ -405,20 +404,29 @@ jobs:
             echo "Running release spec: $spec"
           done
 
+          # Playwright deletes outputDir (test-results/) at the start of the next
+          # run. Keep the JSON totals and the axe log outside every outputDir.
+          evidence_dir="${RUNNER_TEMP}/tc-02-009"
+          mkdir -p "$evidence_dir"
+          rules_json="${evidence_dir}/rules-evidence.json"
+          release_json="${evidence_dir}/release-e2e.json"
+          axe_log="${evidence_dir}/axe-evidence.txt"
+
           set +e
           set +o pipefail
           # TC-19-009 writes axe-rules-form-*.json through its own config: a dead
           # local upstream and a separate Next port. Drop the release reporter
-          # paths so this run cannot replace release-e2e.json. The JSON file is
-          # only for this run's totals.
+          # paths so this run cannot replace the release JSON.
           env -u PLAYWRIGHT_HTML_OUTPUT_DIR -u PLAYWRIGHT_HTML_OPEN \
-            PLAYWRIGHT_JSON_OUTPUT_FILE=test-results/rules-evidence.json \
+            -u PLAYWRIGHT_JSON_OUTPUT_FILE \
+            PLAYWRIGHT_JSON_OUTPUT_FILE="$rules_json" \
             npx --no-install playwright test --config=playwright.rules-evidence.config.ts --retries=0 --reporter=list,json
           rules_status=$?
-          npx --no-install playwright test "${candidates[@]}" --retries=0 --reporter=list,html,json
+          PLAYWRIGHT_JSON_OUTPUT_FILE="$release_json" \
+            npx --no-install playwright test "${candidates[@]}" --retries=0 --reporter=list,html,json
           playwright_status=$?
           node ../../scripts/ci/check-release-e2e-report.mjs \
-            --report test-results/release-e2e.json \
+            --report "$release_json" \
             --html-report playwright-report \
             --axe-dir ../../artifacts/acceptance/TC-15-049a \
             --axe-dir ../../artifacts/acceptance/TC-15-049 \
@@ -480,35 +488,71 @@ jobs:
             --min-tests 39 \
             --require-spec e2e/release/email-verification.spec.ts \
             --min-tests 4 \
-            | tee axe-evidence.txt
+            | tee "$axe_log"
           checker_status=${PIPESTATUS[0]}
           set -o pipefail
           stat_count() {
             node ../../scripts/ci/read-playwright-stat.mjs "$1" "$2"
           }
-          rules_passed=$(stat_count test-results/rules-evidence.json expected || true)
-          rules_unexpected=$(stat_count test-results/rules-evidence.json unexpected || true)
-          rules_flaky=$(stat_count test-results/rules-evidence.json flaky || true)
-          rules_skipped=$(stat_count test-results/rules-evidence.json skipped || true)
-          pw_passed=$(stat_count test-results/release-e2e.json expected || true)
-          pw_unexpected=$(stat_count test-results/release-e2e.json unexpected || true)
-          pw_flaky=$(stat_count test-results/release-e2e.json flaky || true)
-          pw_skipped=$(stat_count test-results/release-e2e.json skipped || true)
-          rules_passed=${rules_passed:-0}
-          rules_unexpected=${rules_unexpected:-0}
-          rules_flaky=${rules_flaky:-0}
-          rules_skipped=${rules_skipped:-0}
-          pw_passed=${pw_passed:-0}
-          pw_unexpected=${pw_unexpected:-0}
-          pw_flaky=${pw_flaky:-0}
-          pw_skipped=${pw_skipped:-0}
+          # A missing report after a successful command fails this step.
+          # rules_status, playwright_status and checker_status are not replaced.
+          evidence_reader_status=0
+          load_counts() {
+            local file="$1"
+            local run_status="$2"
+            local rc=0
+            COUNT_PASSED=$(stat_count "$file" expected) || rc=$?
+            if [[ "$rc" -eq 0 ]]; then
+              COUNT_UNEXPECTED=$(stat_count "$file" unexpected) || rc=$?
+            fi
+            if [[ "$rc" -eq 0 ]]; then
+              COUNT_FLAKY=$(stat_count "$file" flaky) || rc=$?
+            fi
+            if [[ "$rc" -eq 0 ]]; then
+              COUNT_SKIPPED=$(stat_count "$file" skipped) || rc=$?
+            fi
+            if [[ "$rc" -ne 0 ]]; then
+              COUNT_PASSED=0
+              COUNT_UNEXPECTED=0
+              COUNT_FLAKY=0
+              COUNT_SKIPPED=0
+              if [[ "$run_status" -eq 0 ]]; then
+                echo "ERROR: evidence report is missing or unreadable: $file" >&2
+                evidence_reader_status=1
+              fi
+            fi
+          }
+          load_counts "$rules_json" "$rules_status"
+          rules_passed=$COUNT_PASSED
+          rules_unexpected=$COUNT_UNEXPECTED
+          rules_flaky=$COUNT_FLAKY
+          rules_skipped=$COUNT_SKIPPED
+          load_counts "$release_json" "$playwright_status"
+          pw_passed=$COUNT_PASSED
+          pw_unexpected=$COUNT_UNEXPECTED
+          pw_flaky=$COUNT_FLAKY
+          pw_skipped=$COUNT_SKIPPED
           rules_failed=$((rules_unexpected + rules_flaky))
           pw_failed=$((pw_unexpected + pw_flaky))
-          axe_passed=$(grep -c ': 0 violations' axe-evidence.txt || true)
-          axe_failed=$(grep -Ec ': [1-9][0-9]* violations' axe-evidence.txt || true)
-          axe_passed=${axe_passed:-0}
-          axe_failed=${axe_failed:-0}
-          rm -f axe-evidence.txt
+          if [[ ! -s "$axe_log" ]]; then
+            axe_passed=0
+            axe_failed=0
+            if [[ "$checker_status" -eq 0 ]]; then
+              echo "ERROR: axe evidence log is missing or empty: $axe_log" >&2
+              evidence_reader_status=1
+            fi
+          else
+            axe_passed=$(grep -c ': 0 violations' "$axe_log" || true)
+            axe_failed=$(grep -Ec ': [1-9][0-9]* violations' "$axe_log" || true)
+            axe_passed=${axe_passed:-0}
+            axe_failed=${axe_failed:-0}
+          fi
+          rm -f "$axe_log"
+          echo "rules evidence exit ${rules_status}; playwright exit ${playwright_status}; axe check exit ${checker_status}"
+          if [[ "$evidence_reader_status" -ne 0 ]]; then
+            echo "ERROR: evidence totals were not read after a successful command"
+            exit 1
+          fi
           # TC-02-009: this job does not start a container. image: none is explicit.
           echo "TC-02-009 evidence"
           echo "commit: ${{ github.sha }}"
@@ -519,7 +563,6 @@ jobs:
           echo "totals: passed=${rules_passed} failed=${rules_failed} skipped=${rules_skipped}"
           echo "playwright: passed=${pw_passed} failed=${pw_failed} skipped=${pw_skipped}"
           echo "axe: passed=${axe_passed} failed=${axe_failed} skipped=0"
-          echo "rules evidence exit ${rules_status}; playwright exit ${playwright_status}; axe check exit ${checker_status}"
           if [[ "$rules_status" -ne 0 || "$playwright_status" -ne 0 || "$checker_status" -ne 0 ]]; then
             exit 1
           fi
