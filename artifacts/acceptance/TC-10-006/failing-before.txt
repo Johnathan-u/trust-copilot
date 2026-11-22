@@ -1,0 +1,38 @@
+FFFFFF                                                                   [100%]
+=================================== FAILURES ===================================
+E   AssertionError: %PDF-1.4 synthetic owned document
+    assert 200 == 409
+     +  where 200 = <Response [200 OK]>.status_code
+/agent/repos/trust-copilot/apps/api/tests/release/test_storage_checksums.py:181: AssertionError: %PDF-1.4 synthetic owned document
+E   alembic.script.revision.ResolutionError: No such revision or branch 'tc10006_storage_checksums'
+
+The above exception was the direct cause of the following exception:
+E   alembic.util.exc.CommandError: Can't locate revision identified by 'tc10006_storage_checksums'
+/tmp/tc-venv/lib/python3.12/site-packages/alembic/script/base.py:239: alembic.util.exc.CommandError: Can't locate revision identified by 'tc10006_storage_checksums'
+E   AssertionError: assert 'content_sha256' in {'content_type', 'created_at', 'deleted_at', 'deleted_by', 'display_id', 'filename', ...}
+     +  where {'content_type', 'created_at', 'deleted_at', 'deleted_by', 'display_id', 'filename', ...} = <function test_upgrade_adds_nullable_columns_and_downgrade_removes_them.<locals>.columns at 0x7f2308bd8fe0>('documents')
+/agent/repos/trust-copilot/apps/api/tests/release/test_storage_checksums.py:232: AssertionError: assert 'content_sha256' in {'content_type', 'created_at', 'deleted_at', 'deleted_by', 'display_id', 'filename', ...}
+E   ModuleNotFoundError: No module named 'app.services.storage_checksum'
+/agent/repos/trust-copilot/apps/api/tests/release/test_storage_checksums.py:298: ModuleNotFoundError: No module named 'app.services.storage_checksum'
+E   ModuleNotFoundError: No module named 'app.services.storage_checksum'
+/agent/repos/trust-copilot/apps/api/tests/release/test_storage_checksums.py:680: ModuleNotFoundError: No module named 'app.services.storage_checksum'
+E   ModuleNotFoundError: No module named 'app.services.storage_checksum'
+/agent/repos/trust-copilot/apps/api/tests/release/test_storage_checksums.py:744: ModuleNotFoundError: No module named 'app.services.storage_checksum'
+=============================== warnings summary ===============================
+tests/release/test_storage_checksums.py::test_legacy_document_download_is_refused
+  /tmp/tc-venv/lib/python3.12/site-packages/sqlalchemy/sql/schema.py:3627: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    return util.wrap_callable(lambda ctx: fn(), fn)  # type: ignore
+
+tests/release/test_storage_checksums.py::test_revision_is_the_single_head_child
+  /tmp/tc-venv/lib/python3.12/site-packages/alembic/config.py:604: DeprecationWarning: No path_separator found in configuration; falling back to legacy splitting on spaces, commas, and colons for prepend_sys_path.  Consider adding path_separator=os to Alembic config.
+    util.warn_deprecated(
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/release/test_storage_checksums.py::test_legacy_document_download_is_refused
+FAILED tests/release/test_storage_checksums.py::test_revision_is_the_single_head_child
+FAILED tests/release/test_storage_checksums.py::test_upgrade_adds_nullable_columns_and_downgrade_removes_them
+FAILED tests/release/test_storage_checksums.py::test_checksum_downloads_and_legacy_backfill
+FAILED tests/release/test_storage_checksums.py::test_backfill_command_prints_counts_only
+FAILED tests/release/test_storage_checksums.py::test_format_report_has_no_object_details
+6 failed, 2 warnings in 1.89s
