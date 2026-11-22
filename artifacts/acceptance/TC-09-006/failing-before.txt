@@ -1,0 +1,41 @@
+FFF.FFF                                                                  [100%]
+=================================== FAILURES ===================================
+E   KeyError: 'input_version_changed'
+/agent/repos/trust-copilot/apps/api/tests/release/test_questionnaire_replay.py:226: KeyError: 'input_version_changed'
+E   AssertionError: assert '9782f5e242d1...1778a837ca0de' == 'c4099bc83126...1c916bca1593d'
+
+      - c4099bc83126ec8eb29b94562ca00d393386088708fed5ab7451c916bca1593d
+      + 9782f5e242d1de47e31723c3a6f7808d6ee7ff6593930b6f74f1778a837ca0de
+/agent/repos/trust-copilot/apps/api/tests/release/test_questionnaire_replay.py:265: AssertionError: assert '9782f5e242d1...1778a837ca0de' == 'c4099bc83126...1c916bca1593d'
+E   KeyError: 'input_version_changed'
+/agent/repos/trust-copilot/apps/api/tests/release/test_questionnaire_replay.py:311: KeyError: 'input_version_changed'
+E   KeyError: 'questionnaire_status'
+/agent/repos/trust-copilot/apps/api/tests/release/test_questionnaire_replay.py:371: KeyError: 'questionnaire_status'
+E   assert [IntegrityErr...y exists.\n')] == []
+
+      Left contains one more item: IntegrityError('(psycopg2.errors.UniqueViolation) duplicate key value violates unique constraint "uq_job_effects_job_effect_attempt"\nDETAIL:  Key (job_id, effect, attempt)=(388, questions, 0) already exists.\n')
+      Use -v to get more diff
+/agent/repos/trust-copilot/apps/api/tests/release/test_questionnaire_replay.py:414: assert [IntegrityErr...y exists.\n')] == []
+E   threading.BrokenBarrierError
+/usr/lib/python3.12/threading.py:761: threading.BrokenBarrierError
+=============================== warnings summary ===============================
+tests/release/test_questionnaire_replay.py::test_replaced_file_parses_once_and_keeps_approved_answers
+tests/release/test_questionnaire_replay.py::test_replaced_file_parses_once_and_keeps_approved_answers
+tests/release/test_questionnaire_replay.py::test_replaced_file_parses_once_and_keeps_approved_answers
+tests/release/test_questionnaire_replay.py::test_replaced_file_parses_once_and_keeps_approved_answers
+tests/release/test_questionnaire_replay.py::test_replaced_file_parses_once_and_keeps_approved_answers
+tests/release/test_questionnaire_replay.py::test_replaced_file_parses_once_and_keeps_approved_answers
+tests/release/test_questionnaire_replay.py::test_cancel_and_retry_keep_questionnaire_state
+tests/release/test_questionnaire_replay.py::test_cancel_and_retry_keep_questionnaire_state
+  /tmp/tc-venv/lib/python3.12/site-packages/sqlalchemy/sql/schema.py:3627: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    return util.wrap_callable(lambda ctx: fn(), fn)  # type: ignore
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/release/test_questionnaire_replay.py::test_same_bytes_replay_does_not_duplicate_questions
+FAILED tests/release/test_questionnaire_replay.py::test_replaced_file_parses_once_and_keeps_approved_answers
+FAILED tests/release/test_questionnaire_replay.py::test_input_version_changed_is_cleared_on_the_parse_of_the_new_bytes
+FAILED tests/release/test_questionnaire_replay.py::test_cancel_and_retry_keep_questionnaire_state
+FAILED tests/release/test_questionnaire_replay.py::test_concurrent_delivery_of_the_same_job_inserts_once
+FAILED tests/release/test_questionnaire_replay.py::test_history_hides_an_unknown_questionnaire_status
+6 failed, 1 passed, 8 warnings in 10.97s

@@ -1,6 +1,47 @@
-SHA: 69a5230ff8f1e197419644ee0cdf5fe326379f41
-Python: 3.12.3
-pytest: 9.1.1
-PostgreSQL: 16.15 (Ubuntu 16.15-0ubuntu0.24.04.1)
-pgvector: 0.6.0
-Database: trustcopilot_test on 127.0.0.1:5432
+Command from apps/api:
+
+python -m pytest tests/release/test_questionnaire_replay.py -q
+
+This run set TC_REQUIRE_DB=1 so a missing database fails instead of skipping.
+
+Failing-before product code: 0e4969fce820db8a5072a2e815e72edda1a45802 (origin/master).
+The new test was run against that code.
+Exit 1. 6 failed, 1 passed, 0 skipped. Log: failing-before.txt.
+The history response had no input_version_changed or questionnaire_status.
+A replaced file left the old original_file_hash on the kept question.
+Two deliveries of the same job hit the existing job_effects unique key.
+The cross-workspace case passed.
+
+Passing-after product code: dd31ebaddf400077ca0faf1ee19edf9163f34851.
+Exit 0. 7 passed, 0 failed, 0 skipped. 8 warnings from datetime.utcnow deprecation in existing models. Log: passing-after.txt.
+
+From apps/web, before the fix:
+npx vitest run tests/unit/job-history-consumer.test.ts
+1 failed, 17 passed. inputVersionNotice was missing.
+
+After the fix, the same command: 18 passed, 0 failed, 0 skipped.
+npx playwright test e2e/release/screen-jobs.spec.ts --grep input_version_changed
+1 passed. The page shows input_version_changed with the questionnaire status.
+
+Python 3.12.3
+pytest 9.1.1
+SQLAlchemy 2.0.55
+Alembic 1.20.1
+openpyxl 3.1.5
+python-docx 1.2.0
+pypdf 6.21.3
+PostgreSQL 16.15 (Ubuntu 16.15-0ubuntu0.24.04.1)
+pgvector 0.6.0
+Node 24.22.3
+Vitest 5.0.5
+
+Database trustcopilot_test on 127.0.0.1:5432, user postgres.
+The password is the local development default and is not copied here.
+
+No migration in this change. Fixtures are synthetic. No customer workbook.
+The logs do not contain a connection URL.
+
+CI's build job uses Python 3.11. This local log is Python 3.12.3. CI run ids are not recorded here.
+
+The earlier pytest.txt, pytest-hashes.txt, pytest-replay.txt, and ci-runs.md are the PARTIAL verification logs.
+They are unchanged. This file does not add a run id.
