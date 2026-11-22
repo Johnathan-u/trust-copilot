@@ -17,40 +17,43 @@ from app.worker import run_export, run_parse_questionnaire
 @pytest.mark.integration
 def test_generate_to_export_flow(client: TestClient) -> None:
     """Parse questionnaire -> create answers -> export job -> export record and download URL."""
-    in_memory_store: dict[tuple[str, str], bytes] = {}
+    in_memory_store: dict[tuple[str, str], dict] = {}
 
     def fake_upload(bucket: str, key: str, body, **kwargs) -> str:
         content = body.read() if hasattr(body, "read") else body
-        in_memory_store[(bucket, key)] = content
+        written = {
+            str(name): str(value)
+            for name, value in dict(kwargs.get("metadata") or {}).items()
+            if isinstance(name, str)
+        }
+        content_type = kwargs.get("content_type")
+        if isinstance(content_type, str) and content_type:
+            written["content-type"] = content_type
+        in_memory_store[(bucket, key)] = {"body": bytes(content), "metadata": written}
         return key
 
+    def _stored(bucket: str, key: str) -> dict | None:
+        return in_memory_store.get((bucket, key))
+
     def fake_download(bucket: str, key: str) -> bytes:
-        return in_memory_store.get((bucket, key), b"")
+        item = _stored(bucket, key)
+        if item is None:
+            return b""
+        return item["body"]
 
     def fake_exists(bucket: str, key: str) -> bool:
         return (bucket, key) in in_memory_store
 
     def fake_download_stream(bucket: str, key: str):
-        return io.BytesIO(in_memory_store.get((bucket, key), b""))
+        item = _stored(bucket, key)
+        body = b"" if item is None else item["body"]
+        return io.BytesIO(body)
 
     def fake_download_checksummed(bucket: str, key: str):
-        body = in_memory_store.get((bucket, key))
-        if body is None:
+        item = _stored(bucket, key)
+        if item is None:
             raise FileNotFoundError(key)
-        digest = hashlib.sha256(body).hexdigest()
-        parts = key.split("/")
-        workspace = parts[1] if len(parts) > 1 and parts[1].isdigit() else "1"
-        if key.endswith(".docx"):
-            media = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-        else:
-            media = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-        return body, {
-            "sha256": digest,
-            "version": "1",
-            "workspace-id": workspace,
-            "media-type": media,
-            "content-type": media,
-        }
+        return item["body"], dict(item["metadata"])
 
     with patch("app.services.storage.StorageClient.upload", side_effect=fake_upload):
         with patch("app.services.storage.StorageClient.download", side_effect=fake_download):
@@ -133,6 +136,19 @@ def test_generate_to_export_flow(client: TestClient) -> None:
                         assert rec.status == "completed"
                         assert rec.filename
                         assert rec.storage_key
+                        assert rec.content_sha256
+                        assert rec.object_version
+                        assert rec.content_type
+                        stored = next(
+                            item
+                            for (bucket, key), item in in_memory_store.items()
+                            if key == rec.storage_key
+                        )
+                        assert rec.content_sha256 == hashlib.sha256(stored["body"]).hexdigest()
+                        assert stored["metadata"].get("sha256") == rec.content_sha256
+                        assert stored["metadata"].get("version") == str(rec.object_version)
+                        assert stored["metadata"].get("workspace-id") == str(rec.workspace_id)
+                        assert stored["metadata"].get("media-type") == rec.content_type
                         rec_id = rec.id
                         export_job_id_for_poll = export_job_id
                     finally:

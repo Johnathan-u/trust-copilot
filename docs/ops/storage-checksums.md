@@ -1,8 +1,19 @@
 # Storage checksums
 
+## Required post-deploy step
+
+After deploying this change, every existing document and export download returns 409 until the backfill runs.
+
+From `apps/api`, with the deployment's database and object-storage settings:
+
+1. Run `python -m app.services.storage_checksum` (dry run).
+2. Check the counts.
+3. Run `python -m app.services.storage_checksum --execute`.
+
+The dry run changes nothing. `--execute` writes the hashes. Do not paste a storage key, a hash, or object bytes into a ticket or a log excerpt.
+
 Operator notes for original-document and export hashes (TC-10-006).
-No new setting was added. Do not paste a storage key, a hash, or object
-bytes into a ticket or a log excerpt.
+No new setting was added.
 
 ## What a download checks
 
