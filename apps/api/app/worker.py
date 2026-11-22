@@ -632,12 +632,8 @@ def run_parse_questionnaire(job: Job, session, payload: dict) -> None:
             _record_progress(job, saved, saved)
             _auto_classify_questionnaire(session, qnr_id, job.workspace_id, effects)
             return
-        existing_rows = (
-            session.query(Question)
-            .filter(Question.questionnaire_id == qnr_id)
-            .order_by(Question.id)
-            .all()
-        )
+        existing_rows = session.query(Question).filter(Question.questionnaire_id == qnr_id).all()
+        existing_rows.sort(key=lambda row: row.id or 0)
         if not questions and ext in (".xlsx", ".xls") and not existing_rows:
             mark_workbook_needs_review(qnr)
             effects.mark_applied(EFFECT_QUESTIONS, {"count": 0, "outcome": "needs_review"})
@@ -660,10 +656,12 @@ def run_parse_questionnaire(job: Job, session, payload: dict) -> None:
         _replace_questions(session, qnr_id, existing_rows, questions)
         total = len(questions)
         owner = _lease_owner(job)
+        # Publish each pair. A reader can see the first item before the last one
+        # is stored, and the hold in the live-progress test waits on generated == 1.
+        for done in range(1, total + 1):
+            publish_running_progress(job.id, owner, done, total, force=(done == total))
         if total == 0:
             publish_running_progress(job.id, owner, 0, 0, force=True)
-        else:
-            publish_running_progress(job.id, owner, total, total, force=True)
         _record_progress(job, total, total)
         detail: dict = {"count": total}
         if existing_rows:
