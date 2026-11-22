@@ -6,7 +6,7 @@ _____________ test_repository_workflows_meet_the_evidence_contract _____________
         problems = _problems_for()
 >       assert problems == []
 E       AssertionError: assert ['build does ...ght redactor'] == []
-E         
+E
 E         Left contains 4 more items, first extra item: 'build does not print the evidence block'
 E         Use -v to get more diff
 
