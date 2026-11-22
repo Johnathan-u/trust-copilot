@@ -7,7 +7,7 @@ The new tests ran against that tree. Exit 1. 6 failed, 0 passed, 0 skipped.
 A document with no recorded hash returned 200 and the object bytes.
 Log: failing-before.txt.
 
-Passing-after product code: 2b9cc715f2be1530e936eef55c30dee93aa1e7ed.
+Passing-after product code: 8305aa0ccfc84ec9b7c5e54ab2f35151dbd27b70.
 Exit 0. 6 passed, 0 failed, 0 skipped. 10 warnings from datetime.utcnow in existing models and from Alembic's path_separator default. Log: passing-after.txt.
 
 A matching hash streams the document and the export with nosniff. A mismatch, a missing object, a null document hash, a null export hash, and a key that names another workspace are refused. The body has no key and no hash. Another workspace's id is 404. An anonymous request is 401. Dry-run backfill writes nothing. Execute fills a null hash when the object exists and the key's workspace matches, and it leaves a cross-workspace key, a missing object, and an export whose job hash disagrees. Upgrade adds the nullable columns. Downgrade drops them.

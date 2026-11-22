@@ -22,7 +22,7 @@ Exit 1. 6 failed, 0 passed, 0 skipped. A document with no recorded hash returned
 
 ## Passing after
 
-Same command on product code `2b9cc715f2be1530e936eef55c30dee93aa1e7ed`. Log: `passing-after.txt`.
+Same command on product code `8305aa0ccfc84ec9b7c5e54ab2f35151dbd27b70`. Log: `passing-after.txt`.
 
 6 passed, 0 failed, 0 skipped, exit 0. Pytest also printed 10 warnings from `datetime.utcnow` in existing models and from Alembic's `path_separator` default. A matching hash streams the document and the export with `nosniff`. A mismatch, a missing object, a null hash, and a key that names another workspace are refused. The body has no key and no hash. Another workspace's id is 404. An anonymous request is 401. Dry-run backfill writes nothing. Execute fills a null hash from the current object and leaves a disagreement, a missing object, and a job hash that does not match. Upgrade adds the nullable columns and downgrade drops them.
 
