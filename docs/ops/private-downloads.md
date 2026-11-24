@@ -35,9 +35,14 @@ error text is `Invalid storage key` or `Storage key too long`. It does not echo
 the key. That error and every successful download set
 `X-Content-Type-Options: nosniff`. The document and export media type comes from
 the filename extension. The attachment media type is
-`application/octet-stream`. The download name is sanitized. A failed export, or
-an export whose stored bytes do not match the recorded hash, is 409 and is not
-a file.
+`application/octet-stream`. The download name is sanitized. A failed export, an export or document whose
+stored bytes do not match the recorded hash, and an export or document with no
+recorded hash are refused and are not a file. The export refusal is 409
+`export_storage_failed`. The document refusal is 409 with the fixed detail
+`The stored file could not be verified.` Neither body includes the storage key
+or the hash, and both set `X-Content-Type-Options: nosniff`. Rows written
+before a hash was stored stay refused until the backfill in
+`docs/ops/storage-checksums.md` has run.
 
 ## Buckets
 

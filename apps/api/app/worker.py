@@ -1094,13 +1094,21 @@ def run_export(job: Job, session, payload: dict) -> None:
         # A previous attempt committed the file. Reuse it and keep the recorded hash.
         from app.services.export_service import export_result_json, recorded_export_file
 
+        from app.services.storage_checksum import valid_sha256
+
         prior = recorded_export_file(job.result)
+        column_hash = valid_sha256(getattr(existing_rec, "content_sha256", None))
+        column_type = getattr(existing_rec, "content_type", None)
         written = session.query(Question).filter(Question.questionnaire_id == qnr_id).count()
         job.result = export_result_json(
             export_record_id=existing_rec.id,
             storage_key=existing_rec.storage_key,
-            sha256=prior["sha256"] if prior else None,
-            content_type=prior["content_type"] if prior else None,
+            sha256=column_hash or (prior["sha256"] if prior else None),
+            content_type=(
+                column_type
+                if isinstance(column_type, str) and column_type
+                else (prior["content_type"] if prior else None)
+            ),
             filename=prior["filename"] if prior else existing_rec.filename,
             outcome="already_applied",
         )
@@ -1192,6 +1200,12 @@ def run_export(job: Job, session, payload: dict) -> None:
     except Exception:
         fail_requested()
     content_type = media_type_for_format(wanted)
+    from app.services.storage_checksum import positive_version
+
+    next_version = 1
+    if existing_rec is not None:
+        current_version = positive_version(getattr(existing_rec, "object_version", None))
+        next_version = 1 if current_version is None else current_version + 1
 
     # The deterministic key is shared by retries. Serialize the final PUT/record commit with
     # claims, cancellation and orphan deletion using the existing job row lock. Render first,
@@ -1199,7 +1213,14 @@ def run_export(job: Job, session, payload: dict) -> None:
     if owner:
         confirm_lease_for_commit(session, job.id, owner)
     try:
-        key = file_svc.upload_export(ws_id, out_bytes, out_filename, job_id=job.id)
+        key = file_svc.upload_export(
+            ws_id,
+            out_bytes,
+            out_filename,
+            job_id=job.id,
+            checksum_version=next_version,
+            checksum_media_type=content_type,
+        )
     except Exception as exc:
         # TC-10-002 still retries a transient storage error. A failed export row
         # is recorded only when the error cannot be retried or this is the last
@@ -1216,10 +1237,14 @@ def run_export(job: Job, session, payload: dict) -> None:
         from app.services.export_service import EXPORT_STORAGE_FAILED_MESSAGE
 
         raise TerminalJobError(EXPORT_STORAGE_FAILED, EXPORT_STORAGE_FAILED_MESSAGE) from None
+    digest = sha256_hex(out_bytes)
     if existing_rec is not None:
         existing_rec.storage_key = key
         existing_rec.filename = out_filename
         existing_rec.status = "completed"
+        existing_rec.content_sha256 = digest
+        existing_rec.object_version = next_version
+        existing_rec.content_type = content_type
         rec = existing_rec
     else:
         rec = ExportRecord(
@@ -1229,6 +1254,9 @@ def run_export(job: Job, session, payload: dict) -> None:
             filename=out_filename,
             status="completed",
             job_id=job.id,
+            content_sha256=digest,
+            object_version=next_version,
+            content_type=content_type,
         )
         session.add(rec)
     effects.mark_applied(EFFECT_EXPORT, {"storage_key": key})
@@ -1239,7 +1267,7 @@ def run_export(job: Job, session, payload: dict) -> None:
     job.result = export_result_json(
         export_record_id=rec.id,
         storage_key=key,
-        sha256=sha256_hex(out_bytes),
+        sha256=digest,
         content_type=content_type,
         filename=out_filename,
     )

@@ -5,6 +5,7 @@ or the real session dependency. A caller that omits page, page_size, sort, and
 order still receives the full JSON array.
 """
 
+import hashlib
 import json
 from datetime import datetime, timedelta, timezone
 
@@ -341,12 +342,16 @@ def test_tc_15_016a_legacy_list_returns_every_row_with_the_same_metadata(documen
 @pytest.mark.unit
 def test_tc_15_016a_content_preview_stays_in_workspace_and_hides_the_storage_key(documents_api):
     client, db, storage = documents_api
-    storage.objects[("raw", _OBJECT_KEY)] = b"%PDF-1.4 synthetic"
+    body = b"%PDF-1.4 synthetic"
+    storage.objects[("raw", _OBJECT_KEY)] = body
     row = _add_document(
         db,
         filename="evil\r\nX-Injected: 1.pdf",
         content_type="text/html",
         storage_key=_OBJECT_KEY,
+        content_sha256=hashlib.sha256(body).hexdigest(),
+        object_version=1,
+        object_media_type="application/pdf",
     )
     foreign = _add_document(db, workspace_id=2, filename="Foreign.pdf", storage_key=_OBJECT_KEY)
     ok = client.get(f"/api/documents/{row.id}/content", params={"workspace_id": 1})
@@ -368,8 +373,9 @@ def test_tc_15_016a_content_preview_stays_in_workspace_and_hides_the_storage_key
     assert _OBJECT_KEY not in missing.text
     storage.fail = True
     unavailable = client.get(f"/api/documents/{row.id}/content", params={"workspace_id": 1})
-    assert unavailable.status_code == 404
-    assert unavailable.json()["detail"] == "Document file not found"
+    assert unavailable.status_code == 409
+    assert unavailable.json()["detail"] == "The stored file could not be verified."
+    assert unavailable.headers["x-content-type-options"] == "nosniff"
     assert _OBJECT_KEY not in unavailable.text
 
 

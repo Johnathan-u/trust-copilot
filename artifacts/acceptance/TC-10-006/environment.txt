@@ -1,4 +1,28 @@
-SHA: 2647b2e2ad5ef575ee354a3c9c92a8bd16680dbc
-Python: 3.12.3
-pytest: 9.1.1
-PostgreSQL: not used (these five tests open no database)
+Command from apps/api:
+
+python -m pytest tests/release/test_storage_checksums.py -q
+
+Failing-before product code: 7e420af400b9defe359c9e668cb23fa41345ec78 (origin/master).
+The new tests ran against that tree. Exit 1. 6 failed, 0 passed, 0 skipped.
+A document with no recorded hash returned 200 and the object bytes.
+Log: failing-before.txt.
+
+Passing-after product code: 8305aa0ccfc84ec9b7c5e54ab2f35151dbd27b70.
+Exit 0. 6 passed, 0 failed, 0 skipped. 10 warnings from datetime.utcnow in existing models and from Alembic's path_separator default. Log: passing-after.txt.
+
+A matching hash streams the document and the export with nosniff. A mismatch, a missing object, a null document hash, a null export hash, and a key that names another workspace are refused. The body has no key and no hash. Another workspace's id is 404. An anonymous request is 401. Dry-run backfill writes nothing. Execute fills a null hash when the object exists and the key's workspace matches, and it leaves a cross-workspace key, a missing object, and an export whose job hash disagrees. Upgrade adds the nullable columns. Downgrade drops them.
+
+Python 3.12.3
+pytest 9.1.1
+SQLAlchemy 2.0.55
+Alembic 1.20.1
+PostgreSQL 16.15 (Ubuntu 16.15-0ubuntu0.24.04.1)
+pgvector 0.6.0
+
+Database trustcopilot_test on 127.0.0.1:5432, user postgres.
+The password is the local development default and is not copied here.
+
+Migration tc10006_storage_checksums is in this change. Fixtures are synthetic. No customer document.
+The logs do not contain a connection URL or a storage key.
+
+CI's build job uses Python 3.11. This local log is Python 3.12.3. CI run ids are not recorded here.

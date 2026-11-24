@@ -23,6 +23,11 @@ class Document(Base):
     storage_key = Column(String(512), nullable=False)
     filename = Column(String(255), nullable=False)
     content_type = Column(String(128), nullable=True)
+    # TC-10-006. Null until upload or the checksum backfill writes them.
+    # A null hash is not streamed.
+    content_sha256 = Column(String(64), nullable=True)
+    object_version = Column(Integer, nullable=True)
+    object_media_type = Column(String(128), nullable=True)
     display_id = Column(String(32), nullable=True, index=True)
     frameworks_json = Column(Text, nullable=True)
     subject_areas_json = Column(Text, nullable=True)

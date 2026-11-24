@@ -122,12 +122,15 @@ def world(client, db_session):
         owned["versions"].append(version.id)
         return version
 
-    def add_document(workspace_id, label, *, deleted=False):
+    def add_document(workspace_id, label, *, deleted=False, body=_LISTED):
         row = Document(
             workspace_id=workspace_id,
-            storage_key=f"synthetic/{prefix}/{label}.pdf",
+            storage_key=f"raw/{workspace_id}/{prefix}-{label}.pdf",
             filename=f"{label}.pdf",
             content_type="application/pdf",
+            content_sha256=hashlib.sha256(body).hexdigest(),
+            object_version=1,
+            object_media_type="application/pdf",
             status="uploaded",
             deleted_at=datetime.now(timezone.utc) if deleted else None,
         )
@@ -158,8 +161,8 @@ def world(client, db_session):
     article = add_article(1, "owned-article", "owned-article-body")
     publish(article)
     foreign_article = add_article(2, "foreign-article", "foreign-article-body")
-    listed = add_document(1, "listed")
-    foreign_document = add_document(2, "foreign")
+    listed = add_document(1, "listed", body=_LISTED)
+    foreign_document = add_document(2, "foreign", body=_FOREIGN)
     answer = add_answer(1, "owned-answer", "owned-answer-text")
     foreign_answer = add_answer(2, "foreign-answer", "foreign-answer-text")
     bag = {

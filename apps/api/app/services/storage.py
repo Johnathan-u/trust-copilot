@@ -286,11 +286,18 @@ class StorageClient:
         key: str,
         body: bytes | BinaryIO,
         content_type: str | None = None,
+        metadata: dict[str, str] | None = None,
     ) -> str:
-        """Upload object, return key."""
+        """Upload object, return key.
+
+        ``metadata`` is the checksum record (hash, version, media type, workspace).
+        Callers that do not pass it leave the object unmarked.
+        """
         extra = {}
         if content_type:
             extra["ContentType"] = content_type
+        if metadata:
+            extra["Metadata"] = {str(name): str(value) for name, value in metadata.items()}
         self._client.put_object(Bucket=bucket, Key=key, Body=body, **extra)
         return key
 
@@ -298,6 +305,23 @@ class StorageClient:
         """Download object as bytes."""
         resp = self._client.get_object(Bucket=bucket, Key=key)
         return resp["Body"].read()
+
+    def download_checksummed(self, bucket: str, key: str) -> tuple[bytes, dict[str, str]]:
+        """Download bytes plus the checksum metadata and the stored content type.
+
+        User-metadata names come back lowercased. ``content-type`` is the
+        object's content type, not a user-metadata field.
+        """
+        resp = self._client.get_object(Bucket=bucket, Key=key)
+        body = resp["Body"].read()
+        meta: dict[str, str] = {}
+        for name, value in (resp.get("Metadata") or {}).items():
+            if isinstance(name, str) and isinstance(value, str):
+                meta[name.lower()] = value
+        content_type = resp.get("ContentType")
+        if isinstance(content_type, str) and content_type:
+            meta["content-type"] = content_type
+        return body, meta
 
     def download_stream(self, bucket: str, key: str) -> BinaryIO:
         """Download object as stream."""

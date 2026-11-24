@@ -111,11 +111,19 @@ def world(client, db_session):
         return version
 
     def add_document(workspace_id, label, *, deleted=False):
+        body = {
+            "listed": _LISTED,
+            "unlisted": _UNLISTED,
+            "foreign": _FOREIGN,
+        }.get(label, _LISTED)
         row = Document(
             workspace_id=workspace_id,
-            storage_key=f"synthetic/{prefix}/{label}.pdf",
+            storage_key=f"raw/{workspace_id}/{prefix}-{label}.pdf",
             filename=f"{label}.pdf",
             content_type="application/pdf",
+            content_sha256=hashlib.sha256(body).hexdigest(),
+            object_version=1,
+            object_media_type="application/pdf",
             status="uploaded",
             deleted_at=datetime.now(timezone.utc) if deleted else None,
         )

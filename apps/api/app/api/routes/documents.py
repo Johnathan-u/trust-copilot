@@ -6,7 +6,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from fastapi import APIRouter, Depends, Form, HTTPException, Query, Request, UploadFile
-from fastapi.responses import JSONResponse, StreamingResponse
+from fastapi.responses import JSONResponse, Response
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
@@ -125,7 +125,8 @@ def upload_document(
             )
     stored_key: str | None = None
     try:
-        stored_key, filename = file_svc.upload_raw(workspace_id, file)
+        checksum: dict = {}
+        stored_key, filename = file_svc.upload_raw(workspace_id, file, checksum_out=checksum)
         fw_list = [f.strip() for f in frameworks.split(",") if f.strip()] or ["Other"]
         sa_list = [s.strip() for s in subject_areas.split(",") if s.strip()] or ["Other"]
         doc = Document(
@@ -133,6 +134,9 @@ def upload_document(
             storage_key=stored_key,
             filename=filename,
             content_type=file.content_type,
+            content_sha256=checksum.get("sha256"),
+            object_version=checksum.get("version"),
+            object_media_type=checksum.get("media_type"),
             frameworks_json=json.dumps(fw_list),
             subject_areas_json=json.dumps(sa_list),
             status="uploaded",
@@ -192,14 +196,6 @@ _SORTS = {
 }
 _ORDERS = {"asc", "desc"}
 _INDEX_JOB_STATUSES = frozenset(status.value for status in JobStatus)
-_PREVIEW_MEDIA = {
-    ".pdf": "application/pdf",
-    ".txt": "text/plain; charset=utf-8",
-    ".docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-    ".doc": "application/msword",
-    ".xlsx": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-    ".xls": "application/vnd.ms-excel",
-}
 
 
 def _list_paging(
@@ -313,37 +309,68 @@ def _source_preview_url(document: Document, workspace_id: int) -> str | None:
 
 
 def _preview_headers(filename: str | None) -> tuple[str, str]:
+    from app.services.storage_checksum import document_media_type
+
     safe = sanitize_filename(filename)
     ext = Path(safe).suffix.lower()
-    media = _PREVIEW_MEDIA.get(ext, "application/octet-stream")
+    media = document_media_type(safe)
     disposition = "inline" if ext == ".pdf" else "attachment"
     return media, f'{disposition}; filename="{safe}"'
 
 
-def stream_stored_document(document: Document, storage: StorageClient) -> StreamingResponse:
-    """Stream one stored file the caller has already authorized.
+def stream_stored_document(document: Document, storage: StorageClient) -> Response:
+    """Return one stored file the caller has already authorized.
 
-    The storage key is not part of the response. Stored content types are not
-    reflected; the media type comes from the filename extension.
+    The storage key is not part of the response. The client-supplied content
+    type is not reflected; the media type comes from the filename extension.
+    The bytes are returned only when their SHA-256 matches the recorded hash
+    and the recorded version, media type, and workspace agree. A missing hash,
+    a mismatch, or a missing object is a fixed 409 and is not the file.
     """
+    from app.services.storage_checksum import (
+        ChecksumRefusal,
+        checksum_http_error,
+        key_workspace,
+        load_agreed_bytes,
+        positive_version,
+        valid_sha256,
+    )
+
     if not document.storage_key:
         raise HTTPException(status_code=404, detail="Document not found")
     validate_storage_key(document.storage_key)
-    try:
-        stream = storage.download_stream(storage.bucket_raw, document.storage_key)
-    except HTTPException:
-        raise
-    except Exception:
-        logger.warning("document content unavailable document_id=%s", document.id)
-        raise HTTPException(status_code=404, detail="Document file not found")
     media_type, disposition = _preview_headers(document.filename)
-    return StreamingResponse(
-        stream,
+    digest = valid_sha256(document.content_sha256)
+    version = positive_version(document.object_version)
+    if (
+        digest is None
+        or version is None
+        or document.object_media_type != media_type
+        or key_workspace(document.storage_key) != document.workspace_id
+    ):
+        logger.warning("document checksum refused document_id=%s", document.id)
+        raise checksum_http_error()
+    try:
+        payload = load_agreed_bytes(
+            storage,
+            storage.bucket_raw,
+            document.storage_key,
+            digest=digest,
+            version=version,
+            media_type=media_type,
+            workspace_id=document.workspace_id,
+        )
+    except ChecksumRefusal:
+        logger.warning("document checksum refused document_id=%s", document.id)
+        raise checksum_http_error() from None
+    return Response(
+        content=payload,
         media_type=media_type,
         headers={
             "Content-Disposition": disposition,
             "X-Content-Type-Options": "nosniff",
             "Cache-Control": "private, no-store",
+            "X-Content-SHA256": digest,
         },
     )
 

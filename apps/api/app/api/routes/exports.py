@@ -4,7 +4,7 @@ import logging
 from urllib.parse import quote
 
 from fastapi import APIRouter, Body, Depends, HTTPException, Query, Request
-from fastapi.responses import JSONResponse, Response, StreamingResponse
+from fastapi.responses import JSONResponse, Response
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
@@ -37,7 +37,6 @@ from app.services.export_service import (
     media_type_for_filename,
     public_export_failure,
     recorded_export_file,
-    sha256_hex,
 )
 from app.services.model_outcomes import ModelFailure, ModelOutcomeCode
 from app.services.storage import get_storage, StorageClient
@@ -337,7 +336,20 @@ def _export_record_item(record: ExportRecord, job: Job | None) -> dict:
         item["error_code"] = code
         item["error"] = message
         return item
+    from app.services.storage_checksum import valid_sha256
+
+    column_hash = valid_sha256(getattr(record, "content_sha256", None))
+    column_type = getattr(record, "content_type", None)
     recorded = recorded_export_file(job.result if job is not None else None)
+    if column_hash is not None:
+        if recorded is not None and (
+            recorded["sha256"] != column_hash or recorded["content_type"] != column_type
+        ):
+            return item
+        item["sha256"] = column_hash
+        if isinstance(column_type, str) and column_type:
+            item["content_type"] = column_type
+        return item
     if recorded is not None:
         item["sha256"] = recorded["sha256"]
         item["content_type"] = recorded["content_type"]
@@ -352,7 +364,9 @@ def _export_failure_response(code: str | None) -> JSONResponse:
         request_id=current_request_id(),
         retryable=False,
     )
-    return api_error_response(error, 409)
+    response = api_error_response(error, 409)
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    return response
 
 
 @router.get("/records/{record_id}/download")
@@ -392,49 +406,53 @@ def get_download_url(
         return _export_failure_response(code)
     safe_filename = rec.filename or "export.xlsx"
     disposition = f"attachment; filename*=UTF-8''{quote(safe_filename)}"
-    job = _export_job(db, rec)
-    recorded = recorded_export_file(job.result if job is not None else None)
-    named_type = media_type_for_filename(safe_filename)
-    if recorded is not None:
-        if named_type is None or recorded["content_type"] != named_type:
-            return _export_failure_response(EXPORT_STORAGE_FAILED)
-        from app.services.file_service import validate_storage_key
-
-        validate_storage_key(rec.storage_key)
-        try:
-            payload = storage.download(storage.bucket_exports, rec.storage_key)
-        except Exception:
-            _log.warning("export download failed record_id=%s", record_id)
-            return _export_failure_response(EXPORT_STORAGE_FAILED)
-        if sha256_hex(payload) != recorded["sha256"]:
-            return _export_failure_response(EXPORT_STORAGE_FAILED)
-        return Response(
-            content=payload,
-            media_type=recorded["content_type"],
-            headers={
-                "Content-Disposition": disposition,
-                "X-Content-SHA256": recorded["sha256"],
-                "X-Content-Type-Options": "nosniff",
-            },
-        )
-    # Exports written before the hash was recorded still download by extension.
     from app.services.file_service import validate_storage_key
+    from app.services.storage_checksum import (
+        ChecksumRefusal,
+        key_workspace,
+        load_agreed_bytes,
+        positive_version,
+        valid_sha256,
+    )
 
     validate_storage_key(rec.storage_key)
-    if not storage.exists(storage.bucket_exports, rec.storage_key):
-        raise HTTPException(status_code=404, detail="Export file not found")
-    stream = storage.download_stream(storage.bucket_exports, rec.storage_key)
-    ext = (safe_filename.rsplit(".", 1)[-1].lower() if "." in safe_filename else "") or "xlsx"
-    media_type = (
-        "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-        if ext == "docx"
-        else "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    named_type = media_type_for_filename(safe_filename)
+    digest = valid_sha256(getattr(rec, "content_sha256", None))
+    version = positive_version(getattr(rec, "object_version", None))
+    column_type = getattr(rec, "content_type", None)
+    job = _export_job(db, rec)
+    recorded = recorded_export_file(job.result if job is not None else None)
+    agreed = (
+        digest is not None
+        and version is not None
+        and named_type is not None
+        and column_type == named_type
+        and key_workspace(rec.storage_key) == rec.workspace_id
     )
-    return StreamingResponse(
-        stream,
-        media_type=media_type,
+    if agreed and recorded is not None:
+        agreed = recorded["sha256"] == digest and recorded["content_type"] == named_type
+    if not agreed:
+        _log.warning("export checksum refused record_id=%s", record_id)
+        return _export_failure_response(EXPORT_STORAGE_FAILED)
+    try:
+        payload = load_agreed_bytes(
+            storage,
+            storage.bucket_exports,
+            rec.storage_key,
+            digest=digest,
+            version=version,
+            media_type=named_type,
+            workspace_id=rec.workspace_id,
+        )
+    except ChecksumRefusal:
+        _log.warning("export checksum refused record_id=%s", record_id)
+        return _export_failure_response(EXPORT_STORAGE_FAILED)
+    return Response(
+        content=payload,
+        media_type=named_type,
         headers={
             "Content-Disposition": disposition,
+            "X-Content-SHA256": digest,
             "X-Content-Type-Options": "nosniff",
         },
     )

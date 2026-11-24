@@ -215,6 +215,7 @@ class FileService:
         file: UploadFile,
         *,
         before_store: Callable[[bytes], None] | None = None,
+        checksum_out: dict | None = None,
     ) -> tuple[str, str]:
         """Upload to raw bucket, return (key, filename). Enforces max size and allowed extensions only.
 
@@ -250,12 +251,35 @@ class FileService:
                 detail=f"File must have an allowed extension. Allowed: {', '.join(sorted(ALLOWED_RAW_EXTENSIONS))}",
             )
         key = make_key(workspace_id, "raw", safe_name)
-        self._storage.upload(
+        if checksum_out is None:
+            self._storage.upload(
+                self._storage.bucket_raw,
+                key,
+                content,
+                content_type=file.content_type,
+            )
+            return key, safe_name
+        from app.services.storage_checksum import (
+            OBJECT_VERSION_START,
+            checksum_metadata,
+            document_media_type,
+            sha256_hex,
+            store_bytes,
+        )
+
+        digest = sha256_hex(content)
+        media = document_media_type(safe_name)
+        store_bytes(
+            self._storage,
             self._storage.bucket_raw,
             key,
             content,
-            content_type=file.content_type,
+            media,
+            checksum_metadata(workspace_id, digest, OBJECT_VERSION_START, media),
         )
+        checksum_out["sha256"] = digest
+        checksum_out["media_type"] = media
+        checksum_out["version"] = OBJECT_VERSION_START
         return key, safe_name
 
     def upload_trust_request_attachment(
@@ -309,7 +333,14 @@ class FileService:
         self._storage.delete(self._storage.bucket_raw, key)
 
     def upload_export(
-        self, workspace_id: int, content: bytes, filename: str, job_id: int | None = None
+        self,
+        workspace_id: int,
+        content: bytes,
+        filename: str,
+        job_id: int | None = None,
+        *,
+        checksum_version: int = 1,
+        checksum_media_type: str | None = None,
     ) -> str:
         """Upload export artifact, return key.
 
@@ -322,11 +353,20 @@ class FileService:
             validate_storage_key(key)
         else:
             key = make_key(workspace_id, "exports", safe_name)
-        self._storage.upload(
+        from app.services.storage_checksum import checksum_metadata, sha256_hex, store_bytes
+
+        media = checksum_media_type or _export_media_type(safe_name)
+        digest = sha256_hex(content)
+        version = (
+            checksum_version if isinstance(checksum_version, int) and checksum_version >= 1 else 1
+        )
+        store_bytes(
+            self._storage,
             self._storage.bucket_exports,
             key,
             content,
-            content_type=_export_media_type(safe_name),
+            media,
+            checksum_metadata(int(workspace_id), digest, version, media),
         )
         return key
 
