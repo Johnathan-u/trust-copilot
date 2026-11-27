@@ -1,0 +1,29 @@
+FF.                                                                      [100%]
+=================================== FAILURES ===================================
+E   assert (2 - 0) == 0
+     +  where 2 = BackfillReport(pending=2, updated=0, missing=0, disagreed=1, mismatched=1).pending
+     +  and   0 = BackfillReport(pending=0, updated=0, missing=0, disagreed=0, mismatched=0).pending
+/agent/repos/trust-copilot/apps/api/tests/release/test_storage_checksums.py:912: assert (2 - 0) == 0
+E   assert (1, 1, 1) == (1, 2, 3)
+
+      At index 1 diff: 1 != 2
+      Use -v to get more diff
+------------------------------ Captured log call -------------------------------
+WARNING  app.api.routes.documents:documents.py:351 document checksum refused document_id=35
+/agent/repos/trust-copilot/apps/api/tests/release/test_storage_checksums.py:1068: assert (1, 1, 1) == (1, 2, 3)
+=============================== warnings summary ===============================
+tests/release/test_storage_checksums.py::test_backfill_skips_agreeing_versioned_rows
+tests/release/test_storage_checksums.py::test_backfill_skips_agreeing_versioned_rows
+tests/release/test_storage_checksums.py::test_backfill_rerun_after_interrupted_stamp_keeps_versions
+tests/release/test_storage_checksums.py::test_backfill_rerun_after_interrupted_stamp_keeps_versions
+tests/release/test_storage_checksums.py::test_moved_document_is_disagreed_and_download_stays_refused
+tests/release/test_storage_checksums.py::test_moved_document_is_disagreed_and_download_stays_refused
+  /tmp/tc-api-venv/lib/python3.12/site-packages/sqlalchemy/sql/schema.py:3627: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    return util.wrap_callable(lambda ctx: fn(), fn)  # type: ignore
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/release/test_storage_checksums.py::test_backfill_skips_agreeing_versioned_rows
+FAILED tests/release/test_storage_checksums.py::test_backfill_rerun_after_interrupted_stamp_keeps_versions
+2 failed, 1 passed, 6 deselected, 6 warnings in 1.48s
+EXIT:1

@@ -1,0 +1,42 @@
+Command from apps/api:
+
+TC_REQUIRE_DB=1 python -m pytest tests/release/test_storage_checksums.py -q --tb=line -p no:cacheprovider
+
+Failing-before ran the three new tests only:
+
+TC_REQUIRE_DB=1 python -m pytest tests/release/test_storage_checksums.py -k "agreeing_versioned or interrupted_stamp or moved_document" -q --tb=line -p no:cacheprovider
+
+Failing-before product code: ccd333670e3306a8c4102ec0dc86d77aef39cde2 (origin/master).
+The new tests ran against that tree. Exit 1. 2 failed, 1 passed, 0 skipped.
+Dry-run counted an agreeing version-2 document and version-3 export as pending.
+Execute reset those versions to 1. The moved-document test passed: the old key
+stays, the download is 409, and the backfill count is disagreed.
+Log: failing-before.txt.
+
+Passing-after product code: 93f500716ee7d5a6159ed85bb21a70422e596d83.
+Exit 0. 9 passed, 0 failed, 0 skipped. Warnings from datetime.utcnow in existing
+models and from Alembic's path_separator default. Log: passing-after.txt.
+
+An agreeing document at version 2 and an agreeing export at version 3 are already
+complete. Execute does not replace those objects or reset the versions. A mismatched
+hash and a key that names another workspace stay refused. An interrupted stamp
+(object written, row still null) is filled on the next execute at version 1, and
+the agreeing versions stay 2 and 3. A second run does not rewrite them. A document
+moved with reassign_parent_workspace keeps its key, the download stays 409, and
+the backfill counts disagreed.
+
+Python 3.12.3
+pytest 9.1.1
+ruff 0.5.6
+SQLAlchemy 2.0.55
+Alembic 1.20.1
+PostgreSQL 16.15 (Ubuntu 16.15-0ubuntu0.24.04.1)
+pgvector 0.6.0
+
+Database trustcopilot_test on 127.0.0.1:5432, user postgres.
+The password is the local development default and is not copied here.
+
+No migration in this change. Fixtures are synthetic. No customer document.
+The logs do not contain a connection URL, a storage key, or a hash.
+
+CI's build job uses Python 3.11. This local log is Python 3.12.3. CI run ids are not recorded here.
