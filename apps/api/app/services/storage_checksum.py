@@ -8,6 +8,8 @@ fills the row. Until that command runs with ``--execute``, the download
 stays refused.
 
 The command prints counts only. It does not print a storage key or a hash.
+A row whose hash, media type, and positive version already agree with the
+object is counted as already complete and is not rewritten.
 """
 
 from __future__ import annotations
@@ -221,6 +223,7 @@ class BackfillReport:
     missing: int = 0
     disagreed: int = 0
     mismatched: int = 0
+    already: int = 0
 
 
 def format_report(report: BackfillReport, *, execute: bool) -> str:
@@ -228,7 +231,7 @@ def format_report(report: BackfillReport, *, execute: bool) -> str:
     return (
         f"{mode} pending={report.pending} updated={report.updated} "
         f"missing={report.missing} disagreed={report.disagreed} "
-        f"mismatched={report.mismatched}"
+        f"mismatched={report.mismatched} already={report.already}"
     )
 
 
@@ -238,12 +241,40 @@ def _export_media(filename: str | None) -> str | None:
     return media_type_for_filename(filename or "")
 
 
-def _read_for_backfill(storage, bucket: str, key: str) -> bytes | None:
+def _read_for_backfill(storage, bucket: str, key: str):
+    """Bytes and metadata, or None when the object cannot be read."""
     try:
-        payload, _meta = read_object(storage, bucket, key)
+        return read_object(storage, bucket, key)
     except Exception:
         return None
-    return payload
+
+
+def _version_agrees(
+    *,
+    recorded: str | None,
+    digest: str,
+    version: int | None,
+    row_media: object,
+    media: str,
+    meta: dict[str, str] | None,
+    workspace_id: int,
+) -> bool:
+    """True when the row's hash, type, and positive version match the object.
+
+    ``meta`` is None when this store cannot report metadata. A reported
+    metadata map must name the same hash, version, media type, and workspace.
+    """
+    if recorded != digest or version is None or row_media != media:
+        return False
+    if meta is None:
+        return True
+    return metadata_agrees(
+        meta,
+        digest=digest,
+        version=version,
+        media_type=media,
+        workspace_id=workspace_id,
+    )
 
 
 def _stamp(storage, bucket: str, key: str, payload: bytes, media: str, metadata: dict) -> None:
@@ -262,24 +293,30 @@ def _backfill_document(row, storage, *, execute: bool, report: BackfillReport) -
     except Exception:
         report.disagreed += 1
         return
-    payload = _read_for_backfill(storage, storage.bucket_raw, key)
-    if payload is None:
+    loaded = _read_for_backfill(storage, storage.bucket_raw, key)
+    if loaded is None:
         report.missing += 1
         return
+    payload, meta = loaded
     digest = sha256_hex(payload)
     media = document_media_type(row.filename)
-    version = OBJECT_VERSION_START
     recorded = valid_sha256(row.content_sha256)
     if recorded is not None and recorded != digest:
         report.mismatched += 1
         return
-    complete = (
-        recorded == digest
-        and positive_version(row.object_version) == version
-        and row.object_media_type == media
-    )
-    if complete:
+    version = positive_version(row.object_version)
+    if _version_agrees(
+        recorded=recorded,
+        digest=digest,
+        version=version,
+        row_media=row.object_media_type,
+        media=media,
+        meta=meta,
+        workspace_id=row.workspace_id,
+    ):
+        report.already += 1
         return
+    version = OBJECT_VERSION_START
     if not execute:
         report.pending += 1
         return
@@ -325,10 +362,11 @@ def _backfill_export(session, row, storage, *, execute: bool, report: BackfillRe
     if media is None:
         report.disagreed += 1
         return
-    payload = _read_for_backfill(storage, storage.bucket_exports, key)
-    if payload is None:
+    loaded = _read_for_backfill(storage, storage.bucket_exports, key)
+    if loaded is None:
         report.missing += 1
         return
+    payload, meta = loaded
     digest = sha256_hex(payload)
     job = _job_for_export(session, row)
     recorded_job = recorded_export_file(job.result if job is not None else None)
@@ -341,14 +379,19 @@ def _backfill_export(session, row, storage, *, execute: bool, report: BackfillRe
     if recorded is not None and recorded != digest:
         report.mismatched += 1
         return
-    version = OBJECT_VERSION_START
-    complete = (
-        recorded == digest
-        and positive_version(row.object_version) == version
-        and row.content_type == media
-    )
-    if complete:
+    version = positive_version(row.object_version)
+    if _version_agrees(
+        recorded=recorded,
+        digest=digest,
+        version=version,
+        row_media=row.content_type,
+        media=media,
+        meta=meta,
+        workspace_id=row.workspace_id,
+    ):
+        report.already += 1
         return
+    version = OBJECT_VERSION_START
     if not execute:
         report.pending += 1
         return
@@ -369,9 +412,11 @@ def _backfill_export(session, row, storage, *, execute: bool, report: BackfillRe
 def backfill_storage_checksums(session, storage, *, execute: bool) -> BackfillReport:
     """Fill null document and completed-export hashes from the current object.
 
-    Dry-run (``execute`` false) changes nothing. A key whose workspace segment
-    disagrees with the row is left null. An export whose job hash disagrees
-    with the bytes is left null. A missing object is left null.
+    Dry-run (``execute`` false) changes nothing. A row whose hash, media type,
+    and positive version already agree with the object is left unchanged,
+    including when that version is above 1. A key whose workspace segment
+    disagrees with the row is left unchanged. An export whose job hash
+    disagrees with the bytes is left null. A missing object is left null.
     """
     from app.models import Document, ExportRecord
 
@@ -393,7 +438,8 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description=(
             "Record SHA-256 hashes for documents and completed exports that have none. "
-            "Dry-run is the default. Pass --execute to write. Prints counts only."
+            "Dry-run is the default. Pass --execute to write. A row that already "
+            "agrees is counted and not rewritten. Prints counts only."
         )
     )
     parser.add_argument(
