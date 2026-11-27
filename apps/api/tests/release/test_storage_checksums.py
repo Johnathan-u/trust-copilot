@@ -7,12 +7,15 @@ workspace are refused. The refusal is a fixed error: no storage key and no
 hash in the body, and ``X-Content-Type-Options: nosniff``.
 
 Rows with a null hash stay refused until ``backfill_storage_checksums`` runs
-with ``execute=True``. This file is not skipped. CI runs it with TC_REQUIRE_DB=1.
+with ``execute=True``. A row whose hash, media type, and positive version
+already agree is left as it is, including when that version is above 1.
+This file is not skipped. CI runs it with TC_REQUIRE_DB=1.
 """
 
 from __future__ import annotations
 
 import hashlib
+import json
 import os
 import subprocess
 import sys
@@ -745,5 +748,446 @@ def test_format_report_has_no_object_details():
 
     report = BackfillReport(pending=2, updated=0, missing=1, disagreed=1, mismatched=1)
     text_body = format_report(report, execute=False)
-    assert text_body == "dry-run pending=2 updated=0 missing=1 disagreed=1 mismatched=1"
+    assert text_body == ("dry-run pending=2 updated=0 missing=1 disagreed=1 mismatched=1 already=0")
     assert "/" not in text_body
+
+
+def _person(db_session, email: str, workspaces: tuple[int, ...] = (1,)):
+    user = User(
+        email=email,
+        password_hash=hash_password(_LOGIN),
+        display_name="Checksum follow-up",
+        email_verified=True,
+    )
+    db_session.add(user)
+    db_session.flush()
+    for workspace_id in workspaces:
+        db_session.add(
+            WorkspaceMember(
+                workspace_id=workspace_id,
+                user_id=user.id,
+                role="admin",
+                suspended=False,
+            )
+        )
+    db_session.commit()
+    return user
+
+
+def _drop_person(db_session, user, documents, exports, jobs):
+    db_session.rollback()
+    if exports:
+        db_session.query(ExportRecord).filter(
+            ExportRecord.id.in_([row.id for row in exports])
+        ).delete(synchronize_session=False)
+    if jobs:
+        db_session.query(Job).filter(Job.id.in_([row.id for row in jobs])).delete(
+            synchronize_session=False
+        )
+    if documents:
+        db_session.query(Document).filter(Document.id.in_([row.id for row in documents])).delete(
+            synchronize_session=False
+        )
+    db_session.query(WorkspaceMember).filter(WorkspaceMember.user_id == user.id).delete(
+        synchronize_session=False
+    )
+    db_session.query(UserSession).filter(UserSession.user_id == user.id).delete(
+        synchronize_session=False
+    )
+    db_session.query(User).filter(User.id == user.id).delete(synchronize_session=False)
+    db_session.commit()
+
+
+def _install_store(storage):
+    from app.main import app
+    from app.services.storage import get_storage
+
+    previous = app.dependency_overrides.get(get_storage)
+    app.dependency_overrides[get_storage] = lambda: storage
+    return app, previous
+
+
+def _remove_store(app, previous) -> None:
+    from app.services.storage import get_storage
+
+    app.dependency_overrides.pop(get_storage, None)
+    if previous is not None:
+        app.dependency_overrides[get_storage] = previous
+
+
+def test_backfill_skips_agreeing_versioned_rows(client, db_session):
+    """A correct hash at version 2 or higher is already complete.
+
+    Dry-run does not count it as pending. Execute does not rewrite the object
+    or reset the version. A hash that does not match, and a key that names
+    another workspace, stay refused.
+    """
+    from app.services.storage_checksum import backfill_storage_checksums
+
+    suffix = uuid.uuid4().hex[:12]
+    storage = _Store()
+    email = f"tc10006c-agree-{suffix}@example.com"
+    user = _person(db_session, email)
+    own_digest = _sha(_OWN)
+    export_digest = _sha(_EXPORT)
+    foreign_digest = _sha(_FOREIGN)
+    keys = {
+        "document": f"raw/1/{suffix}-v2.pdf",
+        "export": f"exports/1/{suffix}-v3.xlsx",
+        "mismatch": f"raw/1/{suffix}-mismatch.pdf",
+        "foreign": f"raw/2/{suffix}-foreign.pdf",
+    }
+    storage.put("raw", keys["document"], _OWN, meta=_meta(1, own_digest, 2, _PDF), media=_PDF)
+    storage.put(
+        "exports",
+        keys["export"],
+        _EXPORT,
+        meta=_meta(1, export_digest, 3, XLSX_MEDIA_TYPE),
+        media=XLSX_MEDIA_TYPE,
+    )
+    storage.put("raw", keys["mismatch"], _OWN, meta=_meta(1, own_digest, 4, _PDF), media=_PDF)
+    storage.put(
+        "raw", keys["foreign"], _FOREIGN, meta=_meta(2, foreign_digest, 2, _PDF), media=_PDF
+    )
+    stamps = {
+        name: storage.objects[("raw" if name != "export" else "exports", key)]
+        for name, key in keys.items()
+    }
+    baseline = backfill_storage_checksums(db_session, storage, execute=False)
+    job = Job(
+        workspace_id=1,
+        kind="export",
+        status="completed",
+        result=json.dumps(
+            {"sha256": export_digest, "content_type": XLSX_MEDIA_TYPE, "filename": "rerender.xlsx"}
+        ),
+    )
+    db_session.add(job)
+    db_session.flush()
+    document = Document(
+        workspace_id=1,
+        storage_key=keys["document"],
+        filename="rerender.pdf",
+        content_type="text/html",
+        content_sha256=own_digest,
+        object_version=2,
+        object_media_type=_PDF,
+        status="uploaded",
+    )
+    mismatch = Document(
+        workspace_id=1,
+        storage_key=keys["mismatch"],
+        filename="rerender.pdf",
+        content_sha256="ab" * 32,
+        object_version=4,
+        object_media_type=_PDF,
+        status="uploaded",
+    )
+    foreign = Document(
+        workspace_id=1,
+        storage_key=keys["foreign"],
+        filename="rerender.pdf",
+        content_sha256=foreign_digest,
+        object_version=2,
+        object_media_type=_PDF,
+        status="uploaded",
+    )
+    exported = ExportRecord(
+        workspace_id=1,
+        storage_key=keys["export"],
+        filename="rerender.xlsx",
+        status="completed",
+        job_id=job.id,
+        content_sha256=export_digest,
+        object_version=3,
+        content_type=XLSX_MEDIA_TYPE,
+    )
+    db_session.add_all([document, mismatch, foreign, exported])
+    db_session.commit()
+    app, previous = _install_store(storage)
+    signed_in = client.post("/api/auth/login", json={"email": email, "password": _LOGIN})
+    assert signed_in.status_code == 200, signed_in.text
+    try:
+        counted = backfill_storage_checksums(db_session, storage, execute=False)
+        assert counted.pending - baseline.pending == 0
+        assert counted.mismatched - baseline.mismatched == 1
+        assert counted.disagreed - baseline.disagreed == 1
+        assert counted.missing - baseline.missing == 0
+        assert counted.updated == 0
+        assert counted.already - baseline.already == 2
+        db_session.refresh(document)
+        db_session.refresh(exported)
+        assert document.content_sha256 == own_digest
+        assert exported.content_sha256 == export_digest
+
+        done = backfill_storage_checksums(db_session, storage, execute=True)
+        db_session.refresh(document)
+        db_session.refresh(exported)
+        db_session.refresh(mismatch)
+        db_session.refresh(foreign)
+        assert (document.object_version, exported.object_version) == (2, 3)
+        assert document.object_media_type == _PDF
+        assert document.content_type == "text/html"
+        assert exported.content_type == XLSX_MEDIA_TYPE
+        assert storage.objects[("raw", keys["document"])] is stamps["document"]
+        assert storage.objects[("exports", keys["export"])] is stamps["export"]
+        assert storage.objects[("raw", keys["document"])]["meta"]["version"] == "2"
+        assert storage.objects[("exports", keys["export"])]["meta"]["version"] == "3"
+        assert mismatch.object_version == 4
+        assert mismatch.content_sha256 == "ab" * 32
+        assert storage.objects[("raw", keys["mismatch"])] is stamps["mismatch"]
+        assert foreign.object_version == 2
+        assert foreign.content_sha256 == foreign_digest
+        assert foreign.storage_key == keys["foreign"]
+        assert storage.objects[("raw", keys["foreign"])] is stamps["foreign"]
+        assert done.updated == 0
+
+        matched = _document(client, document.id)
+        assert matched.status_code == 200, matched.text
+        assert matched.content == _OWN
+        assert matched.headers["x-content-sha256"] == own_digest
+        _nosniff(matched)
+        streamed = _export(client, exported.id)
+        assert streamed.status_code == 200, streamed.text
+        assert streamed.content == _EXPORT
+        assert streamed.headers["x-content-sha256"] == export_digest
+        _nosniff(streamed)
+        _refused(_document(client, mismatch.id), _OWN, keys=[keys["mismatch"], "ab" * 32])
+        before_reads = list(storage.reads)
+        _refused(_document(client, foreign.id), _FOREIGN, keys=[keys["foreign"], foreign_digest])
+        assert storage.reads == before_reads
+    finally:
+        _remove_store(app, previous)
+        client.cookies.clear()
+        _drop_person(db_session, user, [document, mismatch, foreign], [exported], [job])
+
+
+def test_backfill_rerun_after_interrupted_stamp_keeps_versions(client, db_session):
+    """Object stamped, row not committed: run the backfill again.
+
+    The null row picks up version 1 from the stamp. A document at version 2
+    and an export at version 3 that already agree are not reset and their
+    objects are not replaced. A second run changes none of the three.
+    """
+    from app.services.storage_checksum import backfill_storage_checksums
+
+    suffix = uuid.uuid4().hex[:12]
+    storage = _Store()
+    email = f"tc10006c-rerun-{suffix}@example.com"
+    user = _person(db_session, email)
+    own_digest = _sha(_OWN)
+    export_digest = _sha(_EXPORT)
+    legacy_body = b"%PDF-1.4 synthetic interrupted document"
+    legacy_digest = _sha(legacy_body)
+    keys = {
+        "legacy": f"raw/1/{suffix}-interrupted.pdf",
+        "document": f"raw/1/{suffix}-kept.pdf",
+        "export": f"exports/1/{suffix}-kept.xlsx",
+    }
+    storage.put(
+        "raw", keys["legacy"], legacy_body, meta=_meta(1, legacy_digest, 1, _PDF), media=_PDF
+    )
+    storage.put("raw", keys["document"], _OWN, meta=_meta(1, own_digest, 2, _PDF), media=_PDF)
+    storage.put(
+        "exports",
+        keys["export"],
+        _EXPORT,
+        meta=_meta(1, export_digest, 3, XLSX_MEDIA_TYPE),
+        media=XLSX_MEDIA_TYPE,
+    )
+    kept = {
+        "document": storage.objects[("raw", keys["document"])],
+        "export": storage.objects[("exports", keys["export"])],
+    }
+    job = Job(
+        workspace_id=1,
+        kind="export",
+        status="completed",
+        result=json.dumps(
+            {"sha256": export_digest, "content_type": XLSX_MEDIA_TYPE, "filename": "kept.xlsx"}
+        ),
+    )
+    db_session.add(job)
+    db_session.flush()
+    legacy = Document(
+        workspace_id=1,
+        storage_key=keys["legacy"],
+        filename="interrupted.pdf",
+        status="uploaded",
+    )
+    document = Document(
+        workspace_id=1,
+        storage_key=keys["document"],
+        filename="kept.pdf",
+        content_type="text/html",
+        content_sha256=own_digest,
+        object_version=2,
+        object_media_type=_PDF,
+        status="uploaded",
+    )
+    exported = ExportRecord(
+        workspace_id=1,
+        storage_key=keys["export"],
+        filename="kept.xlsx",
+        status="completed",
+        job_id=job.id,
+        content_sha256=export_digest,
+        object_version=3,
+        content_type=XLSX_MEDIA_TYPE,
+    )
+    db_session.add_all([legacy, document, exported])
+    db_session.commit()
+    app, previous = _install_store(storage)
+    signed_in = client.post("/api/auth/login", json={"email": email, "password": _LOGIN})
+    assert signed_in.status_code == 200, signed_in.text
+    try:
+        refused = _document(client, legacy.id)
+        _refused(refused, legacy_body, keys=[keys["legacy"], legacy_digest])
+        held = _document(client, document.id)
+        assert held.status_code == 200, held.text
+        assert held.content == _OWN
+        held_export = _export(client, exported.id)
+        assert held_export.status_code == 200, held_export.text
+        assert held_export.content == _EXPORT
+
+        dry = backfill_storage_checksums(db_session, storage, execute=False)
+        db_session.refresh(legacy)
+        db_session.refresh(document)
+        db_session.refresh(exported)
+        assert legacy.content_sha256 is None
+        assert legacy.object_version is None
+        assert (document.object_version, exported.object_version) == (2, 3)
+        assert storage.objects[("raw", keys["document"])] is kept["document"]
+        assert storage.objects[("exports", keys["export"])] is kept["export"]
+        assert dry.updated == 0
+
+        backfill_storage_checksums(db_session, storage, execute=True)
+        db_session.refresh(legacy)
+        db_session.refresh(document)
+        db_session.refresh(exported)
+        assert (
+            legacy.object_version,
+            document.object_version,
+            exported.object_version,
+        ) == (1, 2, 3)
+        assert legacy.content_sha256 == legacy_digest
+        assert legacy.object_media_type == _PDF
+        assert document.content_sha256 == own_digest
+        assert exported.content_sha256 == export_digest
+        assert storage.objects[("raw", keys["document"])] is kept["document"]
+        assert storage.objects[("exports", keys["export"])] is kept["export"]
+        assert storage.objects[("raw", keys["document"])]["meta"]["version"] == "2"
+        assert storage.objects[("exports", keys["export"])]["meta"]["version"] == "3"
+        filled = _document(client, legacy.id)
+        assert filled.status_code == 200, filled.text
+        assert filled.content == legacy_body
+        assert filled.headers["x-content-sha256"] == legacy_digest
+        _nosniff(filled)
+        again_doc = _document(client, document.id)
+        assert again_doc.status_code == 200, again_doc.text
+        assert again_doc.content == _OWN
+        again_export = _export(client, exported.id)
+        assert again_export.status_code == 200, again_export.text
+        assert again_export.content == _EXPORT
+
+        settled = {
+            "legacy": storage.objects[("raw", keys["legacy"])],
+            "document": storage.objects[("raw", keys["document"])],
+            "export": storage.objects[("exports", keys["export"])],
+        }
+        second = backfill_storage_checksums(db_session, storage, execute=True)
+        db_session.refresh(legacy)
+        db_session.refresh(document)
+        db_session.refresh(exported)
+        assert (
+            legacy.object_version,
+            document.object_version,
+            exported.object_version,
+        ) == (1, 2, 3)
+        assert storage.objects[("raw", keys["legacy"])] is settled["legacy"]
+        assert storage.objects[("raw", keys["document"])] is settled["document"]
+        assert storage.objects[("exports", keys["export"])] is settled["export"]
+        assert storage.objects[("raw", keys["legacy"])]["meta"]["version"] == "1"
+        assert second.updated == 0
+    finally:
+        _remove_store(app, previous)
+        client.cookies.clear()
+        _drop_person(db_session, user, [legacy, document], [exported], [job])
+
+
+def test_moved_document_is_disagreed_and_download_stays_refused(client, db_session):
+    """Moving a document keeps the old key. Download stays 409. Backfill counts disagreed."""
+    from app.services.storage_checksum import backfill_storage_checksums
+    from app.services.workspace_integrity import reassign_parent_workspace
+
+    suffix = uuid.uuid4().hex[:12]
+    storage = _Store()
+    email = f"tc10006c-moved-{suffix}@example.com"
+    user = _person(db_session, email, (1, 2))
+    digest = _sha(_OWN)
+    key = f"raw/1/{suffix}-moved.pdf"
+    storage.put("raw", key, _OWN, meta=_meta(1, digest, 2, _PDF), media=_PDF)
+    stamp = storage.objects[("raw", key)]
+    baseline = backfill_storage_checksums(db_session, storage, execute=False)
+    row = Document(
+        workspace_id=1,
+        storage_key=key,
+        filename="moved.pdf",
+        content_type="text/html",
+        content_sha256=digest,
+        object_version=2,
+        object_media_type=_PDF,
+        status="uploaded",
+    )
+    db_session.add(row)
+    db_session.commit()
+    reassign_parent_workspace(db_session, row, workspace_id=2)
+    db_session.commit()
+    db_session.refresh(row)
+    app, previous = _install_store(storage)
+    signed_in = client.post("/api/auth/login", json={"email": email, "password": _LOGIN})
+    assert signed_in.status_code == 200, signed_in.text
+    try:
+        assert row.workspace_id == 2
+        assert row.storage_key == key
+        counted = backfill_storage_checksums(db_session, storage, execute=False)
+        assert counted.disagreed == baseline.disagreed + 1
+        assert counted.pending == baseline.pending
+        assert counted.mismatched == baseline.mismatched
+        assert counted.missing == baseline.missing
+        assert counted.updated == baseline.updated
+        assert getattr(counted, "already", 0) == getattr(baseline, "already", 0)
+        db_session.refresh(row)
+        assert row.content_sha256 == digest
+        assert row.object_version == 2
+        assert storage.objects[("raw", key)] is stamp
+
+        hidden = _document(client, row.id, workspace_id=1)
+        assert hidden.status_code == 404, hidden.text
+        assert _OWN not in hidden.content
+        assert key not in hidden.text
+        switched = client.post("/api/auth/switch-workspace", json={"workspace_id": 2})
+        assert switched.status_code == 200, switched.text
+        before_reads = list(storage.reads)
+        refused = _document(client, row.id, workspace_id=2)
+        _refused(refused, _OWN, keys=[key, digest])
+        assert storage.reads == before_reads
+
+        done = backfill_storage_checksums(db_session, storage, execute=True)
+        db_session.refresh(row)
+        assert row.workspace_id == 2
+        assert row.storage_key == key
+        assert row.content_sha256 == digest
+        assert row.object_version == 2
+        assert row.object_media_type == _PDF
+        assert storage.objects[("raw", key)] is stamp
+        assert done.updated == 0
+        before_reads = list(storage.reads)
+        again = _document(client, row.id, workspace_id=2)
+        _refused(again, _OWN, keys=[key, digest])
+        assert storage.reads == before_reads
+        assert again.status_code == 409
+    finally:
+        _remove_store(app, previous)
+        client.cookies.clear()
+        _drop_person(db_session, user, [row], [], [])
