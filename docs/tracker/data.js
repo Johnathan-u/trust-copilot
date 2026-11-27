@@ -4,9 +4,9 @@ window.TRUSTCOPILOT_BACKLOG = {
     "title": "TrustCopilot backlog information radiator",
     "schema_version": 1,
     "scope_version": 1,
-    "revision": 47,
-    "as_of_utc": "2026-11-22T18:27:05Z",
-    "source_sha": "7e420af400b9defe359c9e668cb23fa41345ec78",
+    "revision": 48,
+    "as_of_utc": "2026-11-27T12:11:21Z",
+    "source_sha": "ccd333670e3306a8c4102ec0dc86d77aef39cde2",
     "baseline_status": "PENDING",
     "metric_label": "Accepted original-parent points",
     "formula": "Accepted original-parent points / 1,864; unknown until every original parent is assessed.",
@@ -15,18 +15,18 @@ window.TRUSTCOPILOT_BACKLOG = {
   "summary": {
     "accepted_points": null,
     "completion_percentage": null,
-    "assessed_tickets": 76,
+    "assessed_tickets": 77,
     "total_tickets": 384,
     "total_points": 1864,
     "state_counts": {
       "BASELINE_RECONCILIATION": 263,
       "BLOCKED": 3,
-      "DONE": 75,
+      "DONE": 76,
       "EVIDENCE_RECONCILIATION": 12,
-      "IMPLEMENTATION_GAPS_IDENTIFIED": 31
+      "IMPLEMENTATION_GAPS_IDENTIFIED": 30
     },
-    "accepted_claim_points": 327,
-    "accepted_tickets": 75,
+    "accepted_claim_points": 330,
+    "accepted_tickets": 76,
     "baseline_status": "PENDING"
   },
   "source_metadata": {
@@ -492,13 +492,12 @@ window.TRUSTCOPILOT_BACKLOG = {
       "rollup": {
         "total_tickets": 7,
         "total_points": 34,
-        "assessed_tickets": 5,
-        "accepted_tickets": 5,
+        "assessed_tickets": 6,
+        "accepted_tickets": 6,
         "accepted_points": null,
         "state_counts": {
           "BASELINE_RECONCILIATION": 1,
-          "DONE": 5,
-          "IMPLEMENTATION_GAPS_IDENTIFIED": 1
+          "DONE": 6
         }
       }
     },
@@ -38708,72 +38707,273 @@ window.TRUSTCOPILOT_BACKLOG = {
       "release_gate_dependencies": [],
       "dependency_ruling_ids": [],
       "current": {
-        "status": "IMPLEMENTATION_GAPS_IDENTIFIED",
-        "evidence_state": "IMPLEMENTATION_GAPS_IDENTIFIED",
+        "status": "DONE",
+        "evidence_state": "VERIFIED_ACCEPTED",
         "owner": null,
         "blockers": [],
-        "next_action": "Gaps from docs/release/verification/TC-10-006.md (PARTIAL, checked at 2647b2e2ad5ef575ee354a3c9c92a8bd16680dbc; PR #314 merge 52b7def3aea38caf44e4c31c0df9d408dc7096b1, head dc1ff929fb9cdab0bee23e354d98c07d319bd871; Claude's review tick #85 comment 7039897301): An export with no recorded hash still downloads, document rows have no hash column, and tests/release/test_storage_checksums.py is absent. Child TC-10-006a (P1) and child TC-10-006b (P1) are registered and open. Not accepted.",
-        "updated_at": "2026-11-20T13:31:15Z",
-        "source_sha": "32cc730e508b78af9c5039c1ee4a88bb29e970e6",
+        "next_action": "Accepted. Claude confirmed AC1 and AC2 meet and DoD1 through DoD5 on #353 comment 7145303338 at 17187840ad54e2d0006e75254f9d5725eb5b8ae2. Reviewed head 17187840ad54e2d0006e75254f9d5725eb5b8ae2 squash-merged as ccd333670e3306a8c4102ec0dc86d77aef39cde2. The squash merge tree matches the reviewed head. Migration tc10006_storage_checksums is the single head. TC-10-006a and TC-10-006b are closed as DONE in the same verdict. Follow-ups TC-10-006c (P2) and TC-10-006d (P3) are registered. Reopen only on regression or when change control adds scope.",
+        "updated_at": "2026-11-27T12:11:21Z",
+        "source_sha": "ccd333670e3306a8c4102ec0dc86d77aef39cde2",
         "acceptance": {
-          "state": "PENDING",
-          "assessed_by": null,
-          "assessed_at": null,
-          "assessed_sha": null,
-          "assessment_evidence_urls": [],
-          "tested_sha": null,
-          "implemented_by": [],
-          "independent_reviewer": null,
-          "reviewed_at": null,
-          "reviewed_sha": null,
-          "review_evidence_urls": [],
+          "state": "ACCEPTED",
+          "assessed_by": "claude-review-agent",
+          "assessed_at": "2026-11-24T21:43:24Z",
+          "assessed_sha": "17187840ad54e2d0006e75254f9d5725eb5b8ae2",
+          "assessment_evidence_urls": [
+            "https://github.com/Johnathan-u/trust-copilot/pull/353#issuecomment-7145303338",
+            "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-7145303898",
+            "https://github.com/Johnathan-u/trust-copilot/pull/353",
+            "https://github.com/Johnathan-u/trust-copilot/commit/17187840ad54e2d0006e75254f9d5725eb5b8ae2",
+            "https://github.com/Johnathan-u/trust-copilot/commit/ccd333670e3306a8c4102ec0dc86d77aef39cde2",
+            "https://github.com/Johnathan-u/trust-copilot/actions/runs/45061534723",
+            "https://github.com/Johnathan-u/trust-copilot/actions/runs/45061540604",
+            "https://github.com/Johnathan-u/trust-copilot/blob/17187840ad54e2d0006e75254f9d5725eb5b8ae2/docs/release/tickets/TC-10-006.md",
+            "https://github.com/Johnathan-u/trust-copilot/blob/17187840ad54e2d0006e75254f9d5725eb5b8ae2/docs/release/tickets/TC-10-006a.md",
+            "https://github.com/Johnathan-u/trust-copilot/blob/17187840ad54e2d0006e75254f9d5725eb5b8ae2/docs/release/tickets/TC-10-006b.md",
+            "https://github.com/Johnathan-u/trust-copilot/blob/17187840ad54e2d0006e75254f9d5725eb5b8ae2/docs/release/verification/TC-10-006.md",
+            "https://github.com/Johnathan-u/trust-copilot/blob/17187840ad54e2d0006e75254f9d5725eb5b8ae2/artifacts/acceptance/TC-10-006/README.md",
+            "https://github.com/Johnathan-u/trust-copilot/blob/17187840ad54e2d0006e75254f9d5725eb5b8ae2/artifacts/acceptance/TC-10-006/passing-after.txt",
+            "https://github.com/Johnathan-u/trust-copilot/blob/17187840ad54e2d0006e75254f9d5725eb5b8ae2/artifacts/acceptance/TC-10-006/environment.txt",
+            "https://github.com/Johnathan-u/trust-copilot/blob/17187840ad54e2d0006e75254f9d5725eb5b8ae2/artifacts/acceptance/TC-10-006/failing-before.txt",
+            "https://github.com/Johnathan-u/trust-copilot/blob/17187840ad54e2d0006e75254f9d5725eb5b8ae2/artifacts/acceptance/TC-10-006/pytest.txt",
+            "https://github.com/Johnathan-u/trust-copilot/blob/17187840ad54e2d0006e75254f9d5725eb5b8ae2/apps/api/tests/release/test_storage_checksums.py",
+            "https://github.com/Johnathan-u/trust-copilot/blob/17187840ad54e2d0006e75254f9d5725eb5b8ae2/docs/ops/storage-checksums.md",
+            "https://github.com/Johnathan-u/trust-copilot/blob/17187840ad54e2d0006e75254f9d5725eb5b8ae2/apps/api/alembic/versions/tc10006_storage_checksums.py",
+            "https://github.com/Johnathan-u/trust-copilot/pull/314",
+            "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-7039897301"
+          ],
+          "tested_sha": "17187840ad54e2d0006e75254f9d5725eb5b8ae2",
+          "implemented_by": [
+            "grok",
+            "Johnathan-u"
+          ],
+          "independent_reviewer": "claude-review-agent",
+          "reviewed_at": "2026-11-24T21:43:24Z",
+          "reviewed_sha": "17187840ad54e2d0006e75254f9d5725eb5b8ae2",
+          "review_evidence_urls": [
+            "https://github.com/Johnathan-u/trust-copilot/pull/353#issuecomment-7145303338",
+            "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-7145303898",
+            "https://github.com/Johnathan-u/trust-copilot/pull/353",
+            "https://github.com/Johnathan-u/trust-copilot/commit/17187840ad54e2d0006e75254f9d5725eb5b8ae2",
+            "https://github.com/Johnathan-u/trust-copilot/commit/ccd333670e3306a8c4102ec0dc86d77aef39cde2",
+            "https://github.com/Johnathan-u/trust-copilot/actions/runs/45061534723",
+            "https://github.com/Johnathan-u/trust-copilot/actions/runs/45061540604",
+            "https://github.com/Johnathan-u/trust-copilot/blob/17187840ad54e2d0006e75254f9d5725eb5b8ae2/docs/release/tickets/TC-10-006.md",
+            "https://github.com/Johnathan-u/trust-copilot/blob/17187840ad54e2d0006e75254f9d5725eb5b8ae2/docs/release/tickets/TC-10-006a.md",
+            "https://github.com/Johnathan-u/trust-copilot/blob/17187840ad54e2d0006e75254f9d5725eb5b8ae2/docs/release/tickets/TC-10-006b.md",
+            "https://github.com/Johnathan-u/trust-copilot/blob/17187840ad54e2d0006e75254f9d5725eb5b8ae2/docs/release/verification/TC-10-006.md",
+            "https://github.com/Johnathan-u/trust-copilot/blob/17187840ad54e2d0006e75254f9d5725eb5b8ae2/artifacts/acceptance/TC-10-006/README.md",
+            "https://github.com/Johnathan-u/trust-copilot/blob/17187840ad54e2d0006e75254f9d5725eb5b8ae2/artifacts/acceptance/TC-10-006/passing-after.txt",
+            "https://github.com/Johnathan-u/trust-copilot/blob/17187840ad54e2d0006e75254f9d5725eb5b8ae2/artifacts/acceptance/TC-10-006/environment.txt",
+            "https://github.com/Johnathan-u/trust-copilot/blob/17187840ad54e2d0006e75254f9d5725eb5b8ae2/artifacts/acceptance/TC-10-006/failing-before.txt",
+            "https://github.com/Johnathan-u/trust-copilot/blob/17187840ad54e2d0006e75254f9d5725eb5b8ae2/artifacts/acceptance/TC-10-006/pytest.txt",
+            "https://github.com/Johnathan-u/trust-copilot/blob/17187840ad54e2d0006e75254f9d5725eb5b8ae2/apps/api/tests/release/test_storage_checksums.py",
+            "https://github.com/Johnathan-u/trust-copilot/blob/17187840ad54e2d0006e75254f9d5725eb5b8ae2/docs/ops/storage-checksums.md",
+            "https://github.com/Johnathan-u/trust-copilot/blob/17187840ad54e2d0006e75254f9d5725eb5b8ae2/apps/api/alembic/versions/tc10006_storage_checksums.py",
+            "https://github.com/Johnathan-u/trust-copilot/pull/314",
+            "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-7039897301"
+          ],
           "criteria": [
             {
               "id": "TC-10-006-AC1",
-              "status": "NOT_VERIFIED",
-              "evidence_urls": [],
-              "tested_sha": null
+              "status": "PASS",
+              "evidence_urls": [
+                "https://github.com/Johnathan-u/trust-copilot/pull/353#issuecomment-7145303338",
+                "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-7145303898",
+                "https://github.com/Johnathan-u/trust-copilot/pull/353",
+                "https://github.com/Johnathan-u/trust-copilot/commit/17187840ad54e2d0006e75254f9d5725eb5b8ae2",
+                "https://github.com/Johnathan-u/trust-copilot/commit/ccd333670e3306a8c4102ec0dc86d77aef39cde2",
+                "https://github.com/Johnathan-u/trust-copilot/actions/runs/45061534723",
+                "https://github.com/Johnathan-u/trust-copilot/actions/runs/45061540604",
+                "https://github.com/Johnathan-u/trust-copilot/blob/17187840ad54e2d0006e75254f9d5725eb5b8ae2/docs/release/tickets/TC-10-006.md",
+                "https://github.com/Johnathan-u/trust-copilot/blob/17187840ad54e2d0006e75254f9d5725eb5b8ae2/docs/release/tickets/TC-10-006a.md",
+                "https://github.com/Johnathan-u/trust-copilot/blob/17187840ad54e2d0006e75254f9d5725eb5b8ae2/docs/release/tickets/TC-10-006b.md",
+                "https://github.com/Johnathan-u/trust-copilot/blob/17187840ad54e2d0006e75254f9d5725eb5b8ae2/docs/release/verification/TC-10-006.md",
+                "https://github.com/Johnathan-u/trust-copilot/blob/17187840ad54e2d0006e75254f9d5725eb5b8ae2/artifacts/acceptance/TC-10-006/README.md",
+                "https://github.com/Johnathan-u/trust-copilot/blob/17187840ad54e2d0006e75254f9d5725eb5b8ae2/artifacts/acceptance/TC-10-006/passing-after.txt",
+                "https://github.com/Johnathan-u/trust-copilot/blob/17187840ad54e2d0006e75254f9d5725eb5b8ae2/artifacts/acceptance/TC-10-006/environment.txt",
+                "https://github.com/Johnathan-u/trust-copilot/blob/17187840ad54e2d0006e75254f9d5725eb5b8ae2/artifacts/acceptance/TC-10-006/failing-before.txt",
+                "https://github.com/Johnathan-u/trust-copilot/blob/17187840ad54e2d0006e75254f9d5725eb5b8ae2/artifacts/acceptance/TC-10-006/pytest.txt",
+                "https://github.com/Johnathan-u/trust-copilot/blob/17187840ad54e2d0006e75254f9d5725eb5b8ae2/apps/api/tests/release/test_storage_checksums.py",
+                "https://github.com/Johnathan-u/trust-copilot/blob/17187840ad54e2d0006e75254f9d5725eb5b8ae2/docs/ops/storage-checksums.md",
+                "https://github.com/Johnathan-u/trust-copilot/blob/17187840ad54e2d0006e75254f9d5725eb5b8ae2/apps/api/alembic/versions/tc10006_storage_checksums.py",
+                "https://github.com/Johnathan-u/trust-copilot/pull/314",
+                "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-7039897301"
+              ],
+              "tested_sha": "17187840ad54e2d0006e75254f9d5725eb5b8ae2"
             },
             {
               "id": "TC-10-006-AC2",
-              "status": "NOT_VERIFIED",
-              "evidence_urls": [],
-              "tested_sha": null
+              "status": "PASS",
+              "evidence_urls": [
+                "https://github.com/Johnathan-u/trust-copilot/pull/353#issuecomment-7145303338",
+                "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-7145303898",
+                "https://github.com/Johnathan-u/trust-copilot/pull/353",
+                "https://github.com/Johnathan-u/trust-copilot/commit/17187840ad54e2d0006e75254f9d5725eb5b8ae2",
+                "https://github.com/Johnathan-u/trust-copilot/commit/ccd333670e3306a8c4102ec0dc86d77aef39cde2",
+                "https://github.com/Johnathan-u/trust-copilot/actions/runs/45061534723",
+                "https://github.com/Johnathan-u/trust-copilot/actions/runs/45061540604",
+                "https://github.com/Johnathan-u/trust-copilot/blob/17187840ad54e2d0006e75254f9d5725eb5b8ae2/docs/release/tickets/TC-10-006.md",
+                "https://github.com/Johnathan-u/trust-copilot/blob/17187840ad54e2d0006e75254f9d5725eb5b8ae2/docs/release/tickets/TC-10-006a.md",
+                "https://github.com/Johnathan-u/trust-copilot/blob/17187840ad54e2d0006e75254f9d5725eb5b8ae2/docs/release/tickets/TC-10-006b.md",
+                "https://github.com/Johnathan-u/trust-copilot/blob/17187840ad54e2d0006e75254f9d5725eb5b8ae2/docs/release/verification/TC-10-006.md",
+                "https://github.com/Johnathan-u/trust-copilot/blob/17187840ad54e2d0006e75254f9d5725eb5b8ae2/artifacts/acceptance/TC-10-006/README.md",
+                "https://github.com/Johnathan-u/trust-copilot/blob/17187840ad54e2d0006e75254f9d5725eb5b8ae2/artifacts/acceptance/TC-10-006/passing-after.txt",
+                "https://github.com/Johnathan-u/trust-copilot/blob/17187840ad54e2d0006e75254f9d5725eb5b8ae2/artifacts/acceptance/TC-10-006/environment.txt",
+                "https://github.com/Johnathan-u/trust-copilot/blob/17187840ad54e2d0006e75254f9d5725eb5b8ae2/artifacts/acceptance/TC-10-006/failing-before.txt",
+                "https://github.com/Johnathan-u/trust-copilot/blob/17187840ad54e2d0006e75254f9d5725eb5b8ae2/artifacts/acceptance/TC-10-006/pytest.txt",
+                "https://github.com/Johnathan-u/trust-copilot/blob/17187840ad54e2d0006e75254f9d5725eb5b8ae2/apps/api/tests/release/test_storage_checksums.py",
+                "https://github.com/Johnathan-u/trust-copilot/blob/17187840ad54e2d0006e75254f9d5725eb5b8ae2/docs/ops/storage-checksums.md",
+                "https://github.com/Johnathan-u/trust-copilot/blob/17187840ad54e2d0006e75254f9d5725eb5b8ae2/apps/api/alembic/versions/tc10006_storage_checksums.py",
+                "https://github.com/Johnathan-u/trust-copilot/pull/314",
+                "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-7039897301"
+              ],
+              "tested_sha": "17187840ad54e2d0006e75254f9d5725eb5b8ae2"
             }
           ],
           "definition_of_done": [
             {
               "id": "TC-10-006-DOD1",
-              "status": "NOT_VERIFIED",
-              "evidence_urls": [],
-              "tested_sha": null
+              "status": "PASS",
+              "evidence_urls": [
+                "https://github.com/Johnathan-u/trust-copilot/pull/353#issuecomment-7145303338",
+                "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-7145303898",
+                "https://github.com/Johnathan-u/trust-copilot/pull/353",
+                "https://github.com/Johnathan-u/trust-copilot/commit/17187840ad54e2d0006e75254f9d5725eb5b8ae2",
+                "https://github.com/Johnathan-u/trust-copilot/commit/ccd333670e3306a8c4102ec0dc86d77aef39cde2",
+                "https://github.com/Johnathan-u/trust-copilot/actions/runs/45061534723",
+                "https://github.com/Johnathan-u/trust-copilot/actions/runs/45061540604",
+                "https://github.com/Johnathan-u/trust-copilot/blob/17187840ad54e2d0006e75254f9d5725eb5b8ae2/docs/release/tickets/TC-10-006.md",
+                "https://github.com/Johnathan-u/trust-copilot/blob/17187840ad54e2d0006e75254f9d5725eb5b8ae2/docs/release/tickets/TC-10-006a.md",
+                "https://github.com/Johnathan-u/trust-copilot/blob/17187840ad54e2d0006e75254f9d5725eb5b8ae2/docs/release/tickets/TC-10-006b.md",
+                "https://github.com/Johnathan-u/trust-copilot/blob/17187840ad54e2d0006e75254f9d5725eb5b8ae2/docs/release/verification/TC-10-006.md",
+                "https://github.com/Johnathan-u/trust-copilot/blob/17187840ad54e2d0006e75254f9d5725eb5b8ae2/artifacts/acceptance/TC-10-006/README.md",
+                "https://github.com/Johnathan-u/trust-copilot/blob/17187840ad54e2d0006e75254f9d5725eb5b8ae2/artifacts/acceptance/TC-10-006/passing-after.txt",
+                "https://github.com/Johnathan-u/trust-copilot/blob/17187840ad54e2d0006e75254f9d5725eb5b8ae2/artifacts/acceptance/TC-10-006/environment.txt",
+                "https://github.com/Johnathan-u/trust-copilot/blob/17187840ad54e2d0006e75254f9d5725eb5b8ae2/artifacts/acceptance/TC-10-006/failing-before.txt",
+                "https://github.com/Johnathan-u/trust-copilot/blob/17187840ad54e2d0006e75254f9d5725eb5b8ae2/artifacts/acceptance/TC-10-006/pytest.txt",
+                "https://github.com/Johnathan-u/trust-copilot/blob/17187840ad54e2d0006e75254f9d5725eb5b8ae2/apps/api/tests/release/test_storage_checksums.py",
+                "https://github.com/Johnathan-u/trust-copilot/blob/17187840ad54e2d0006e75254f9d5725eb5b8ae2/docs/ops/storage-checksums.md",
+                "https://github.com/Johnathan-u/trust-copilot/blob/17187840ad54e2d0006e75254f9d5725eb5b8ae2/apps/api/alembic/versions/tc10006_storage_checksums.py",
+                "https://github.com/Johnathan-u/trust-copilot/pull/314",
+                "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-7039897301"
+              ],
+              "tested_sha": "17187840ad54e2d0006e75254f9d5725eb5b8ae2"
             },
             {
               "id": "TC-10-006-DOD2",
-              "status": "NOT_VERIFIED",
-              "evidence_urls": [],
-              "tested_sha": null
+              "status": "PASS",
+              "evidence_urls": [
+                "https://github.com/Johnathan-u/trust-copilot/pull/353#issuecomment-7145303338",
+                "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-7145303898",
+                "https://github.com/Johnathan-u/trust-copilot/pull/353",
+                "https://github.com/Johnathan-u/trust-copilot/commit/17187840ad54e2d0006e75254f9d5725eb5b8ae2",
+                "https://github.com/Johnathan-u/trust-copilot/commit/ccd333670e3306a8c4102ec0dc86d77aef39cde2",
+                "https://github.com/Johnathan-u/trust-copilot/actions/runs/45061534723",
+                "https://github.com/Johnathan-u/trust-copilot/actions/runs/45061540604",
+                "https://github.com/Johnathan-u/trust-copilot/blob/17187840ad54e2d0006e75254f9d5725eb5b8ae2/docs/release/tickets/TC-10-006.md",
+                "https://github.com/Johnathan-u/trust-copilot/blob/17187840ad54e2d0006e75254f9d5725eb5b8ae2/docs/release/tickets/TC-10-006a.md",
+                "https://github.com/Johnathan-u/trust-copilot/blob/17187840ad54e2d0006e75254f9d5725eb5b8ae2/docs/release/tickets/TC-10-006b.md",
+                "https://github.com/Johnathan-u/trust-copilot/blob/17187840ad54e2d0006e75254f9d5725eb5b8ae2/docs/release/verification/TC-10-006.md",
+                "https://github.com/Johnathan-u/trust-copilot/blob/17187840ad54e2d0006e75254f9d5725eb5b8ae2/artifacts/acceptance/TC-10-006/README.md",
+                "https://github.com/Johnathan-u/trust-copilot/blob/17187840ad54e2d0006e75254f9d5725eb5b8ae2/artifacts/acceptance/TC-10-006/passing-after.txt",
+                "https://github.com/Johnathan-u/trust-copilot/blob/17187840ad54e2d0006e75254f9d5725eb5b8ae2/artifacts/acceptance/TC-10-006/environment.txt",
+                "https://github.com/Johnathan-u/trust-copilot/blob/17187840ad54e2d0006e75254f9d5725eb5b8ae2/artifacts/acceptance/TC-10-006/failing-before.txt",
+                "https://github.com/Johnathan-u/trust-copilot/blob/17187840ad54e2d0006e75254f9d5725eb5b8ae2/artifacts/acceptance/TC-10-006/pytest.txt",
+                "https://github.com/Johnathan-u/trust-copilot/blob/17187840ad54e2d0006e75254f9d5725eb5b8ae2/apps/api/tests/release/test_storage_checksums.py",
+                "https://github.com/Johnathan-u/trust-copilot/blob/17187840ad54e2d0006e75254f9d5725eb5b8ae2/docs/ops/storage-checksums.md",
+                "https://github.com/Johnathan-u/trust-copilot/blob/17187840ad54e2d0006e75254f9d5725eb5b8ae2/apps/api/alembic/versions/tc10006_storage_checksums.py",
+                "https://github.com/Johnathan-u/trust-copilot/pull/314",
+                "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-7039897301"
+              ],
+              "tested_sha": "17187840ad54e2d0006e75254f9d5725eb5b8ae2"
             },
             {
               "id": "TC-10-006-DOD3",
-              "status": "NOT_VERIFIED",
-              "evidence_urls": [],
-              "tested_sha": null
+              "status": "PASS",
+              "evidence_urls": [
+                "https://github.com/Johnathan-u/trust-copilot/pull/353#issuecomment-7145303338",
+                "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-7145303898",
+                "https://github.com/Johnathan-u/trust-copilot/pull/353",
+                "https://github.com/Johnathan-u/trust-copilot/commit/17187840ad54e2d0006e75254f9d5725eb5b8ae2",
+                "https://github.com/Johnathan-u/trust-copilot/commit/ccd333670e3306a8c4102ec0dc86d77aef39cde2",
+                "https://github.com/Johnathan-u/trust-copilot/actions/runs/45061534723",
+                "https://github.com/Johnathan-u/trust-copilot/actions/runs/45061540604",
+                "https://github.com/Johnathan-u/trust-copilot/blob/17187840ad54e2d0006e75254f9d5725eb5b8ae2/docs/release/tickets/TC-10-006.md",
+                "https://github.com/Johnathan-u/trust-copilot/blob/17187840ad54e2d0006e75254f9d5725eb5b8ae2/docs/release/tickets/TC-10-006a.md",
+                "https://github.com/Johnathan-u/trust-copilot/blob/17187840ad54e2d0006e75254f9d5725eb5b8ae2/docs/release/tickets/TC-10-006b.md",
+                "https://github.com/Johnathan-u/trust-copilot/blob/17187840ad54e2d0006e75254f9d5725eb5b8ae2/docs/release/verification/TC-10-006.md",
+                "https://github.com/Johnathan-u/trust-copilot/blob/17187840ad54e2d0006e75254f9d5725eb5b8ae2/artifacts/acceptance/TC-10-006/README.md",
+                "https://github.com/Johnathan-u/trust-copilot/blob/17187840ad54e2d0006e75254f9d5725eb5b8ae2/artifacts/acceptance/TC-10-006/passing-after.txt",
+                "https://github.com/Johnathan-u/trust-copilot/blob/17187840ad54e2d0006e75254f9d5725eb5b8ae2/artifacts/acceptance/TC-10-006/environment.txt",
+                "https://github.com/Johnathan-u/trust-copilot/blob/17187840ad54e2d0006e75254f9d5725eb5b8ae2/artifacts/acceptance/TC-10-006/failing-before.txt",
+                "https://github.com/Johnathan-u/trust-copilot/blob/17187840ad54e2d0006e75254f9d5725eb5b8ae2/artifacts/acceptance/TC-10-006/pytest.txt",
+                "https://github.com/Johnathan-u/trust-copilot/blob/17187840ad54e2d0006e75254f9d5725eb5b8ae2/apps/api/tests/release/test_storage_checksums.py",
+                "https://github.com/Johnathan-u/trust-copilot/blob/17187840ad54e2d0006e75254f9d5725eb5b8ae2/docs/ops/storage-checksums.md",
+                "https://github.com/Johnathan-u/trust-copilot/blob/17187840ad54e2d0006e75254f9d5725eb5b8ae2/apps/api/alembic/versions/tc10006_storage_checksums.py",
+                "https://github.com/Johnathan-u/trust-copilot/pull/314",
+                "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-7039897301"
+              ],
+              "tested_sha": "17187840ad54e2d0006e75254f9d5725eb5b8ae2"
             },
             {
               "id": "TC-10-006-DOD4",
-              "status": "NOT_VERIFIED",
-              "evidence_urls": [],
-              "tested_sha": null
+              "status": "PASS",
+              "evidence_urls": [
+                "https://github.com/Johnathan-u/trust-copilot/pull/353#issuecomment-7145303338",
+                "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-7145303898",
+                "https://github.com/Johnathan-u/trust-copilot/pull/353",
+                "https://github.com/Johnathan-u/trust-copilot/commit/17187840ad54e2d0006e75254f9d5725eb5b8ae2",
+                "https://github.com/Johnathan-u/trust-copilot/commit/ccd333670e3306a8c4102ec0dc86d77aef39cde2",
+                "https://github.com/Johnathan-u/trust-copilot/actions/runs/45061534723",
+                "https://github.com/Johnathan-u/trust-copilot/actions/runs/45061540604",
+                "https://github.com/Johnathan-u/trust-copilot/blob/17187840ad54e2d0006e75254f9d5725eb5b8ae2/docs/release/tickets/TC-10-006.md",
+                "https://github.com/Johnathan-u/trust-copilot/blob/17187840ad54e2d0006e75254f9d5725eb5b8ae2/docs/release/tickets/TC-10-006a.md",
+                "https://github.com/Johnathan-u/trust-copilot/blob/17187840ad54e2d0006e75254f9d5725eb5b8ae2/docs/release/tickets/TC-10-006b.md",
+                "https://github.com/Johnathan-u/trust-copilot/blob/17187840ad54e2d0006e75254f9d5725eb5b8ae2/docs/release/verification/TC-10-006.md",
+                "https://github.com/Johnathan-u/trust-copilot/blob/17187840ad54e2d0006e75254f9d5725eb5b8ae2/artifacts/acceptance/TC-10-006/README.md",
+                "https://github.com/Johnathan-u/trust-copilot/blob/17187840ad54e2d0006e75254f9d5725eb5b8ae2/artifacts/acceptance/TC-10-006/passing-after.txt",
+                "https://github.com/Johnathan-u/trust-copilot/blob/17187840ad54e2d0006e75254f9d5725eb5b8ae2/artifacts/acceptance/TC-10-006/environment.txt",
+                "https://github.com/Johnathan-u/trust-copilot/blob/17187840ad54e2d0006e75254f9d5725eb5b8ae2/artifacts/acceptance/TC-10-006/failing-before.txt",
+                "https://github.com/Johnathan-u/trust-copilot/blob/17187840ad54e2d0006e75254f9d5725eb5b8ae2/artifacts/acceptance/TC-10-006/pytest.txt",
+                "https://github.com/Johnathan-u/trust-copilot/blob/17187840ad54e2d0006e75254f9d5725eb5b8ae2/apps/api/tests/release/test_storage_checksums.py",
+                "https://github.com/Johnathan-u/trust-copilot/blob/17187840ad54e2d0006e75254f9d5725eb5b8ae2/docs/ops/storage-checksums.md",
+                "https://github.com/Johnathan-u/trust-copilot/blob/17187840ad54e2d0006e75254f9d5725eb5b8ae2/apps/api/alembic/versions/tc10006_storage_checksums.py",
+                "https://github.com/Johnathan-u/trust-copilot/pull/314",
+                "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-7039897301"
+              ],
+              "tested_sha": "17187840ad54e2d0006e75254f9d5725eb5b8ae2"
             },
             {
               "id": "TC-10-006-DOD5",
-              "status": "NOT_VERIFIED",
-              "evidence_urls": [],
-              "tested_sha": null
+              "status": "PASS",
+              "evidence_urls": [
+                "https://github.com/Johnathan-u/trust-copilot/pull/353#issuecomment-7145303338",
+                "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-7145303898",
+                "https://github.com/Johnathan-u/trust-copilot/pull/353",
+                "https://github.com/Johnathan-u/trust-copilot/commit/17187840ad54e2d0006e75254f9d5725eb5b8ae2",
+                "https://github.com/Johnathan-u/trust-copilot/commit/ccd333670e3306a8c4102ec0dc86d77aef39cde2",
+                "https://github.com/Johnathan-u/trust-copilot/actions/runs/45061534723",
+                "https://github.com/Johnathan-u/trust-copilot/actions/runs/45061540604",
+                "https://github.com/Johnathan-u/trust-copilot/blob/17187840ad54e2d0006e75254f9d5725eb5b8ae2/docs/release/tickets/TC-10-006.md",
+                "https://github.com/Johnathan-u/trust-copilot/blob/17187840ad54e2d0006e75254f9d5725eb5b8ae2/docs/release/tickets/TC-10-006a.md",
+                "https://github.com/Johnathan-u/trust-copilot/blob/17187840ad54e2d0006e75254f9d5725eb5b8ae2/docs/release/tickets/TC-10-006b.md",
+                "https://github.com/Johnathan-u/trust-copilot/blob/17187840ad54e2d0006e75254f9d5725eb5b8ae2/docs/release/verification/TC-10-006.md",
+                "https://github.com/Johnathan-u/trust-copilot/blob/17187840ad54e2d0006e75254f9d5725eb5b8ae2/artifacts/acceptance/TC-10-006/README.md",
+                "https://github.com/Johnathan-u/trust-copilot/blob/17187840ad54e2d0006e75254f9d5725eb5b8ae2/artifacts/acceptance/TC-10-006/passing-after.txt",
+                "https://github.com/Johnathan-u/trust-copilot/blob/17187840ad54e2d0006e75254f9d5725eb5b8ae2/artifacts/acceptance/TC-10-006/environment.txt",
+                "https://github.com/Johnathan-u/trust-copilot/blob/17187840ad54e2d0006e75254f9d5725eb5b8ae2/artifacts/acceptance/TC-10-006/failing-before.txt",
+                "https://github.com/Johnathan-u/trust-copilot/blob/17187840ad54e2d0006e75254f9d5725eb5b8ae2/artifacts/acceptance/TC-10-006/pytest.txt",
+                "https://github.com/Johnathan-u/trust-copilot/blob/17187840ad54e2d0006e75254f9d5725eb5b8ae2/apps/api/tests/release/test_storage_checksums.py",
+                "https://github.com/Johnathan-u/trust-copilot/blob/17187840ad54e2d0006e75254f9d5725eb5b8ae2/docs/ops/storage-checksums.md",
+                "https://github.com/Johnathan-u/trust-copilot/blob/17187840ad54e2d0006e75254f9d5725eb5b8ae2/apps/api/alembic/versions/tc10006_storage_checksums.py",
+                "https://github.com/Johnathan-u/trust-copilot/pull/314",
+                "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-7039897301"
+              ],
+              "tested_sha": "17187840ad54e2d0006e75254f9d5725eb5b8ae2"
             }
           ],
-          "note": "Full original-parent acceptance is pending baseline validation; merged work and artifact presence alone confer no acceptance. Claude's review tick on #85 comment 7039897301 moves the PARTIAL report docs/release/verification/TC-10-006.md in PR #314 (merge 52b7def3aea38caf44e4c31c0df9d408dc7096b1, head dc1ff929fb9cdab0bee23e354d98c07d319bd871) to IMPLEMENTATION_GAPS_IDENTIFIED. The report was checked at 2647b2e2ad5ef575ee354a3c9c92a8bd16680dbc. An export with no recorded hash still downloads, document rows have no hash column, and tests/release/test_storage_checksums.py is absent. Child TC-10-006a (P1) and child TC-10-006b (P1) are registered and open. The children are not counted toward DONE. Status is IMPLEMENTATION_GAPS_IDENTIFIED. This record does not accept the ticket. Recorded by Grok (worker) from Claude's review. Grok is not the independent reviewer."
+          "note": "DONE and VERIFIED_ACCEPTED. Claude is the independent reviewer. He accepted TC-10-006, TC-10-006a and TC-10-006b on #353 comment 7145303338 at 2026-11-24T21:43:24Z. The same acceptance is on #85 comment 7145303898. Tested, assessed and reviewed SHA 17187840ad54e2d0006e75254f9d5725eb5b8ae2 is the reviewed PR #353 head. The squash merge is ccd333670e3306a8c4102ec0dc86d77aef39cde2 and its tree matches that head. He confirmed AC1 meets and AC2 meets. DoD1 through DoD5 meet on #353 comment 7145303338: release test apps/api/tests/release/test_storage_checksums.py ran 6 tests, all passed, none skipped, evidence is in artifacts/acceptance/TC-10-006/, the runbook is docs/ops/storage-checksums.md, the ticket files are docs/release/tickets/TC-10-006.md, TC-10-006a.md and TC-10-006b.md, migration tc10006_storage_checksums is the single head (six nullable columns; downgrade drops them; an up/down test covers it), and the review is independent. Reviewed head 17187840ad54e2d0006e75254f9d5725eb5b8ae2 was green on push run 45061534723 and pull_request run 45061540604. TC-10-006a and TC-10-006b are closed as DONE. Follow-up TC-10-006c (P2) is registered from #353 comment 7145303338: the storage_checksum backfill treats only object_version == 1 as complete, so a re-rendered export at version \u003e= 2 with a correct hash counts as pending and --execute rewrites the object and resets the version to 1. Skip a row whose hash, media type and positive version already agree with the object. The object is stamped before the row commits, so document that an interrupted run is fixed by running it again. A document moved by reassign_parent_workspace keeps its old key, so it is refused and counted as disagreed (fails closed, correct); say so in the ops doc. Follow-up TC-10-006d (P3) is registered from the same comment: seed_demo_workspace.py, seed_e2e_registry.py and seed_qa_test_data.py create documents with no hash, so seeded files return 409 until the backfill runs. The baseline PARTIAL on #314 and #85 comment 7039897301 is superseded by this acceptance. Baseline verification of the original plan stays pending. Grok records this review and is not the independent reviewer."
         },
         "pr_links": [
           {
@@ -38791,6 +38991,22 @@ window.TRUSTCOPILOT_BACKLOG = {
             "scope_ids": [
               "TC-10-006"
             ]
+          },
+          {
+            "number": 353,
+            "title": "TC-10-006: persist and verify original and export hashes (006a, 006b, parent)",
+            "url": "https://github.com/Johnathan-u/trust-copilot/pull/353",
+            "state": "merged",
+            "draft": false,
+            "head_sha": "17187840ad54e2d0006e75254f9d5725eb5b8ae2",
+            "merge_commit_sha": "ccd333670e3306a8c4102ec0dc86d77aef39cde2",
+            "merged_at": "2026-11-24T21:43:14Z",
+            "mapping_basis": [
+              "acceptance"
+            ],
+            "scope_ids": [
+              "TC-10-006"
+            ]
           }
         ],
         "evidence_links": [
@@ -38798,7 +39014,26 @@ window.TRUSTCOPILOT_BACKLOG = {
           "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-7039897301",
           "https://github.com/Johnathan-u/trust-copilot/commit/dc1ff929fb9cdab0bee23e354d98c07d319bd871",
           "https://github.com/Johnathan-u/trust-copilot/commit/52b7def3aea38caf44e4c31c0df9d408dc7096b1",
-          "https://github.com/Johnathan-u/trust-copilot/blob/52b7def3aea38caf44e4c31c0df9d408dc7096b1/docs/release/verification/TC-10-006.md"
+          "https://github.com/Johnathan-u/trust-copilot/blob/52b7def3aea38caf44e4c31c0df9d408dc7096b1/docs/release/verification/TC-10-006.md",
+          "https://github.com/Johnathan-u/trust-copilot/pull/353#issuecomment-7145303338",
+          "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-7145303898",
+          "https://github.com/Johnathan-u/trust-copilot/pull/353",
+          "https://github.com/Johnathan-u/trust-copilot/commit/17187840ad54e2d0006e75254f9d5725eb5b8ae2",
+          "https://github.com/Johnathan-u/trust-copilot/commit/ccd333670e3306a8c4102ec0dc86d77aef39cde2",
+          "https://github.com/Johnathan-u/trust-copilot/actions/runs/45061534723",
+          "https://github.com/Johnathan-u/trust-copilot/actions/runs/45061540604",
+          "https://github.com/Johnathan-u/trust-copilot/blob/17187840ad54e2d0006e75254f9d5725eb5b8ae2/docs/release/tickets/TC-10-006.md",
+          "https://github.com/Johnathan-u/trust-copilot/blob/17187840ad54e2d0006e75254f9d5725eb5b8ae2/docs/release/tickets/TC-10-006a.md",
+          "https://github.com/Johnathan-u/trust-copilot/blob/17187840ad54e2d0006e75254f9d5725eb5b8ae2/docs/release/tickets/TC-10-006b.md",
+          "https://github.com/Johnathan-u/trust-copilot/blob/17187840ad54e2d0006e75254f9d5725eb5b8ae2/docs/release/verification/TC-10-006.md",
+          "https://github.com/Johnathan-u/trust-copilot/blob/17187840ad54e2d0006e75254f9d5725eb5b8ae2/artifacts/acceptance/TC-10-006/README.md",
+          "https://github.com/Johnathan-u/trust-copilot/blob/17187840ad54e2d0006e75254f9d5725eb5b8ae2/artifacts/acceptance/TC-10-006/passing-after.txt",
+          "https://github.com/Johnathan-u/trust-copilot/blob/17187840ad54e2d0006e75254f9d5725eb5b8ae2/artifacts/acceptance/TC-10-006/environment.txt",
+          "https://github.com/Johnathan-u/trust-copilot/blob/17187840ad54e2d0006e75254f9d5725eb5b8ae2/artifacts/acceptance/TC-10-006/failing-before.txt",
+          "https://github.com/Johnathan-u/trust-copilot/blob/17187840ad54e2d0006e75254f9d5725eb5b8ae2/artifacts/acceptance/TC-10-006/pytest.txt",
+          "https://github.com/Johnathan-u/trust-copilot/blob/17187840ad54e2d0006e75254f9d5725eb5b8ae2/apps/api/tests/release/test_storage_checksums.py",
+          "https://github.com/Johnathan-u/trust-copilot/blob/17187840ad54e2d0006e75254f9d5725eb5b8ae2/docs/ops/storage-checksums.md",
+          "https://github.com/Johnathan-u/trust-copilot/blob/17187840ad54e2d0006e75254f9d5725eb5b8ae2/apps/api/alembic/versions/tc10006_storage_checksums.py"
         ],
         "audit": {
           "original_epic": "E10",
@@ -38840,7 +39075,7 @@ window.TRUSTCOPILOT_BACKLOG = {
       "followups": [
         {
           "id": "TC-10-006a",
-          "title": "P1: Store document and export hashes and refuse a download when the recorded hash is missing or does not match",
+          "title": "P1: Store document and export hashes and refuse a download when the recorded hash is missing or does not match (closed, #353)",
           "parent_id": "TC-10-006",
           "story_points": null,
           "source_url": "https://github.com/Johnathan-u/trust-copilot/pull/314",
@@ -38848,11 +39083,27 @@ window.TRUSTCOPILOT_BACKLOG = {
         },
         {
           "id": "TC-10-006b",
-          "title": "P1: Add tests/release/test_storage_checksums.py and docs/release/tickets/TC-10-006.md",
+          "title": "P1: Add tests/release/test_storage_checksums.py and docs/release/tickets/TC-10-006.md (closed, #353)",
           "parent_id": "TC-10-006",
           "story_points": null,
           "source_url": "https://github.com/Johnathan-u/trust-copilot/pull/314",
           "source_path": "docs/release/tickets/TC-10-006b.md"
+        },
+        {
+          "id": "TC-10-006c",
+          "title": "P2: Backfill skips rows whose hash, media type and positive version already agree with the object; document re-run after interrupted run and moved-document fail-closed",
+          "parent_id": "TC-10-006",
+          "story_points": null,
+          "source_url": "https://github.com/Johnathan-u/trust-copilot/pull/353",
+          "source_path": "docs/release/tickets/TC-10-006c.md"
+        },
+        {
+          "id": "TC-10-006d",
+          "title": "P3: Seed scripts write document hashes",
+          "parent_id": "TC-10-006",
+          "story_points": null,
+          "source_url": "https://github.com/Johnathan-u/trust-copilot/pull/353",
+          "source_path": "docs/release/tickets/TC-10-006d.md"
         }
       ]
     },
@@ -187281,6 +187532,553 @@ window.TRUSTCOPILOT_BACKLOG = {
           }
         }
       }
+    },
+    {
+      "revision": 48,
+      "at": "2026-11-27T12:11:21Z",
+      "actor": "grok",
+      "reason": "Record Claude's acceptance of TC-10-006 on #353 comment 7145303338, close TC-10-006a and TC-10-006b, and register TC-10-006c and TC-10-006d. Grok (worker) records the review and is not the independent reviewer.",
+      "source_sha": "ccd333670e3306a8c4102ec0dc86d77aef39cde2",
+      "before": {
+        "scope_version": 1,
+        "accepted_points": null,
+        "completion_percentage": null,
+        "assessed_tickets": 76,
+        "total_tickets": 384,
+        "total_points": 1864,
+        "state_counts": {
+          "BASELINE_RECONCILIATION": 263,
+          "BLOCKED": 3,
+          "DONE": 75,
+          "EVIDENCE_RECONCILIATION": 12,
+          "IMPLEMENTATION_GAPS_IDENTIFIED": 31
+        },
+        "accepted_claim_points": 327,
+        "accepted_tickets": 75,
+        "baseline_status": "PENDING"
+      },
+      "after": {
+        "scope_version": 1,
+        "accepted_points": null,
+        "completion_percentage": null,
+        "assessed_tickets": 77,
+        "total_tickets": 384,
+        "total_points": 1864,
+        "state_counts": {
+          "BASELINE_RECONCILIATION": 263,
+          "BLOCKED": 3,
+          "DONE": 76,
+          "EVIDENCE_RECONCILIATION": 12,
+          "IMPLEMENTATION_GAPS_IDENTIFIED": 30
+        },
+        "accepted_claim_points": 330,
+        "accepted_tickets": 76,
+        "baseline_status": "PENDING"
+      },
+      "changes": {
+        "tickets": {
+          "TC-10-006": {
+            "status": {
+              "before": "IMPLEMENTATION_GAPS_IDENTIFIED",
+              "after": "DONE"
+            },
+            "evidence_state": {
+              "before": "IMPLEMENTATION_GAPS_IDENTIFIED",
+              "after": "VERIFIED_ACCEPTED"
+            },
+            "next_action": {
+              "before": "Gaps from docs/release/verification/TC-10-006.md (PARTIAL, checked at 2647b2e2ad5ef575ee354a3c9c92a8bd16680dbc; PR #314 merge 52b7def3aea38caf44e4c31c0df9d408dc7096b1, head dc1ff929fb9cdab0bee23e354d98c07d319bd871; Claude's review tick #85 comment 7039897301): An export with no recorded hash still downloads, document rows have no hash column, and tests/release/test_storage_checksums.py is absent. Child TC-10-006a (P1) and child TC-10-006b (P1) are registered and open. Not accepted.",
+              "after": "Accepted. Claude confirmed AC1 and AC2 meet and DoD1 through DoD5 on #353 comment 7145303338 at 17187840ad54e2d0006e75254f9d5725eb5b8ae2. Reviewed head 17187840ad54e2d0006e75254f9d5725eb5b8ae2 squash-merged as ccd333670e3306a8c4102ec0dc86d77aef39cde2. The squash merge tree matches the reviewed head. Migration tc10006_storage_checksums is the single head. TC-10-006a and TC-10-006b are closed as DONE in the same verdict. Follow-ups TC-10-006c (P2) and TC-10-006d (P3) are registered. Reopen only on regression or when change control adds scope."
+            },
+            "updated_at": {
+              "before": "2026-11-20T13:31:15Z",
+              "after": "2026-11-27T12:11:21Z"
+            },
+            "source_sha": {
+              "before": "32cc730e508b78af9c5039c1ee4a88bb29e970e6",
+              "after": "ccd333670e3306a8c4102ec0dc86d77aef39cde2"
+            },
+            "acceptance": {
+              "before": {
+                "state": "PENDING",
+                "assessed_by": null,
+                "assessed_at": null,
+                "assessed_sha": null,
+                "assessment_evidence_urls": [],
+                "tested_sha": null,
+                "implemented_by": [],
+                "independent_reviewer": null,
+                "reviewed_at": null,
+                "reviewed_sha": null,
+                "review_evidence_urls": [],
+                "criteria": [
+                  {
+                    "id": "TC-10-006-AC1",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-10-006-AC2",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  }
+                ],
+                "definition_of_done": [
+                  {
+                    "id": "TC-10-006-DOD1",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-10-006-DOD2",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-10-006-DOD3",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-10-006-DOD4",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-10-006-DOD5",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  }
+                ],
+                "note": "Full original-parent acceptance is pending baseline validation; merged work and artifact presence alone confer no acceptance. Claude's review tick on #85 comment 7039897301 moves the PARTIAL report docs/release/verification/TC-10-006.md in PR #314 (merge 52b7def3aea38caf44e4c31c0df9d408dc7096b1, head dc1ff929fb9cdab0bee23e354d98c07d319bd871) to IMPLEMENTATION_GAPS_IDENTIFIED. The report was checked at 2647b2e2ad5ef575ee354a3c9c92a8bd16680dbc. An export with no recorded hash still downloads, document rows have no hash column, and tests/release/test_storage_checksums.py is absent. Child TC-10-006a (P1) and child TC-10-006b (P1) are registered and open. The children are not counted toward DONE. Status is IMPLEMENTATION_GAPS_IDENTIFIED. This record does not accept the ticket. Recorded by Grok (worker) from Claude's review. Grok is not the independent reviewer."
+              },
+              "after": {
+                "state": "ACCEPTED",
+                "assessed_by": "claude-review-agent",
+                "assessed_at": "2026-11-24T21:43:24Z",
+                "assessed_sha": "17187840ad54e2d0006e75254f9d5725eb5b8ae2",
+                "assessment_evidence_urls": [
+                  "https://github.com/Johnathan-u/trust-copilot/pull/353#issuecomment-7145303338",
+                  "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-7145303898",
+                  "https://github.com/Johnathan-u/trust-copilot/pull/353",
+                  "https://github.com/Johnathan-u/trust-copilot/commit/17187840ad54e2d0006e75254f9d5725eb5b8ae2",
+                  "https://github.com/Johnathan-u/trust-copilot/commit/ccd333670e3306a8c4102ec0dc86d77aef39cde2",
+                  "https://github.com/Johnathan-u/trust-copilot/actions/runs/45061534723",
+                  "https://github.com/Johnathan-u/trust-copilot/actions/runs/45061540604",
+                  "https://github.com/Johnathan-u/trust-copilot/blob/17187840ad54e2d0006e75254f9d5725eb5b8ae2/docs/release/tickets/TC-10-006.md",
+                  "https://github.com/Johnathan-u/trust-copilot/blob/17187840ad54e2d0006e75254f9d5725eb5b8ae2/docs/release/tickets/TC-10-006a.md",
+                  "https://github.com/Johnathan-u/trust-copilot/blob/17187840ad54e2d0006e75254f9d5725eb5b8ae2/docs/release/tickets/TC-10-006b.md",
+                  "https://github.com/Johnathan-u/trust-copilot/blob/17187840ad54e2d0006e75254f9d5725eb5b8ae2/docs/release/verification/TC-10-006.md",
+                  "https://github.com/Johnathan-u/trust-copilot/blob/17187840ad54e2d0006e75254f9d5725eb5b8ae2/artifacts/acceptance/TC-10-006/README.md",
+                  "https://github.com/Johnathan-u/trust-copilot/blob/17187840ad54e2d0006e75254f9d5725eb5b8ae2/artifacts/acceptance/TC-10-006/passing-after.txt",
+                  "https://github.com/Johnathan-u/trust-copilot/blob/17187840ad54e2d0006e75254f9d5725eb5b8ae2/artifacts/acceptance/TC-10-006/environment.txt",
+                  "https://github.com/Johnathan-u/trust-copilot/blob/17187840ad54e2d0006e75254f9d5725eb5b8ae2/artifacts/acceptance/TC-10-006/failing-before.txt",
+                  "https://github.com/Johnathan-u/trust-copilot/blob/17187840ad54e2d0006e75254f9d5725eb5b8ae2/artifacts/acceptance/TC-10-006/pytest.txt",
+                  "https://github.com/Johnathan-u/trust-copilot/blob/17187840ad54e2d0006e75254f9d5725eb5b8ae2/apps/api/tests/release/test_storage_checksums.py",
+                  "https://github.com/Johnathan-u/trust-copilot/blob/17187840ad54e2d0006e75254f9d5725eb5b8ae2/docs/ops/storage-checksums.md",
+                  "https://github.com/Johnathan-u/trust-copilot/blob/17187840ad54e2d0006e75254f9d5725eb5b8ae2/apps/api/alembic/versions/tc10006_storage_checksums.py",
+                  "https://github.com/Johnathan-u/trust-copilot/pull/314",
+                  "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-7039897301"
+                ],
+                "tested_sha": "17187840ad54e2d0006e75254f9d5725eb5b8ae2",
+                "implemented_by": [
+                  "grok",
+                  "Johnathan-u"
+                ],
+                "independent_reviewer": "claude-review-agent",
+                "reviewed_at": "2026-11-24T21:43:24Z",
+                "reviewed_sha": "17187840ad54e2d0006e75254f9d5725eb5b8ae2",
+                "review_evidence_urls": [
+                  "https://github.com/Johnathan-u/trust-copilot/pull/353#issuecomment-7145303338",
+                  "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-7145303898",
+                  "https://github.com/Johnathan-u/trust-copilot/pull/353",
+                  "https://github.com/Johnathan-u/trust-copilot/commit/17187840ad54e2d0006e75254f9d5725eb5b8ae2",
+                  "https://github.com/Johnathan-u/trust-copilot/commit/ccd333670e3306a8c4102ec0dc86d77aef39cde2",
+                  "https://github.com/Johnathan-u/trust-copilot/actions/runs/45061534723",
+                  "https://github.com/Johnathan-u/trust-copilot/actions/runs/45061540604",
+                  "https://github.com/Johnathan-u/trust-copilot/blob/17187840ad54e2d0006e75254f9d5725eb5b8ae2/docs/release/tickets/TC-10-006.md",
+                  "https://github.com/Johnathan-u/trust-copilot/blob/17187840ad54e2d0006e75254f9d5725eb5b8ae2/docs/release/tickets/TC-10-006a.md",
+                  "https://github.com/Johnathan-u/trust-copilot/blob/17187840ad54e2d0006e75254f9d5725eb5b8ae2/docs/release/tickets/TC-10-006b.md",
+                  "https://github.com/Johnathan-u/trust-copilot/blob/17187840ad54e2d0006e75254f9d5725eb5b8ae2/docs/release/verification/TC-10-006.md",
+                  "https://github.com/Johnathan-u/trust-copilot/blob/17187840ad54e2d0006e75254f9d5725eb5b8ae2/artifacts/acceptance/TC-10-006/README.md",
+                  "https://github.com/Johnathan-u/trust-copilot/blob/17187840ad54e2d0006e75254f9d5725eb5b8ae2/artifacts/acceptance/TC-10-006/passing-after.txt",
+                  "https://github.com/Johnathan-u/trust-copilot/blob/17187840ad54e2d0006e75254f9d5725eb5b8ae2/artifacts/acceptance/TC-10-006/environment.txt",
+                  "https://github.com/Johnathan-u/trust-copilot/blob/17187840ad54e2d0006e75254f9d5725eb5b8ae2/artifacts/acceptance/TC-10-006/failing-before.txt",
+                  "https://github.com/Johnathan-u/trust-copilot/blob/17187840ad54e2d0006e75254f9d5725eb5b8ae2/artifacts/acceptance/TC-10-006/pytest.txt",
+                  "https://github.com/Johnathan-u/trust-copilot/blob/17187840ad54e2d0006e75254f9d5725eb5b8ae2/apps/api/tests/release/test_storage_checksums.py",
+                  "https://github.com/Johnathan-u/trust-copilot/blob/17187840ad54e2d0006e75254f9d5725eb5b8ae2/docs/ops/storage-checksums.md",
+                  "https://github.com/Johnathan-u/trust-copilot/blob/17187840ad54e2d0006e75254f9d5725eb5b8ae2/apps/api/alembic/versions/tc10006_storage_checksums.py",
+                  "https://github.com/Johnathan-u/trust-copilot/pull/314",
+                  "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-7039897301"
+                ],
+                "criteria": [
+                  {
+                    "id": "TC-10-006-AC1",
+                    "status": "PASS",
+                    "evidence_urls": [
+                      "https://github.com/Johnathan-u/trust-copilot/pull/353#issuecomment-7145303338",
+                      "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-7145303898",
+                      "https://github.com/Johnathan-u/trust-copilot/pull/353",
+                      "https://github.com/Johnathan-u/trust-copilot/commit/17187840ad54e2d0006e75254f9d5725eb5b8ae2",
+                      "https://github.com/Johnathan-u/trust-copilot/commit/ccd333670e3306a8c4102ec0dc86d77aef39cde2",
+                      "https://github.com/Johnathan-u/trust-copilot/actions/runs/45061534723",
+                      "https://github.com/Johnathan-u/trust-copilot/actions/runs/45061540604",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/17187840ad54e2d0006e75254f9d5725eb5b8ae2/docs/release/tickets/TC-10-006.md",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/17187840ad54e2d0006e75254f9d5725eb5b8ae2/docs/release/tickets/TC-10-006a.md",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/17187840ad54e2d0006e75254f9d5725eb5b8ae2/docs/release/tickets/TC-10-006b.md",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/17187840ad54e2d0006e75254f9d5725eb5b8ae2/docs/release/verification/TC-10-006.md",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/17187840ad54e2d0006e75254f9d5725eb5b8ae2/artifacts/acceptance/TC-10-006/README.md",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/17187840ad54e2d0006e75254f9d5725eb5b8ae2/artifacts/acceptance/TC-10-006/passing-after.txt",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/17187840ad54e2d0006e75254f9d5725eb5b8ae2/artifacts/acceptance/TC-10-006/environment.txt",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/17187840ad54e2d0006e75254f9d5725eb5b8ae2/artifacts/acceptance/TC-10-006/failing-before.txt",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/17187840ad54e2d0006e75254f9d5725eb5b8ae2/artifacts/acceptance/TC-10-006/pytest.txt",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/17187840ad54e2d0006e75254f9d5725eb5b8ae2/apps/api/tests/release/test_storage_checksums.py",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/17187840ad54e2d0006e75254f9d5725eb5b8ae2/docs/ops/storage-checksums.md",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/17187840ad54e2d0006e75254f9d5725eb5b8ae2/apps/api/alembic/versions/tc10006_storage_checksums.py",
+                      "https://github.com/Johnathan-u/trust-copilot/pull/314",
+                      "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-7039897301"
+                    ],
+                    "tested_sha": "17187840ad54e2d0006e75254f9d5725eb5b8ae2"
+                  },
+                  {
+                    "id": "TC-10-006-AC2",
+                    "status": "PASS",
+                    "evidence_urls": [
+                      "https://github.com/Johnathan-u/trust-copilot/pull/353#issuecomment-7145303338",
+                      "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-7145303898",
+                      "https://github.com/Johnathan-u/trust-copilot/pull/353",
+                      "https://github.com/Johnathan-u/trust-copilot/commit/17187840ad54e2d0006e75254f9d5725eb5b8ae2",
+                      "https://github.com/Johnathan-u/trust-copilot/commit/ccd333670e3306a8c4102ec0dc86d77aef39cde2",
+                      "https://github.com/Johnathan-u/trust-copilot/actions/runs/45061534723",
+                      "https://github.com/Johnathan-u/trust-copilot/actions/runs/45061540604",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/17187840ad54e2d0006e75254f9d5725eb5b8ae2/docs/release/tickets/TC-10-006.md",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/17187840ad54e2d0006e75254f9d5725eb5b8ae2/docs/release/tickets/TC-10-006a.md",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/17187840ad54e2d0006e75254f9d5725eb5b8ae2/docs/release/tickets/TC-10-006b.md",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/17187840ad54e2d0006e75254f9d5725eb5b8ae2/docs/release/verification/TC-10-006.md",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/17187840ad54e2d0006e75254f9d5725eb5b8ae2/artifacts/acceptance/TC-10-006/README.md",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/17187840ad54e2d0006e75254f9d5725eb5b8ae2/artifacts/acceptance/TC-10-006/passing-after.txt",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/17187840ad54e2d0006e75254f9d5725eb5b8ae2/artifacts/acceptance/TC-10-006/environment.txt",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/17187840ad54e2d0006e75254f9d5725eb5b8ae2/artifacts/acceptance/TC-10-006/failing-before.txt",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/17187840ad54e2d0006e75254f9d5725eb5b8ae2/artifacts/acceptance/TC-10-006/pytest.txt",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/17187840ad54e2d0006e75254f9d5725eb5b8ae2/apps/api/tests/release/test_storage_checksums.py",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/17187840ad54e2d0006e75254f9d5725eb5b8ae2/docs/ops/storage-checksums.md",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/17187840ad54e2d0006e75254f9d5725eb5b8ae2/apps/api/alembic/versions/tc10006_storage_checksums.py",
+                      "https://github.com/Johnathan-u/trust-copilot/pull/314",
+                      "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-7039897301"
+                    ],
+                    "tested_sha": "17187840ad54e2d0006e75254f9d5725eb5b8ae2"
+                  }
+                ],
+                "definition_of_done": [
+                  {
+                    "id": "TC-10-006-DOD1",
+                    "status": "PASS",
+                    "evidence_urls": [
+                      "https://github.com/Johnathan-u/trust-copilot/pull/353#issuecomment-7145303338",
+                      "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-7145303898",
+                      "https://github.com/Johnathan-u/trust-copilot/pull/353",
+                      "https://github.com/Johnathan-u/trust-copilot/commit/17187840ad54e2d0006e75254f9d5725eb5b8ae2",
+                      "https://github.com/Johnathan-u/trust-copilot/commit/ccd333670e3306a8c4102ec0dc86d77aef39cde2",
+                      "https://github.com/Johnathan-u/trust-copilot/actions/runs/45061534723",
+                      "https://github.com/Johnathan-u/trust-copilot/actions/runs/45061540604",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/17187840ad54e2d0006e75254f9d5725eb5b8ae2/docs/release/tickets/TC-10-006.md",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/17187840ad54e2d0006e75254f9d5725eb5b8ae2/docs/release/tickets/TC-10-006a.md",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/17187840ad54e2d0006e75254f9d5725eb5b8ae2/docs/release/tickets/TC-10-006b.md",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/17187840ad54e2d0006e75254f9d5725eb5b8ae2/docs/release/verification/TC-10-006.md",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/17187840ad54e2d0006e75254f9d5725eb5b8ae2/artifacts/acceptance/TC-10-006/README.md",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/17187840ad54e2d0006e75254f9d5725eb5b8ae2/artifacts/acceptance/TC-10-006/passing-after.txt",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/17187840ad54e2d0006e75254f9d5725eb5b8ae2/artifacts/acceptance/TC-10-006/environment.txt",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/17187840ad54e2d0006e75254f9d5725eb5b8ae2/artifacts/acceptance/TC-10-006/failing-before.txt",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/17187840ad54e2d0006e75254f9d5725eb5b8ae2/artifacts/acceptance/TC-10-006/pytest.txt",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/17187840ad54e2d0006e75254f9d5725eb5b8ae2/apps/api/tests/release/test_storage_checksums.py",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/17187840ad54e2d0006e75254f9d5725eb5b8ae2/docs/ops/storage-checksums.md",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/17187840ad54e2d0006e75254f9d5725eb5b8ae2/apps/api/alembic/versions/tc10006_storage_checksums.py",
+                      "https://github.com/Johnathan-u/trust-copilot/pull/314",
+                      "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-7039897301"
+                    ],
+                    "tested_sha": "17187840ad54e2d0006e75254f9d5725eb5b8ae2"
+                  },
+                  {
+                    "id": "TC-10-006-DOD2",
+                    "status": "PASS",
+                    "evidence_urls": [
+                      "https://github.com/Johnathan-u/trust-copilot/pull/353#issuecomment-7145303338",
+                      "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-7145303898",
+                      "https://github.com/Johnathan-u/trust-copilot/pull/353",
+                      "https://github.com/Johnathan-u/trust-copilot/commit/17187840ad54e2d0006e75254f9d5725eb5b8ae2",
+                      "https://github.com/Johnathan-u/trust-copilot/commit/ccd333670e3306a8c4102ec0dc86d77aef39cde2",
+                      "https://github.com/Johnathan-u/trust-copilot/actions/runs/45061534723",
+                      "https://github.com/Johnathan-u/trust-copilot/actions/runs/45061540604",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/17187840ad54e2d0006e75254f9d5725eb5b8ae2/docs/release/tickets/TC-10-006.md",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/17187840ad54e2d0006e75254f9d5725eb5b8ae2/docs/release/tickets/TC-10-006a.md",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/17187840ad54e2d0006e75254f9d5725eb5b8ae2/docs/release/tickets/TC-10-006b.md",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/17187840ad54e2d0006e75254f9d5725eb5b8ae2/docs/release/verification/TC-10-006.md",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/17187840ad54e2d0006e75254f9d5725eb5b8ae2/artifacts/acceptance/TC-10-006/README.md",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/17187840ad54e2d0006e75254f9d5725eb5b8ae2/artifacts/acceptance/TC-10-006/passing-after.txt",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/17187840ad54e2d0006e75254f9d5725eb5b8ae2/artifacts/acceptance/TC-10-006/environment.txt",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/17187840ad54e2d0006e75254f9d5725eb5b8ae2/artifacts/acceptance/TC-10-006/failing-before.txt",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/17187840ad54e2d0006e75254f9d5725eb5b8ae2/artifacts/acceptance/TC-10-006/pytest.txt",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/17187840ad54e2d0006e75254f9d5725eb5b8ae2/apps/api/tests/release/test_storage_checksums.py",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/17187840ad54e2d0006e75254f9d5725eb5b8ae2/docs/ops/storage-checksums.md",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/17187840ad54e2d0006e75254f9d5725eb5b8ae2/apps/api/alembic/versions/tc10006_storage_checksums.py",
+                      "https://github.com/Johnathan-u/trust-copilot/pull/314",
+                      "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-7039897301"
+                    ],
+                    "tested_sha": "17187840ad54e2d0006e75254f9d5725eb5b8ae2"
+                  },
+                  {
+                    "id": "TC-10-006-DOD3",
+                    "status": "PASS",
+                    "evidence_urls": [
+                      "https://github.com/Johnathan-u/trust-copilot/pull/353#issuecomment-7145303338",
+                      "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-7145303898",
+                      "https://github.com/Johnathan-u/trust-copilot/pull/353",
+                      "https://github.com/Johnathan-u/trust-copilot/commit/17187840ad54e2d0006e75254f9d5725eb5b8ae2",
+                      "https://github.com/Johnathan-u/trust-copilot/commit/ccd333670e3306a8c4102ec0dc86d77aef39cde2",
+                      "https://github.com/Johnathan-u/trust-copilot/actions/runs/45061534723",
+                      "https://github.com/Johnathan-u/trust-copilot/actions/runs/45061540604",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/17187840ad54e2d0006e75254f9d5725eb5b8ae2/docs/release/tickets/TC-10-006.md",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/17187840ad54e2d0006e75254f9d5725eb5b8ae2/docs/release/tickets/TC-10-006a.md",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/17187840ad54e2d0006e75254f9d5725eb5b8ae2/docs/release/tickets/TC-10-006b.md",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/17187840ad54e2d0006e75254f9d5725eb5b8ae2/docs/release/verification/TC-10-006.md",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/17187840ad54e2d0006e75254f9d5725eb5b8ae2/artifacts/acceptance/TC-10-006/README.md",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/17187840ad54e2d0006e75254f9d5725eb5b8ae2/artifacts/acceptance/TC-10-006/passing-after.txt",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/17187840ad54e2d0006e75254f9d5725eb5b8ae2/artifacts/acceptance/TC-10-006/environment.txt",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/17187840ad54e2d0006e75254f9d5725eb5b8ae2/artifacts/acceptance/TC-10-006/failing-before.txt",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/17187840ad54e2d0006e75254f9d5725eb5b8ae2/artifacts/acceptance/TC-10-006/pytest.txt",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/17187840ad54e2d0006e75254f9d5725eb5b8ae2/apps/api/tests/release/test_storage_checksums.py",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/17187840ad54e2d0006e75254f9d5725eb5b8ae2/docs/ops/storage-checksums.md",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/17187840ad54e2d0006e75254f9d5725eb5b8ae2/apps/api/alembic/versions/tc10006_storage_checksums.py",
+                      "https://github.com/Johnathan-u/trust-copilot/pull/314",
+                      "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-7039897301"
+                    ],
+                    "tested_sha": "17187840ad54e2d0006e75254f9d5725eb5b8ae2"
+                  },
+                  {
+                    "id": "TC-10-006-DOD4",
+                    "status": "PASS",
+                    "evidence_urls": [
+                      "https://github.com/Johnathan-u/trust-copilot/pull/353#issuecomment-7145303338",
+                      "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-7145303898",
+                      "https://github.com/Johnathan-u/trust-copilot/pull/353",
+                      "https://github.com/Johnathan-u/trust-copilot/commit/17187840ad54e2d0006e75254f9d5725eb5b8ae2",
+                      "https://github.com/Johnathan-u/trust-copilot/commit/ccd333670e3306a8c4102ec0dc86d77aef39cde2",
+                      "https://github.com/Johnathan-u/trust-copilot/actions/runs/45061534723",
+                      "https://github.com/Johnathan-u/trust-copilot/actions/runs/45061540604",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/17187840ad54e2d0006e75254f9d5725eb5b8ae2/docs/release/tickets/TC-10-006.md",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/17187840ad54e2d0006e75254f9d5725eb5b8ae2/docs/release/tickets/TC-10-006a.md",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/17187840ad54e2d0006e75254f9d5725eb5b8ae2/docs/release/tickets/TC-10-006b.md",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/17187840ad54e2d0006e75254f9d5725eb5b8ae2/docs/release/verification/TC-10-006.md",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/17187840ad54e2d0006e75254f9d5725eb5b8ae2/artifacts/acceptance/TC-10-006/README.md",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/17187840ad54e2d0006e75254f9d5725eb5b8ae2/artifacts/acceptance/TC-10-006/passing-after.txt",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/17187840ad54e2d0006e75254f9d5725eb5b8ae2/artifacts/acceptance/TC-10-006/environment.txt",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/17187840ad54e2d0006e75254f9d5725eb5b8ae2/artifacts/acceptance/TC-10-006/failing-before.txt",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/17187840ad54e2d0006e75254f9d5725eb5b8ae2/artifacts/acceptance/TC-10-006/pytest.txt",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/17187840ad54e2d0006e75254f9d5725eb5b8ae2/apps/api/tests/release/test_storage_checksums.py",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/17187840ad54e2d0006e75254f9d5725eb5b8ae2/docs/ops/storage-checksums.md",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/17187840ad54e2d0006e75254f9d5725eb5b8ae2/apps/api/alembic/versions/tc10006_storage_checksums.py",
+                      "https://github.com/Johnathan-u/trust-copilot/pull/314",
+                      "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-7039897301"
+                    ],
+                    "tested_sha": "17187840ad54e2d0006e75254f9d5725eb5b8ae2"
+                  },
+                  {
+                    "id": "TC-10-006-DOD5",
+                    "status": "PASS",
+                    "evidence_urls": [
+                      "https://github.com/Johnathan-u/trust-copilot/pull/353#issuecomment-7145303338",
+                      "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-7145303898",
+                      "https://github.com/Johnathan-u/trust-copilot/pull/353",
+                      "https://github.com/Johnathan-u/trust-copilot/commit/17187840ad54e2d0006e75254f9d5725eb5b8ae2",
+                      "https://github.com/Johnathan-u/trust-copilot/commit/ccd333670e3306a8c4102ec0dc86d77aef39cde2",
+                      "https://github.com/Johnathan-u/trust-copilot/actions/runs/45061534723",
+                      "https://github.com/Johnathan-u/trust-copilot/actions/runs/45061540604",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/17187840ad54e2d0006e75254f9d5725eb5b8ae2/docs/release/tickets/TC-10-006.md",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/17187840ad54e2d0006e75254f9d5725eb5b8ae2/docs/release/tickets/TC-10-006a.md",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/17187840ad54e2d0006e75254f9d5725eb5b8ae2/docs/release/tickets/TC-10-006b.md",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/17187840ad54e2d0006e75254f9d5725eb5b8ae2/docs/release/verification/TC-10-006.md",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/17187840ad54e2d0006e75254f9d5725eb5b8ae2/artifacts/acceptance/TC-10-006/README.md",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/17187840ad54e2d0006e75254f9d5725eb5b8ae2/artifacts/acceptance/TC-10-006/passing-after.txt",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/17187840ad54e2d0006e75254f9d5725eb5b8ae2/artifacts/acceptance/TC-10-006/environment.txt",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/17187840ad54e2d0006e75254f9d5725eb5b8ae2/artifacts/acceptance/TC-10-006/failing-before.txt",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/17187840ad54e2d0006e75254f9d5725eb5b8ae2/artifacts/acceptance/TC-10-006/pytest.txt",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/17187840ad54e2d0006e75254f9d5725eb5b8ae2/apps/api/tests/release/test_storage_checksums.py",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/17187840ad54e2d0006e75254f9d5725eb5b8ae2/docs/ops/storage-checksums.md",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/17187840ad54e2d0006e75254f9d5725eb5b8ae2/apps/api/alembic/versions/tc10006_storage_checksums.py",
+                      "https://github.com/Johnathan-u/trust-copilot/pull/314",
+                      "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-7039897301"
+                    ],
+                    "tested_sha": "17187840ad54e2d0006e75254f9d5725eb5b8ae2"
+                  }
+                ],
+                "note": "DONE and VERIFIED_ACCEPTED. Claude is the independent reviewer. He accepted TC-10-006, TC-10-006a and TC-10-006b on #353 comment 7145303338 at 2026-11-24T21:43:24Z. The same acceptance is on #85 comment 7145303898. Tested, assessed and reviewed SHA 17187840ad54e2d0006e75254f9d5725eb5b8ae2 is the reviewed PR #353 head. The squash merge is ccd333670e3306a8c4102ec0dc86d77aef39cde2 and its tree matches that head. He confirmed AC1 meets and AC2 meets. DoD1 through DoD5 meet on #353 comment 7145303338: release test apps/api/tests/release/test_storage_checksums.py ran 6 tests, all passed, none skipped, evidence is in artifacts/acceptance/TC-10-006/, the runbook is docs/ops/storage-checksums.md, the ticket files are docs/release/tickets/TC-10-006.md, TC-10-006a.md and TC-10-006b.md, migration tc10006_storage_checksums is the single head (six nullable columns; downgrade drops them; an up/down test covers it), and the review is independent. Reviewed head 17187840ad54e2d0006e75254f9d5725eb5b8ae2 was green on push run 45061534723 and pull_request run 45061540604. TC-10-006a and TC-10-006b are closed as DONE. Follow-up TC-10-006c (P2) is registered from #353 comment 7145303338: the storage_checksum backfill treats only object_version == 1 as complete, so a re-rendered export at version \u003e= 2 with a correct hash counts as pending and --execute rewrites the object and resets the version to 1. Skip a row whose hash, media type and positive version already agree with the object. The object is stamped before the row commits, so document that an interrupted run is fixed by running it again. A document moved by reassign_parent_workspace keeps its old key, so it is refused and counted as disagreed (fails closed, correct); say so in the ops doc. Follow-up TC-10-006d (P3) is registered from the same comment: seed_demo_workspace.py, seed_e2e_registry.py and seed_qa_test_data.py create documents with no hash, so seeded files return 409 until the backfill runs. The baseline PARTIAL on #314 and #85 comment 7039897301 is superseded by this acceptance. Baseline verification of the original plan stays pending. Grok records this review and is not the independent reviewer."
+              }
+            },
+            "pr_links": {
+              "before": [
+                {
+                  "number": 314,
+                  "title": "docs: baseline reconciliation batch 10 (TC-13-006, TC-15-008, TC-10-006, TC-14-007)",
+                  "url": "https://github.com/Johnathan-u/trust-copilot/pull/314",
+                  "state": "merged",
+                  "draft": false,
+                  "head_sha": "dc1ff929fb9cdab0bee23e354d98c07d319bd871",
+                  "merge_commit_sha": "52b7def3aea38caf44e4c31c0df9d408dc7096b1",
+                  "merged_at": "2026-11-20T12:45:57Z",
+                  "mapping_basis": [
+                    "verification report"
+                  ],
+                  "scope_ids": [
+                    "TC-10-006"
+                  ]
+                }
+              ],
+              "after": [
+                {
+                  "number": 314,
+                  "title": "docs: baseline reconciliation batch 10 (TC-13-006, TC-15-008, TC-10-006, TC-14-007)",
+                  "url": "https://github.com/Johnathan-u/trust-copilot/pull/314",
+                  "state": "merged",
+                  "draft": false,
+                  "head_sha": "dc1ff929fb9cdab0bee23e354d98c07d319bd871",
+                  "merge_commit_sha": "52b7def3aea38caf44e4c31c0df9d408dc7096b1",
+                  "merged_at": "2026-11-20T12:45:57Z",
+                  "mapping_basis": [
+                    "verification report"
+                  ],
+                  "scope_ids": [
+                    "TC-10-006"
+                  ]
+                },
+                {
+                  "number": 353,
+                  "title": "TC-10-006: persist and verify original and export hashes (006a, 006b, parent)",
+                  "url": "https://github.com/Johnathan-u/trust-copilot/pull/353",
+                  "state": "merged",
+                  "draft": false,
+                  "head_sha": "17187840ad54e2d0006e75254f9d5725eb5b8ae2",
+                  "merge_commit_sha": "ccd333670e3306a8c4102ec0dc86d77aef39cde2",
+                  "merged_at": "2026-11-24T21:43:14Z",
+                  "mapping_basis": [
+                    "acceptance"
+                  ],
+                  "scope_ids": [
+                    "TC-10-006"
+                  ]
+                }
+              ]
+            },
+            "evidence_links": {
+              "before": [
+                "https://github.com/Johnathan-u/trust-copilot/pull/314",
+                "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-7039897301",
+                "https://github.com/Johnathan-u/trust-copilot/commit/dc1ff929fb9cdab0bee23e354d98c07d319bd871",
+                "https://github.com/Johnathan-u/trust-copilot/commit/52b7def3aea38caf44e4c31c0df9d408dc7096b1",
+                "https://github.com/Johnathan-u/trust-copilot/blob/52b7def3aea38caf44e4c31c0df9d408dc7096b1/docs/release/verification/TC-10-006.md"
+              ],
+              "after": [
+                "https://github.com/Johnathan-u/trust-copilot/pull/314",
+                "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-7039897301",
+                "https://github.com/Johnathan-u/trust-copilot/commit/dc1ff929fb9cdab0bee23e354d98c07d319bd871",
+                "https://github.com/Johnathan-u/trust-copilot/commit/52b7def3aea38caf44e4c31c0df9d408dc7096b1",
+                "https://github.com/Johnathan-u/trust-copilot/blob/52b7def3aea38caf44e4c31c0df9d408dc7096b1/docs/release/verification/TC-10-006.md",
+                "https://github.com/Johnathan-u/trust-copilot/pull/353#issuecomment-7145303338",
+                "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-7145303898",
+                "https://github.com/Johnathan-u/trust-copilot/pull/353",
+                "https://github.com/Johnathan-u/trust-copilot/commit/17187840ad54e2d0006e75254f9d5725eb5b8ae2",
+                "https://github.com/Johnathan-u/trust-copilot/commit/ccd333670e3306a8c4102ec0dc86d77aef39cde2",
+                "https://github.com/Johnathan-u/trust-copilot/actions/runs/45061534723",
+                "https://github.com/Johnathan-u/trust-copilot/actions/runs/45061540604",
+                "https://github.com/Johnathan-u/trust-copilot/blob/17187840ad54e2d0006e75254f9d5725eb5b8ae2/docs/release/tickets/TC-10-006.md",
+                "https://github.com/Johnathan-u/trust-copilot/blob/17187840ad54e2d0006e75254f9d5725eb5b8ae2/docs/release/tickets/TC-10-006a.md",
+                "https://github.com/Johnathan-u/trust-copilot/blob/17187840ad54e2d0006e75254f9d5725eb5b8ae2/docs/release/tickets/TC-10-006b.md",
+                "https://github.com/Johnathan-u/trust-copilot/blob/17187840ad54e2d0006e75254f9d5725eb5b8ae2/docs/release/verification/TC-10-006.md",
+                "https://github.com/Johnathan-u/trust-copilot/blob/17187840ad54e2d0006e75254f9d5725eb5b8ae2/artifacts/acceptance/TC-10-006/README.md",
+                "https://github.com/Johnathan-u/trust-copilot/blob/17187840ad54e2d0006e75254f9d5725eb5b8ae2/artifacts/acceptance/TC-10-006/passing-after.txt",
+                "https://github.com/Johnathan-u/trust-copilot/blob/17187840ad54e2d0006e75254f9d5725eb5b8ae2/artifacts/acceptance/TC-10-006/environment.txt",
+                "https://github.com/Johnathan-u/trust-copilot/blob/17187840ad54e2d0006e75254f9d5725eb5b8ae2/artifacts/acceptance/TC-10-006/failing-before.txt",
+                "https://github.com/Johnathan-u/trust-copilot/blob/17187840ad54e2d0006e75254f9d5725eb5b8ae2/artifacts/acceptance/TC-10-006/pytest.txt",
+                "https://github.com/Johnathan-u/trust-copilot/blob/17187840ad54e2d0006e75254f9d5725eb5b8ae2/apps/api/tests/release/test_storage_checksums.py",
+                "https://github.com/Johnathan-u/trust-copilot/blob/17187840ad54e2d0006e75254f9d5725eb5b8ae2/docs/ops/storage-checksums.md",
+                "https://github.com/Johnathan-u/trust-copilot/blob/17187840ad54e2d0006e75254f9d5725eb5b8ae2/apps/api/alembic/versions/tc10006_storage_checksums.py"
+              ]
+            }
+          }
+        },
+        "followups": {
+          "TC-10-006a": {
+            "title": {
+              "before": "P1: Store document and export hashes and refuse a download when the recorded hash is missing or does not match",
+              "after": "P1: Store document and export hashes and refuse a download when the recorded hash is missing or does not match (closed, #353)"
+            }
+          },
+          "TC-10-006b": {
+            "title": {
+              "before": "P1: Add tests/release/test_storage_checksums.py and docs/release/tickets/TC-10-006.md",
+              "after": "P1: Add tests/release/test_storage_checksums.py and docs/release/tickets/TC-10-006.md (closed, #353)"
+            }
+          },
+          "TC-10-006c": {
+            "id": {
+              "before": null,
+              "after": "TC-10-006c"
+            },
+            "title": {
+              "before": null,
+              "after": "P2: Backfill skips rows whose hash, media type and positive version already agree with the object; document re-run after interrupted run and moved-document fail-closed"
+            },
+            "parent_id": {
+              "before": null,
+              "after": "TC-10-006"
+            },
+            "story_points": {
+              "before": null,
+              "after": null
+            },
+            "source_url": {
+              "before": null,
+              "after": "https://github.com/Johnathan-u/trust-copilot/pull/353"
+            },
+            "source_path": {
+              "before": null,
+              "after": "docs/release/tickets/TC-10-006c.md"
+            }
+          },
+          "TC-10-006d": {
+            "id": {
+              "before": null,
+              "after": "TC-10-006d"
+            },
+            "title": {
+              "before": null,
+              "after": "P3: Seed scripts write document hashes"
+            },
+            "parent_id": {
+              "before": null,
+              "after": "TC-10-006"
+            },
+            "story_points": {
+              "before": null,
+              "after": null
+            },
+            "source_url": {
+              "before": null,
+              "after": "https://github.com/Johnathan-u/trust-copilot/pull/353"
+            },
+            "source_path": {
+              "before": null,
+              "after": "docs/release/tickets/TC-10-006d.md"
+            }
+          }
+        }
+      }
     }
   ],
   "followups": [
@@ -188286,7 +189084,7 @@ window.TRUSTCOPILOT_BACKLOG = {
     },
     {
       "id": "TC-10-006a",
-      "title": "P1: Store document and export hashes and refuse a download when the recorded hash is missing or does not match",
+      "title": "P1: Store document and export hashes and refuse a download when the recorded hash is missing or does not match (closed, #353)",
       "parent_id": "TC-10-006",
       "story_points": null,
       "source_url": "https://github.com/Johnathan-u/trust-copilot/pull/314",
@@ -188294,7 +189092,7 @@ window.TRUSTCOPILOT_BACKLOG = {
     },
     {
       "id": "TC-10-006b",
-      "title": "P1: Add tests/release/test_storage_checksums.py and docs/release/tickets/TC-10-006.md",
+      "title": "P1: Add tests/release/test_storage_checksums.py and docs/release/tickets/TC-10-006.md (closed, #353)",
       "parent_id": "TC-10-006",
       "story_points": null,
       "source_url": "https://github.com/Johnathan-u/trust-copilot/pull/314",
@@ -188475,6 +189273,22 @@ window.TRUSTCOPILOT_BACKLOG = {
       "story_points": null,
       "source_url": "https://github.com/Johnathan-u/trust-copilot/pull/347",
       "source_path": "docs/release/tickets/TC-02-009c.md"
+    },
+    {
+      "id": "TC-10-006c",
+      "title": "P2: Backfill skips rows whose hash, media type and positive version already agree with the object; document re-run after interrupted run and moved-document fail-closed",
+      "parent_id": "TC-10-006",
+      "story_points": null,
+      "source_url": "https://github.com/Johnathan-u/trust-copilot/pull/353",
+      "source_path": "docs/release/tickets/TC-10-006c.md"
+    },
+    {
+      "id": "TC-10-006d",
+      "title": "P3: Seed scripts write document hashes",
+      "parent_id": "TC-10-006",
+      "story_points": null,
+      "source_url": "https://github.com/Johnathan-u/trust-copilot/pull/353",
+      "source_path": "docs/release/tickets/TC-10-006d.md"
     }
   ],
   "pull_requests": [
@@ -192862,7 +193676,7 @@ window.TRUSTCOPILOT_BACKLOG = {
       "build": "python scripts/backlog_tracker.py build",
       "check": "python scripts/backlog_tracker.py check",
       "summary": "python scripts/backlog_tracker.py summary",
-      "update": "python scripts/backlog_tracker.py update --expected-revision 47 --actor YOUR_ID --reason 'Evidence reconciliation' --patch /tmp/backlog-patch.json",
+      "update": "python scripts/backlog_tracker.py update --expected-revision 48 --actor YOUR_ID --reason 'Evidence reconciliation' --patch /tmp/backlog-patch.json",
       "tests": "python -m unittest discover -s scripts/tests -p 'test_backlog_tracker.py' -v"
     }
   }
